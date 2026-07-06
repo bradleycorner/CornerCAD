@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__concretecms__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "IN=$(cat); SID=$(printf '%s' \"$IN\" | jq -r '.session_id // \"nosession\"'); FLAG=\"${TMPDIR:-/tmp}/cc-schema-$SID.flag\"; if [ ! -f \"$FLAG\" ]; then printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Run ToolSearch for the concretecms tool schema BEFORE this call. Concrete CMS param names are case-sensitive (e.g. pageID not pageId) and unknown keys are silently dropped, surfacing as a generic 404. Do: ToolSearch query select:<tool-name> (or a concretecms keyword search), then retry. This gate clears for the rest of the session after any concretecms ToolSearch.\"}}'; fi",
+            "timeout": 10,
+            "statusMessage": "Verifying concretecms schema was discovered…"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "ToolSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "IN=$(cat); SID=$(printf '%s' \"$IN\" | jq -r '.session_id // \"nosession\"'); if printf '%s' \"$IN\" | grep -qi 'concretecms'; then touch \"${TMPDIR:-/tmp}/cc-schema-$SID.flag\"; fi",
+            "timeout": 10,
+            "statusMessage": "Recording concretecms schema discovery…"
+          }
+        ]
+      }
+    ]
+  }
+}

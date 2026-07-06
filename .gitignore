@@ -1,0 +1,29 @@
+.DS_Store
+.env
+.env.local
+
+# Secrets — holds API Client ID/Secret (see CLAUDE.md); never commit
+api.md
+# ==========================================
+# Claude Code / Anthropic AI Agent
+# ==========================================
+# Local development and machine-specific configuration
+# Ignore .claude/ contents but keep the committed team hook config.
+# (Must be .claude/* not .claude/ — git can't re-include a file whose
+#  parent directory is excluded.)
+.claude/*
+!.claude/settings.json
+settings.local.json
+mcp-needs-auth-cache.json
+
+# Session and runtime history
+history.jsonl
+debug/
+file-history/
+paste-cache/
+tasks/
+cache/
+
+# Local system context overrides
+*.local.md
+claude_desktop_config.json
