@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<concrete5-cif version="1.0">
+
+    <!--
+      CornerCAD content model (CIF). Imported once by controller.php install().
+      Syntax verified against the live instance's Atomik theme content.xml.
+
+      TO REUSE ON ANOTHER SITE (e.g. uniquecreationsbylisac.com): change ONLY the
+      <topic> entries in the tree below to that site's categories. Everything else
+      (the Product page type + attributes) is the reusable core.
+    -->
+
+    <!-- 1. Category topic tree. Edit these <topic> lines per site. -->
+    <trees>
+        <tree type="topic" name="Product Categories">
+            <topic name="Automotive"/>
+            <topic name="Home &amp; Garden"/>
+            <topic name="Display &amp; Retail"/>
+            <topic name="Functional / Hardware"/>
+        </tree>
+    </trees>
+
+    <!-- 2. Product attributes (page/collection attributes). -->
+    <attributekeys>
+        <attributekey handle="product_short_desc" name="Product Short Description"
+                      type="textarea" category="collection" searchable="1" indexed="1"/>
+
+        <attributekey handle="product_featured_image" name="Product Featured Image"
+                      type="image_file" category="collection"/>
+
+        <attributekey handle="product_price" name="Product Price"
+                      type="text" category="collection"/>
+
+        <attributekey handle="product_cta_target" name="Product CTA Target (URL or file)"
+                      type="text" category="collection"/>
+
+        <attributekey handle="product_external_links" name="Product External Links (Printables/Creality)"
+                      type="textarea" category="collection"/>
+
+        <!-- The mixed-CTA switch: buy | download | inquire -->
+        <attributekey handle="product_cta_type" name="Product CTA Type"
+                      type="select" category="collection" searchable="1" indexed="1">
+            <type allow-multiple-values="" display-order="display_asc"
+                  display-multiple-values="1" allow-other-values="" hide-none-option="">
+                <options>
+                    <option value="buy"/>
+                    <option value="download"/>
+                    <option value="inquire"/>
+                </options>
+            </type>
+        </attributekey>
+
+        <!-- Category membership, bound to the topic tree above -->
+        <attributekey handle="product_categories" name="Product Categories"
+                      type="topics" category="collection" searchable="1" indexed="1">
+            <tree name="Product Categories" path="/"/>
+        </attributekey>
+    </attributekeys>
+
+    <!-- 3. Product page type. Allows all templates, default "full" (Atomik). -->
+    <pagetypes>
+        <pagetype name="Product" handle="product" package=""
+                  is-frequently-added="1" launch-in-composer="1">
+            <pagetemplates type="all" default="full"/>
+            <target handle="all" package=""/>
+        </pagetype>
+    </pagetypes>
+
+</concrete5-cif>

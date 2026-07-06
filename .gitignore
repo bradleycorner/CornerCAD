@@ -27,3 +27,8 @@ cache/
 # Local system context overrides
 *.local.md
 claude_desktop_config.json
+
+# Third-party Concrete CMS marketplace addons (installed on the server,
+# not vendored here) and their downloaded installers
+msv_cloudflare_turnstile/
+msv_cloudflare_turnstile.zip
