@@ -7,6 +7,26 @@
 
 ---
 
+## ⚠️ STATUS (updated 2026-07-16): SUPERSEDED for the cornercad.com need
+
+A native **"Square Payment Method" v1.0.1** add-on ("Square Payment Method for Community Store") is now
+**installed and available** on cornercad.com (Extend Concrete → Currently Installed). That **meets the
+site's launch need** — a working Square checkout — so **§1's *primary* goal (build a gateway because none
+exists) no longer applies**, and the earlier "Stripe is the launch fallback" note is moot.
+
+What remains open:
+- **Config/verify:** connect Square credentials (App ID / Access Token / Location ID), sandbox→production,
+  and run one end-to-end sandbox order before pointing production checkout at it (see §3, §6).
+- **The *secondary*, optional goal** (build & publish an own-brand Square gateway as a ~$50/yr marketplace
+  product) is now **fully decoupled from the site** and would only be pursued as a standalone product
+  play. Everything below (§2–§11) is retained as reference **only** for that optional path — it is NOT a
+  prerequisite for cornercad.com going live.
+
+Before relying on the installed add-on, confirm its provenance/maintenance (which package/author, whether
+it's the modern Web Payments SDK vs the deprecated `SqPaymentForm`, and its update cadence).
+
+---
+
 ## 1. Goals
 
 1. **Primary (need):** The payment gateway required for **cornercad.com's** hybrid Community Store —
@@ -157,5 +177,6 @@ The first consumer is cornercad.com's **hybrid** commerce model:
 - **CIF `Product` page type + `product_*` attributes** (Phase 0, already installed) drive catalog display
   and the **download / inquire** CTAs.
 - **Community Store "Add to Cart" + checkout** is bolted onto the physical **buy** items only.
-- **This Square gateway** processes that checkout — the white-label, on-site checkout the site spec left
-  as an open question (§10), with **no Etsy/Square/marketplace branding** on the public site.
+- **The installed "Square Payment Method" v1.0.1 add-on** processes that checkout (as of 2026-07-16 —
+  see Status banner above; a *custom-built* gateway is no longer required for the site), with
+  **no Etsy/Square/marketplace branding** on the public site.

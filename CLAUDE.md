@@ -28,8 +28,10 @@ block `value` configs, then delete them all at cleanup.
 - CIF **`Product` page type + `product_*` attributes** (installed via `packages/cornercad_setup`) drive
   catalog display and the **download / inquire** CTAs.
 - **Community Store** "Add to Cart" + checkout is bolted onto physical **buy** items only.
-- **Payment = Square**, via a **custom Community Store gateway built as a SEPARATE project** — brief:
-  `docs/community-store-square-gateway-brief.md`. Stripe is the launch fallback.
+- **Payment = Square**, via the installed **"Square Payment Method" v1.0.1** Community Store add-on
+  (installed 2026-07-16 — still needs credentials/sandbox test). This **supersedes** the earlier plan to
+  build a custom gateway as a separate project; that brief (`docs/community-store-square-gateway-brief.md`)
+  is now marked SUPERSEDED and kept only for the optional marketplace-product path. No Stripe fallback needed.
 
 ## Known landmines
 - **Pages 270 (Catalog), 271 (Custom Work), 272 (About)** — created 2026-06-25 — are **CORRUPT**: GET
