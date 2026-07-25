@@ -31,26 +31,39 @@ Read live over the `cornercad-com` MCP during the design session:
 
 | Fact | Value |
 |---|---|
-| Active theme at design time | `auto-parts-and-car-accessories` (block/FSE) — **being replaced, see §4** |
+| Active theme | **`sellany`** (block/FSE) — activated by Bradley 2026-07-25 10:53 |
+| Previous theme | `auto-parts-and-car-accessories`, itself preceded by `bluehost-blueprint` |
 | `woocommerce_coming_soon` | `yes` — public sees a holding page |
 | Products | `0` |
 | Media attachments | `1` |
-| `wp_template` customizations | One: **ID 21, "Front Page"**, published, modified 10:22 today |
+| `wp_template` customizations | Two "Front Page" records: **ID 36** (SellAny, active) and **ID 21** (auto-parts, orphaned) |
 | `wp_template_part` customizations | None |
 | Existing pages | 14 Shop · 15 Cart · 16 Checkout · 17 My account (publish); 3 Privacy Policy · 18 Refund and Returns Policy (draft) |
 | `product_cat` terms | `Uncategorized` only |
 
-**The single most important finding:** `wp_template` ID 21 contains **no `wp:post-content` block**.
-It is the theme's automotive demo homepage hardcoded into the database — hero reading *"Fits Your
-Ride. Fuels Your Drive. / Up to 60% OFF"*, category tiles for *Headlights and Lighting · Car
-Accessories · Tools and Equipment* with `href="#"`, and references to attachment IDs (129, 44, 59,
-60) that do not exist in a 1-item media library. While that template exists in its current form, a
-static Home page's content **cannot render** — the Front Page template takes precedence over all
-other templates.
+**The single most important finding: neither Front Page template contains a `wp:post-content`
+block.** The Front Page template takes precedence over all other templates, so while that holds, a
+static Home page's content **cannot render**. This is true of both themes, so it is a property of
+how these commercial themes ship, not a one-off:
 
-Its two `<!-- wp:template-part /-->` calls carry **no slug attribute**, and there are zero
-`wp_template_part` records. That may be rendering no header and no footer at all. Verify during
-implementation.
+- **ID 36 (SellAny, active)** — the porcelain demo. Hero *"Discover the Art of Fine Porcelain"* on
+  `#000103`, an icon row (Free Shipping · Simple Returns · Secured Payments · Call us Anytime, the
+  third carrying a `GShop with confidence` typo from the theme), a "New Arrivals"
+  `product-collection`, a parallax cover, and a "Latest Articles" query. Images point at
+  `themes/sellany/assets/`.
+- **ID 21 (auto-parts, orphaned)** — the automotive demo. *"Fits Your Ride. Fuels Your Drive. / Up to
+  60% OFF"*, category tiles with `href="#"`, and references to attachment IDs (129, 44, 59, 60) that
+  do not exist in a 1-item media library.
+
+**Useful side finding:** SellAny's stock palette is dark — the hero and icon bands sit on `#000103`.
+That is much closer to the high-contrast direction Bradley liked in Navid than the theme's
+"handcraft" listing implies, and it lowers the styling risk in §11.
+
+**Read-format caveat, learned the hard way:** `wp_get_post` with `content_format: "prose"` **strips
+block-attribute JSON**. Block comments come back looking bare — `<!-- wp:template-part /-->` with no
+`slug`, `<!-- wp:cover -->` with no `hasParallax` despite rendering parallax. Do not diagnose missing
+attributes from a prose read; use `content_format: "full"` before concluding anything about block
+attributes.
 
 ## 3. Decisions locked in this session
 
@@ -99,6 +112,30 @@ the Site Editor in the admin UI, which achieves the same result manually.
 
 **Do not delete template 21.** Leave it orphaned. It is the only record of the auto-parts layout, and
 deleting it buys nothing.
+
+### 4.1 Staging
+
+A Bluehost staging site was created at **`https://cornercad.com/staging/6862`** on 2026-07-25, during
+this design session. It restores the write → verify → roll back loop that `CLAUDE.md` records as
+absent on WordPress, and it is a strictly better place to do this build than production.
+
+**Build on staging, verify, then push to production.** Coming-soon mode stays `yes` on production
+throughout regardless, so the two protections are belt and braces.
+
+**Open item — MCP reachability.** The `cornercad-com` MCP server is configured against the production
+base URL. Driving staging over MCP requires a second server entry (say `cornercad-staging`) pointing
+at the staging base URL, authenticated with the AI Engine bearer token from the cloned database —
+likely identical to production's, since the clone copies the options table. This means editing
+`~/.claude.json` and reloading MCP, and it must be verified with `mcp_ping` before any build step
+runs. Resolve this first; everything downstream depends on which site the tools actually hit.
+
+**If MCP cannot reach staging**, fall back to building directly on production with coming-soon on —
+the original plan — rather than doing the whole build by hand in the admin UI.
+
+**Discipline while staging exists:** Bluehost's staging→production push replaces the site rather than
+merging it. Once the clone is taken, staging is the single source of truth and **no parallel edits
+are made on production**, or they will be silently destroyed on push. If production must change,
+re-clone afterward.
 
 ## 5. Taxonomy
 
@@ -240,8 +277,10 @@ Template part, not page content.
   draft-version rollback like Concrete's; post revisions are the only undo.
 - **Every write is confirmed with Bradley first** — tool name, target ID + name, plain-language
   summary — per `CLAUDE.md`. No silent batching.
-- **Coming-soon mode stays `yes`** for the entire build and is turned off as a deliberate, separate
-  go-live step.
+- **Coming-soon mode stays `yes`** on production for the entire build and is turned off as a
+  deliberate, separate go-live step.
+- **All build work happens on staging** (§4.1) once MCP can reach it, and is pushed to production as
+  one reviewed operation rather than trickled across.
 
 ## 9. Assets
 
@@ -270,12 +309,16 @@ non-coaster products, and any syndication to social or model-sharing platforms.
 
 | Risk | Handling |
 |---|---|
-| SellAny's Front Page template may not include `wp:post-content` | Step 1 of implementation is to inspect it; reduce to header/post-content/footer if needed |
-| Writing `wp_template` records over MCP is unproven here | Fall back to the Site Editor in admin UI; same end state |
-| Header/footer template parts may currently render nothing | Verify after activation; both themes ship their own parts |
-| SellAny's stock look is lighter/craftier than the dark cinematic direction Bradley liked in Navid | Tune Global Styles; revisit only if it can't get close |
+| Writing `wp_template` records over MCP is unproven here | Try it on staging first; fall back to the Site Editor in admin UI, which reaches the same end state |
+| Bluehost staging→production push may overwrite the whole site, not merge | Treat staging as the single source of truth once cloned; make **no** production edits in parallel. See §4.1 |
 | Retitling page 14 could disturb the Woo shop archive | Woo resolves by ID, not slug; verify `woocommerce_shop_page_id` still reads 14 afterward |
 | Category tile images need photos that don't exist for every category | Use the strongest available photo per tile; a tile with a weak photo still beats an empty grid |
+| SellAny's typography may not carry the brand voice even with a dark palette | Tune Global Styles; the palette risk is resolved (§2) but type is unassessed |
+
+**Resolved during design, kept so they aren't re-raised:** SellAny's Front Page template *does*
+lack `wp:post-content` — no longer a risk, it is a confirmed work item (§4). SellAny's stock look
+being too light is resolved — it ships dark (§2). "Template parts render nothing" was a misreading
+of `content_format: prose` output, not a real defect (§2).
 
 ## 12. Done means
 
