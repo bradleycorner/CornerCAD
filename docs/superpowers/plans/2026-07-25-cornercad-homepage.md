@@ -520,10 +520,12 @@ Expected: `0`. If Task 2 Step 5 found different working paths, use those instead
 
 ```bash
 ./content/blocks/render.sh content/blocks/home.html > /tmp/home-rendered.html
-grep -c '__' /tmp/home-rendered.html
+grep -cE '__[A-Z0-9_]+__' /tmp/home-rendered.html
 ```
 
 Expected: `0`. Any non-zero means a token went unsubstituted and the page would ship broken markup.
+
+Match the token shape, not a bare `__`. WordPress's own BEM class names contain double underscores (`wp-block-button__link`, `wp-block-cover__inner-container`), so `grep -c '__'` can never return `0` and is not a usable check.
 
 - [ ] **Step 5: Create the page as a draft**
 
@@ -897,10 +899,10 @@ HTML
 - [ ] **Step 2: Confirm no unresolved tokens**
 
 ```bash
-grep -c '__' content/blocks/custom-work.html
+grep -cE '__[A-Z0-9_]+__' content/blocks/custom-work.html
 ```
 
-Expected: `0`.
+Expected: `0`. Match the token shape, not a bare `__` — `wp-block-button__link` is a WordPress core class and would always match.
 
 - [ ] **Step 3: Create as a draft**
 
