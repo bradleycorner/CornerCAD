@@ -1,3 +1,7 @@
+> ## ⚠️ OBSOLETE — 2026-07-25
+> cornercad.com moved to **WooCommerce**, where **WooCommerce Square 5.4.2** is already installed.
+> No Concrete/Community Store gateway will be built. Kept for history only.
+
 # Community Store — Square Payment Gateway Add-on — Project Brief
 
 > **Purpose of this doc:** Seed brief for a **separate, dedicated project** to build a Square

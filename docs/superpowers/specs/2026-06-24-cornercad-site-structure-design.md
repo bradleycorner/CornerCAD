@@ -3,6 +3,23 @@
 **Date:** 2026-06-24
 **Status:** Approved in conversation; pending written-spec review
 **Author:** Bradley Corner + Claude
+> ## 🔁 PLATFORM CHANGED — 2026-07-25: Concrete CMS → WordPress + WooCommerce
+> **The IA (§2), content model intent (§3), copy, and phasing (§7) all still stand.** Only the
+> implementation nouns change. Read this spec with the substitutions below; see `CLAUDE.md` for the
+> full mapping and `docs/wordpress-mcp-protocol.md` for how to execute it.
+>
+> | This spec says | Now build it as |
+> |---|---|
+> | `Product` page type + `product_*` attributes | `product` CPT + Woo post meta (`_regular_price`, `_price`, `_sku`, …) |
+> | Topic tree "Product Categories" | `product_cat` taxonomy |
+> | Concrete blocks / Genesis theme areas | Gutenberg blocks + patterns in `bluehost-blueprint` |
+> | `/catalog/` landing | WooCommerce **Shop** (page 14) or a custom Catalog page over `product_cat` |
+>
+> **One non-goal is now reversed:** §1 lists "on-site shopping cart / multi-item checkout" as a
+> non-goal, with per-product CTA only. WooCommerce ships Cart (15) / Checkout (16) / My account (17)
+> pages and they are live — real cart checkout is **in scope** for `buy` items. The `download` and
+> `inquire` CTA types still apply to the non-purchasable catalog items.
+
 **Applies to:** cornercad.com (Concrete CMS 9.5.2). Written as a **reusable template** —
 see [§9 Generalization](#9-generalization-to-other-sites) for reuse on
 uniquecreationsbylisac.com.

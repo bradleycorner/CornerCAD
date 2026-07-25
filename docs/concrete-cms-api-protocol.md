@@ -1,3 +1,8 @@
+> ## ⚠️ SUPERSEDED — 2026-07-25
+> cornercad.com migrated to **WordPress + WooCommerce**. The Concrete CMS site and its API token are gone.
+> The live protocol is **`docs/wordpress-mcp-protocol.md`**. This file is kept only for history and for
+> any *other* Concrete site (e.g. uniquecreationsbylisac.com) still on that platform.
+
 # Concrete CMS REST API — Operating Protocol (via the `concretecms` / Macareux MCP)
 
 **Applies to:** any Concrete CMS 9.x site operated through the `concretecms` MCP

@@ -29,8 +29,29 @@ cache/
 claude_desktop_config.json
 # Project MCP config — holds API Client ID/Secret (see CLAUDE.md); never commit
 .mcp.json
+.mcp.json.bak*
+
+# Gemini CLI local config — its mcpServers block stores API keys inline
+.gemini/
+
+# Gemini CLI bug-report session dumps (transient debugging artifacts)
+bug_report.md
+bug_report.json.txt
+full_session.json.txt
 
 # Third-party Concrete CMS marketplace addons (installed on the server,
 # not vendored here) and their downloaded installers
 msv_cloudflare_turnstile/
 msv_cloudflare_turnstile.zip
+
+# Catalog import — generated artifacts (bundled at deploy, not versioned):
+# ~120 MB of optimized images + the machine-generated manifest. Keep the
+# sample + schema + code committed.
+packages/cornercad_catalog_import/images/
+packages/cornercad_catalog_import/manifest.json
+# woocommerce keys
+key.txt
+
+# Python bytecode
+__pycache__/
+*.pyc
