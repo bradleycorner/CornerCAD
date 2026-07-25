@@ -32,8 +32,12 @@ and door cards get designed and tested on my own Daytona Coupe before they're of
 part can't survive heat, vibration, and daily use on a real car, it doesn't ship. But the same rule applies
 to a vase, a planter, or a set of coasters: it should earn its place and keep it.
 
-[OPTIONAL — Brad to confirm: a line on how you got started / your background — engineering, hobby that grew,
-how long you've been designing. One or two sentences of real backstory here makes the whole page land.]
+I'm a computer engineer by trade, but I've always been a hobby craftsman — I built my first bookcase in
+college back in the late '80s. Most of my life I've made practical things, or fixed whatever needed fixing
+on whichever vehicle we had at the time. 3D printing fascinated me for a good ten years before I acted on
+it. In September 2025 I decided the technology had finally caught up and the prices had come down, so I
+bought my first FDM printer, a Creality K2 Plus Combo. A Longer Ray5 20W diode laser followed not long
+after, and an Elegoo Saturn 16K Ultra a few months after that.
 
 Most of what I make is **made to order**. When you buy something, I build it — so the print is fresh, the
 finish is current, and I can offer it in the material and color you actually want. It takes a few days
@@ -84,7 +88,9 @@ here does more for trust than any amount of copy. — supply and I'll place it.)
   (recognizable; avoids the Shelby trademark issue Factory Five hit). ✓
 - Direction: keep the site **balanced across the whole 3D/laser business** — automotive is one specialty, not
   the centerpiece. ✓ (per Brad, 2026-07-05)
-- Still pending from Brad: backstory line, event names, Creality Cloud link, photo.
+- Backstory line: **resolved 2026-07-25** — computer engineer by trade, lifelong hobby craftsman, K2 Plus
+  Combo Sept '25, then Longer Ray5 20W, then Elegoo Saturn 16K Ultra. ✓
+- Still pending from Brad: event names, Creality Cloud link, photo.
 - Keep the story about **you / CornerCAD** — Lisa's brand lives on her own site. Mention shared events only
   if you want; I kept it neutral ("we sell at events") so it works either way.
 - Contact form delivers to **brad@cornercad.com** ✓ (confirmed ACTIVE in Proton Mail).
