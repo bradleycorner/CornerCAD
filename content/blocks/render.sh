@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 [ -f media-ids.env ] || { echo "media-ids.env missing — run Task 3" >&2; exit 1; }
 set -a; . ./media-ids.env; set +a
 out="$(cat "$src")"
-for k in HERO TILE_3DP TILE_LASER TILE_AUTO AUTO_BAND; do
+for k in HERO AUTO_BAND; do
   for s in ID URL; do
     v="${k}_${s}"
     [ -n "${!v:-}" ] || { echo "$v is empty in media-ids.env" >&2; exit 1; }
