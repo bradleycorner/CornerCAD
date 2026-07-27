@@ -71,7 +71,49 @@ running server.
 - **Mixed cases:** create the product via `woocommerce`, then use `cornercad-com` for anything Woo's
   REST shape doesn't expose (arbitrary meta, featured-image wiring, block content on the product page).
 
-## 1. Tool inventory (43 tools, recorded 2026-07-25)
+## 0.5 AI Engine **Pro** — 93 tools on staging (recorded 2026-07-27)
+
+AI Engine Pro is installed on **staging only** (`ai-engine-pro` 3.6.2). Production still runs the
+free plugin. So:
+
+| Server | Tools |
+|---|---|
+| `cornercad-staging` | **93** — 42 Core + 25 WooCommerce + 13 Plugins + 13 Themes |
+| `cornercad-com` (production) | 43 Core only |
+
+**A restart is mandatory after installing Pro.** MCP negotiates its tool list at connection time,
+so an existing session cannot see newly registered functions no matter how many times you retry.
+Verified: ToolSearch immediately after the install returned only the original 43.
+
+### WooCommerce (25) — use these for Spec B
+`wc_list_products` · `wc_get_product` · `wc_create_product` · `wc_update_product` ·
+`wc_alter_product` · `wc_delete_product` · `wc_update_stock` · `wc_bulk_update_stock` ·
+`wc_get_low_stock_products` · `wc_get_stock_report` · `wc_list_orders` · `wc_get_order` ·
+`wc_update_order_status` · `wc_add_order_note` · `wc_create_refund` · `wc_get_orders_by_customer` ·
+`wc_list_customers` · `wc_get_customer` · `wc_update_customer` · `wc_list_reviews` ·
+`wc_approve_review` · `wc_delete_review` · `wc_get_sales_report` · `wc_get_revenue_stats` ·
+`wc_get_top_sellers`
+
+This supersedes the raw `wp_create_post` + `wp_update_post_meta` product path in §3 **and** largely
+supersedes the separate `woocommerce` proxy server's 9 tools. `wc_create_product` takes attributes,
+variations and pricing in one call.
+
+### Plugins (13) and Themes (13)
+Lifecycle works: `wp_list_plugins_detailed`, `wp_list_themes`, `wp_activate_plugin`,
+`wp_deactivate_plugin`, `wp_switch_theme`, `wp_delete_plugin`, `wp_rename_theme`, etc.
+
+⚠️ **File-editing tools are gated.** Every plugin and every theme reports `editable: false`
+(verified across all 20 plugins and all 9 themes). So `wp_theme_put_file`, `wp_plugin_alter_file`,
+`wp_theme_get_file` and the rest of the file-manipulation set will refuse to write — almost
+certainly `DISALLOW_FILE_EDIT` in `wp-config.php`, which Bluehost sets by default. **Use SSH for
+file work; Bradley has it.** Do not plan around the file tools without testing one first.
+
+### Standing rule
+Prefer typed tools. **Treat direct database/SQL access as a last resort** — it bypasses draft →
+verify → publish, post revisions, and the git-mirrored block markup in `content/blocks/`, on a live
+store. Same principle as global `CLAUDE.md` rule #7 (typed FreeCAD tools before `execute_python`).
+
+## 1. Tool inventory — free tier (43 tools, recorded 2026-07-25)
 
 ### Connectivity
 | Tool | Purpose |
