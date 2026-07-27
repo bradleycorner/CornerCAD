@@ -102,11 +102,28 @@ variations and pricing in one call.
 Lifecycle works: `wp_list_plugins_detailed`, `wp_list_themes`, `wp_activate_plugin`,
 `wp_deactivate_plugin`, `wp_switch_theme`, `wp_delete_plugin`, `wp_rename_theme`, etc.
 
-⚠️ **File-editing tools are gated.** Every plugin and every theme reports `editable: false`
-(verified across all 20 plugins and all 9 themes). So `wp_theme_put_file`, `wp_plugin_alter_file`,
-`wp_theme_get_file` and the rest of the file-manipulation set will refuse to write — almost
-certainly `DISALLOW_FILE_EDIT` in `wp-config.php`, which Bluehost sets by default. **Use SSH for
-file work; Bradley has it.** Do not plan around the file tools without testing one first.
+⚠️ **The file tools are scoped to AI Engine themes/plugins, not installed ones.** This is a scope
+limit, not a permissions one — an earlier note in this file wrongly blamed `DISALLOW_FILE_EDIT`.
+
+Tested: `wp_theme_list_dir {slug: "sellany"}` → **`Dir not found`**. The `wp_theme_*` and
+`wp_plugin_*` file tools (`get_file`, `put_file`, `alter_file`, `mkdir`, `delete_path`, `list_dir`)
+address only themes/plugins that AI Engine itself created. Their descriptions say "of an AI Engine
+theme" — read that literally.
+
+| Tool group | Operates on |
+|---|---|
+| `wp_list_themes` · `wp_switch_theme` · `wp_delete_theme` · `wp_rename_theme` | any installed theme |
+| `wp_copy_theme` | duplicates an installed theme **into** an AI Engine theme |
+| `wp_theme_*` file tools | AI Engine themes only |
+
+**So theme file editing IS possible** — via `wp_copy_theme` (SellAny → AI Engine theme), edit,
+then `wp_switch_theme`. That is effectively a child-theme workflow and is *safer* than editing
+SellAny in place, since theme updates cannot clobber it.
+
+The `editable: false` reported by `wp_list_themes` / `wp_list_plugins_detailed` for all 20 plugins
+and 9 themes is consistent with this, but is not the mechanism — do not cite it as the reason.
+
+SSH remains the right tool for arbitrary file work; Bradley has it.
 
 ### Standing rule
 Prefer typed tools. **Treat direct database/SQL access as a last resort** — it bypasses draft →
