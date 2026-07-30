@@ -71,15 +71,21 @@ running server.
 - **Mixed cases:** create the product via `woocommerce`, then use `cornercad-com` for anything Woo's
   REST shape doesn't expose (arbitrary meta, featured-image wiring, block content on the product page).
 
-## 0.5 AI Engine **Pro** — 93 tools on staging (recorded 2026-07-27)
+## 0.5 AI Engine **Pro** — 93 tools (staging 2026-07-27; **production too, as of 2026-07-30**)
 
-AI Engine Pro is installed on **staging only** (`ai-engine-pro` 3.6.2). Production still runs the
-free plugin. So:
+AI Engine Pro 3.6.2 is now installed on **both** staging and production — `wp_list_plugins` on
+production reports "AI Engine (Pro) 3.6.2" (verified 2026-07-30). The earlier note that production
+still ran the free plugin is **obsolete**.
 
-| Server | Tools |
-|---|---|
-| `cornercad-staging` | **93** — 42 Core + 25 WooCommerce + 13 Plugins + 13 Themes |
-| `cornercad-com` (production) | 43 Core only |
+| Server | Tools registered on the site | Tools this session can see |
+|---|---|---|
+| `cornercad-staging` | **93** — 42 Core + 25 WooCommerce + 13 Plugins + 13 Themes | 93 |
+| `cornercad-com` (production) | **93** (Pro installed) | **43** until Claude Code is restarted |
+
+⚠️ Re-confirmed 2026-07-30: production has Pro, yet `ToolSearch` for `cornercad-com` `wc_*` /
+`wp_list_themes` returned nothing — the session had already negotiated the free 43. **Restart to pick
+up the production Pro tools.** Until then, production product work must go through the raw
+`wp_create_post` + `wp_update_post_meta` path (§3) or the `woocommerce` proxy server.
 
 **A restart is mandatory after installing Pro.** MCP negotiates its tool list at connection time,
 so an existing session cannot see newly registered functions no matter how many times you retry.

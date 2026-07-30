@@ -19,41 +19,108 @@ Full inventory and the read/write split:
 
 MCP tools are **deferred** — batch-load them in one `ToolSearch` call before use.
 
-## Platform state (verified 2026-07-25)
+## Platform state (verified 2026-07-30, after the site restore)
 
-**Theme:** `bluehost-blueprint` (block theme, from The Bluehost Plugin).
-**Permalinks:** `/%postname%/`. **Currency:** USD. **Store address:** 4531 Praver Dr N.
+**Theme:** `sellany` (block theme). **Permalinks:** `/%postname%/`. **Currency:** USD.
+**Store address:** 4531 Praver Dr N.
+**Front page:** static — `show_on_front = page`, `page_on_front = 49` (Welcome).
+
+⚠️ **Read `show_on_front` with `raw: true`.** The cached/filtered read returns a stale `"posts"` on this
+site; only `raw: true` returns the true `"page"`. A non-raw read caused a wrong "production is bare"
+report on 2026-07-30. Same caution applies to any option you are about to act on.
+
+⚠️ **Staging and production are content-identical** (same post IDs 49/67/68/76/77, same block markup).
+Do not assume production lags staging — verify.
 
 ### Plugins installed
 WooCommerce **10.9.4** · WooCommerce **Square 5.4.2** · WooCommerce.com Update Manager · Payments &
-Shipping 1.12.1 · Yoast SEO 28.1 · Jetpack 16.0.1 · WPForms Lite 2.0.0.2 · AI Engine 3.6.2 + AI Provider
-for Anthropic (this is what serves the MCP) · MonsterInsights · OptinMonster · Akismet · InstaWP Connect ·
-The Bluehost Plugin · Hello Dolly.
+Shipping 1.12.2 · **AI Engine (Pro) 3.6.2** (serves the MCP) · AI 1.2.0 · Yoast SEO 28.1 · Jetpack 16.0.1 ·
+Jetpack Boost 4.6.3 · **Contact Form 7 6.1.6** (the form actually in use) · WPForms Lite 2.0.0.2 (installed,
+unused) · Matcha Extra 1.0.7 · Meow Lightbox 5.5.8 · One Click Demo Import 3.4.1 · WPCode Lite 2.3.8 ·
+MonsterInsights 11.1.2 · OptinMonster 2.16.24 · Akismet 5.7 · InstaWP Connect · The Bluehost Plugin 4.18.0 ·
+Hello Dolly.
+
+**Production now runs AI Engine Pro**, so the 93-tool set (incl. `wc_*`) is available there — but MCP
+negotiates its tool list at connection time, so **a Claude Code restart is required** before this session
+can see them. Verified 2026-07-30: `cornercad-com` still exposed only the free 43.
 
 ### Post types
 `post`, `page`, `attachment`, `product`.
 
-### Pages (all that exist)
+### Pages
 | ID | Page | Status |
 |---|---|---|
-| 14 | Shop | publish |
+| 49 | Welcome (front page) | publish |
+| 67 | About | publish |
+| 68 | Custom Work | publish |
+| 14 | Catalog | publish |
+| 76 | Blog | publish |
+| 77 | Contact | publish |
 | 15 | Cart | publish |
 | 16 | Checkout | publish |
 | 17 | My account | publish |
-| 3 | Privacy Policy | draft |
-| 18 | Refund and Returns Policy | draft |
+| 3 | Privacy Policy | **draft** |
+| 18 | Refund and Returns Policy | **draft** |
 
-These are **WooCommerce's auto-created pages only**. Home, About, Custom Work, Catalog do **not exist yet**.
+Note ID 14 is **Catalog**, not "Shop" — it was retitled.
+
+### `product_cat` terms
+3D Printed (24) · Automotive (26) · Coasters (29) · Lamps (28) · Laser Engraved (25) · Signage (30) ·
+Vases & Planters (27) · Uncategorized (20). All counts 0.
+
+These are the **as-built** categories and they differ from the spec's four (Automotive · Home & Garden ·
+Display & Retail · Functional/Hardware). The as-built tree is the source of truth; the spec is stale.
 
 ### Current gaps (the working backlog)
-1. **`show_on_front` = `posts`** — no static homepage. Site currently renders the blog index at `/`.
-2. **Zero products.** `wp_get_posts` on `product` returns `[]`. Slate Coaster needs recreating.
-3. **`product_cat` has only `Uncategorized`.** The category tree from the spec
-   (Automotive · Home & Garden · Display & Retail · Functional/Hardware) is unbuilt.
-4. **Media library has 1 attachment.** All product imagery needs re-uploading.
-5. **Square not credentialed.** WooCommerce Square is installed and has registered its taxonomies
-   (`wc_square_synced`, `pos_product_visibility`), but the OAuth connect is **admin-UI only** — not MCP work.
-6. **Policy pages are drafts.** Payment gateways generally require these published before go-live.
+1. **No published products.** `product` count is 1 **draft**, 0 publish. Slate Coaster still needs
+   finishing and publishing. All `product_cat` counts are 0.
+2. **Media library has 5 attachments.** Product imagery is still largely missing.
+3. ~~Square not credentialed.~~ **Square IS connected.** See "Square environment split" below.
+   Remaining work there: paste the sandbox credentials into staging (Bradley is fetching them).
+4. **Policy pages are drafts.** Payment gateways generally require these published before go-live.
+
+Resolved since 2026-07-25: static homepage, the page tree (About/Custom Work/Catalog/Blog/Contact), and
+the `product_cat` tree all now exist on production.
+
+## Square environment split — production→live, staging→sandbox
+
+**Target architecture:** production talks to the **live** Square account; staging talks to the **Sandbox**.
+Square's Sandbox is fully isolated — credentials/resources cannot cross environments, cards are never
+charged, and each sandbox test account has its own catalog/inventory/orders. So staging can safely run
+sync **on** once it's on sandbox.
+
+### 🚨 NEVER press "Disconnect" in WooCommerce → Settings → Square on staging
+Square's Disconnect calls `RevokeToken`, which revokes OAuth tokens **for the whole seller**, not for one
+site. Staging is a clone sharing production's token, so disconnecting on staging **kills checkout on
+production**. Switching `Environment` to Sandbox is the safe operation — it uses sandbox credentials
+*instead of* the stored production token without revoking it.
+
+### State (2026-07-30)
+| | `enable_sandbox` | Location |
+|---|---|---|
+| production | `no` | live `LV94H6Q7QPB42` |
+| staging | **`yes`** (set 2026-07-30 via `wp_update_option`) | sandbox creds **still empty** → fails closed |
+
+Staging currently fails closed: sandbox mode is on but `sandbox_application_id` / `sandbox_token` /
+`sandbox_location_id` are empty, so its Square checkout errors instead of reaching the live account.
+
+### Remaining setup (admin UI — do NOT paste tokens into chat or git)
+1. Square Developer Dashboard → the app → **Credentials** tab → toggle to **Sandbox** → copy
+   **Sandbox Application ID** + **Sandbox Access Token**.
+2. Staging → WooCommerce → Settings → Square → Environment already = Sandbox → paste both → Save.
+3. A **Business location** dropdown appears → pick the sandbox test account.
+
+### Standing cautions
+- **A re-clone or restore from production overwrites staging's sandbox settings back to live.** Re-check
+  `enable_sandbox` on staging after every clone/restore. (This config survived the 2026-07-29 restore
+  *as live* — that's how the exposure was found.)
+- Square does not support staging on a **subdomain** (auth domain mismatch); a **subfolder** is required.
+  `cornercad.com/staging/7680/` is already the supported shape.
+- Token storage key name is unknown — `wc_square_access_token` / `_refresh_token` / `_merchant_id` all
+  return `false` even on connected production, so their absence proves nothing about authentication.
+- Docs: [sandbox mode](https://woocommerce.com/document/woocommerce-square/testing-the-woocommerce-square-extension-in-sandbox-mode/) ·
+  [Square Sandbox](https://developer.squareup.com/docs/devtools/sandbox/overview) ·
+  [OAuth best practices](https://developer.squareup.com/docs/oauth-api/best-practices)
 
 ## Migration mapping — Concrete CMS → WordPress
 
@@ -63,7 +130,7 @@ These are **WooCommerce's auto-created pages only**. Home, About, Custom Work, C
 | `packages/cornercad_setup` CIF package | **Obsolete** — Woo registers the CPT; categories are terms created via `wp_create_term` |
 | Community Store | WooCommerce 10.9.4 |
 | Square Payment Method add-on | WooCommerce Square 5.4.2 |
-| Genesis theme areas / blocks | Gutenberg blocks (`wp_write_blocks`, block patterns) in `bluehost-blueprint` |
+| Genesis theme areas / blocks | Gutenberg blocks (`wp_write_blocks`, block patterns) in `sellany` |
 | Topic tree "Product Categories" | `product_cat` taxonomy |
 | Page cIDs 1/409/416/417/418 | **Dead.** Do not reuse — see the Pages table above for what actually exists. |
 
