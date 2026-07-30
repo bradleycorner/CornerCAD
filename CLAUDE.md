@@ -106,14 +106,29 @@ The split is in place. Sync remains **off on both** (`system_of_record: disabled
 only after products exist to test with.
 
 ### Setup — DONE 2026-07-30 (admin UI; do NOT paste tokens into chat or git)
-Staging is on Sandbox with app `sq0idp-2t7sPpvaoDNYq55vcQXn9Q` (Square app **`uniquecreationsbylisac`**),
-its default sandbox test account ("Sandbox for sq0idp-2t7s…", created 2025-12-10), and
-**Sync Settings = Disabled** — to be enabled once there are published products to test against.
+Staging is on Sandbox using a **dedicated `CornerCAD` Square application** (`sq0idp-wqQUPvuC3RFKbxlUUKOtmA`),
+with its **Sandbox** Application ID `sandbox-sq0idb-D9tOd3hNREjp6QFaAHl…` and the matching Sandbox Access
+token. **Sync Settings = Disabled** — to be enabled once there are published products to test against.
 
-⚠️ **The Application ID is the SAME in both environments.** Only the *access token* differs (each app has
-a production token and a separate Sandbox token). A `sq0idp-` value in the **Sandbox** Application ID
-field is therefore **correct** — do not read it as "staging is pointed at live." The legacy
-`sandbox-sq0idb-` prefix no longer applies, and I raised a false alarm on this 2026-07-30.
+History: staging was first configured with the *production* Application ID of the
+**`uniquecreationsbylisac`** app (`sq0idp-2t7sPpvaoDNYq55vcQXn9Q`) — wrong, see the warning below. Bradley
+created the dedicated CornerCAD app and replaced both values. **No credential was exposed** in the
+process: Application IDs are public identifiers, and the only token that appeared on screen was clipped
+by the input field, so it was a partial prefix rather than a usable token.
+
+⚠️ **Sandbox and production have DIFFERENT Application IDs.** With the **Sandbox** toggle active, the
+Credentials page shows a distinct **`sandbox-sq0idb-…`** Sandbox Application ID plus a separate Sandbox
+Access token. The `sq0idp-…` value shown on the app-list card (and in the Console URL `/apps/sq0idp-…/`)
+is the application's **production** ID.
+
+So a `sq0idp-` value in the **Sandbox** Application ID field is **WRONG** — it means production
+credentials were copied. Verified from the Console 2026-07-30. (I initially flagged this correctly, then
+wrongly retracted it on the strength of the app-list card plus a weak secondary source. The Console under
+the Sandbox toggle is the authority — trust it over search results.)
+
+Square's own page copy is misleading here: with Sandbox active it still says "These are your production
+credentials" and "Grants full production access." Ignore that; the red **Sandbox** labels are what count.
+
 Application IDs are **public identifiers, not secrets**; access tokens are the sensitive half.
 
 **Account structure:** CornerCAD operates **under Bradley's wife's Square account**
