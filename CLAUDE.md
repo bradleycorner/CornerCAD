@@ -118,7 +118,13 @@ Application IDs are **public identifiers, not secrets**; access tokens are the s
 
 **Account structure:** CornerCAD operates **under Bradley's wife's Square account**
 (`uniquecreationsbylisac`) — that is the correct/parent Square account, and `LV94H6Q7QPB42` is a location
-under it. So the app name looking "wrong" for CornerCAD is expected; don't flag it.
+under it. So the app name looking "wrong" for CornerCAD is expected; don't flag it. **Not a registered
+DBA** as of 2026-07-30 (may be formalized later if needed).
+
+⚠️ **Pre-go-live check:** Square derives receipts and the card-statement descriptor from the account
+holder, so customers could see the parent business name instead of CornerCAD. That collides with the
+"no marketplace/processor branding appears publicly" rule at the top of this file. Set the per-location
+business name / statement descriptor in Square before taking live orders.
 
 ### Standing cautions
 - **A re-clone or restore from production overwrites staging's sandbox settings back to live.** Re-check
