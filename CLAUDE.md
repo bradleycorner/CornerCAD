@@ -96,19 +96,29 @@ production**. Switching `Environment` to Sandbox is the safe operation — it us
 *instead of* the stored production token without revoking it.
 
 ### State (2026-07-30)
-| | `enable_sandbox` | Location |
+| | `enable_sandbox` | Credentials / location |
 |---|---|---|
-| production | `no` | live `LV94H6Q7QPB42` |
-| staging | **`yes`** (set 2026-07-30 via `wp_update_option`) | sandbox creds **still empty** → fails closed |
+| production | `no` | live seller, OAuth, location `LV94H6Q7QPB42` |
+| staging | **`yes`** (set 2026-07-30 via `wp_update_option`) | sandbox app + sandbox test-account token, entered in admin UI 2026-07-30 |
 
-Staging currently fails closed: sandbox mode is on but `sandbox_application_id` / `sandbox_token` /
-`sandbox_location_id` are empty, so its Square checkout errors instead of reaching the live account.
+The split is in place. Sync remains **off on both** (`system_of_record: disabled`,
+`enable_inventory_sync: no`, `enable_order_fulfillment_sync: no`) — enable it on **staging only**, and
+only after products exist to test with.
 
-### Remaining setup (admin UI — do NOT paste tokens into chat or git)
-1. Square Developer Dashboard → the app → **Credentials** tab → toggle to **Sandbox** → copy
-   **Sandbox Application ID** + **Sandbox Access Token**.
-2. Staging → WooCommerce → Settings → Square → Environment already = Sandbox → paste both → Save.
-3. A **Business location** dropdown appears → pick the sandbox test account.
+### Setup — DONE 2026-07-30 (admin UI; do NOT paste tokens into chat or git)
+Staging is on Sandbox with app `sq0idp-2t7sPpvaoDNYq55vcQXn9Q` (Square app **`uniquecreationsbylisac`**),
+its default sandbox test account ("Sandbox for sq0idp-2t7s…", created 2025-12-10), and
+**Sync Settings = Disabled** — to be enabled once there are published products to test against.
+
+⚠️ **The Application ID is the SAME in both environments.** Only the *access token* differs (each app has
+a production token and a separate Sandbox token). A `sq0idp-` value in the **Sandbox** Application ID
+field is therefore **correct** — do not read it as "staging is pointed at live." The legacy
+`sandbox-sq0idb-` prefix no longer applies, and I raised a false alarm on this 2026-07-30.
+Application IDs are **public identifiers, not secrets**; access tokens are the sensitive half.
+
+**Account structure:** CornerCAD operates **under Bradley's wife's Square account**
+(`uniquecreationsbylisac`) — that is the correct/parent Square account, and `LV94H6Q7QPB42` is a location
+under it. So the app name looking "wrong" for CornerCAD is expected; don't flag it.
 
 ### Standing cautions
 - **A re-clone or restore from production overwrites staging's sandbox settings back to live.** Re-check
