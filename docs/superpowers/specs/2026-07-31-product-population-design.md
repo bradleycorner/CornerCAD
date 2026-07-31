@@ -322,22 +322,88 @@ variable products must use the raw MCP path.
 3. **Drift Lamp price** — $60 was set before the parts-only decision. Confirm it still holds without
    the electrical kit.
 4. **Apex height / Briosi colour** — which version is stocked.
+5. **"Lattice Vase" vs "Silk Lattice Vase"** — possible overlap, unresolved. Both are Bradley's, both
+   created March 2026, both $42 base, but they have **different images and different categories**
+   (`Vases & Planters` vs `Prints`), which suggests they are distinct products rather than a
+   duplicate. A local folder `Lattice-Vase-V2` exists, hinting at a V1/V2 relationship. Even if
+   distinct, the two names sitting adjacent in a catalog will confuse buyers — worth renaming one.
+6. **Silk Lattice Vase category** is `Prints` while every other vase is `Vases & Planters`. That was
+   its pre-existing value and was deliberately not overwritten; normalise if consistent reporting
+   matters.
 
 ---
 
-## 11. Deliverable in hand
+## 11. Square side — ✅ COMPLETE (2026-07-31)
 
-`docs/square-import-DRAFT-2026-07-31.csv` — 168 rows, **155 updates + 13 creates**.
+`docs/square-import-DRAFT-2026-07-31.csv` (168 rows) was uploaded via Square's **quick import**,
+choosing **"Add and update existing library"**.
 
-- SKUs on every row; `CAD-`/`UCL-` prefix matches location enablement exactly
-- Both location crossovers closed
-- Categories and Reporting Categories populated, aligned to Woo's `product_cat` names
-- 13 h3li0 rows with blank `Token`, correct prices, retail copy, and mandatory attribution
-- Verified: 0 duplicate SKUs · 0 crossovers · 0 prefix mismatches · 0 missing SKUs · 13/13 attributed
+⚠️ The other option — *"Delete and overwrite existing item library"* — would have wiped the entire
+shared catalog and its history. Never select it.
 
-⚠️ **On upload, confirm Square's preview reports ~155 updates and 13 new items.** `Token` is the match
-key — if it reports 168 new, the tokens did not match and the upload would duplicate a live catalog
-shared with another business.
+**Verified against the live catalog after import:**
+
+| Check | Result |
+|---|---|
+| Total catalog | 87 items (was 74, +13) |
+| At CornerCAD | **22** |
+| At Lisa's | 65 |
+| At **both** | **0** |
+| Duplicate names at CornerCAD | none |
+| h3li0 items present | **13 / 13** |
+| Variations without SKU | **0** |
+| GSG · Love Earrings | CornerCAD `False`, Lisa `True` |
+
+Tokens matched correctly — 155 updated in place, 13 created, nothing duplicated.
+
+**Also done:** Woo's `production_location_id` repointed from `LV94H6Q7QPB42` → **`LS4SZ98SBX4F6`**
+(§8 item 1), written as the full 15-key array and verified by re-read. Bradley separately deactivated
+the six county locations, leaving exactly the two active locations the CSV columns assume.
+
+### Note on Square's quick import
+The review screen does **not** show the `Token` column, so update-vs-create cannot be confirmed from
+it. The confirmation dialog is the real gate. If ever unsure, `docs/square-import-TEST-2rows.csv`
+(one tokened row + one blank-token row) proves the behaviour for the cost of a single duplicate.
+
+---
+
+## 11a. Product photography
+
+**Upload to WordPress, never directly to Square.** Woo is the system of record, and sync pushes images
+*up* — the only direction that carries them. Uploading into Square first is work Woo later overwrites,
+and leaves the images stranded on the POS side.
+
+Order that avoids rework: rename/optimise locally → create the Woo product → upload and set
+featured + gallery → enable sync → Square receives them.
+
+### Filenames
+
+**Square stores the original filename verbatim** (`image_data.name`), but its public S3 URL is a
+content hash — so in Square the name is internal metadata only. **In WordPress the filename becomes
+the permanent public URL and seeds the alt text**, and cannot be cleanly changed later. So filename
+hygiene is a WordPress concern, not a Square one.
+
+Convention: product slug + sequence, SKU omitted (it means nothing to a search engine):
+
+```
+vanta-vase-01.jpg
+vanta-vase-02.jpg
+```
+
+First in sequence becomes the featured image.
+
+### Image prep
+- Camera originals are 4:3 (1920×1440); Woo grids assume **square** thumbnails and will centre-crop,
+  so crop to 1:1 deliberately rather than letting the theme choose.
+- Target ~1500px and ~200–400 KB. Straight-from-camera JPEGs are several MB; Jetpack Boost will not
+  rescue oversized originals.
+
+**Source of photography:** the Commercial + Photo license permits using h3li0's own product shots, but
+Bradley has begun shooting his own (a `vanta_vase_photos` set was uploaded to Square as a look-and-feel
+test on 2026-07-31 — that test predates this decision and should be re-done into WordPress).
+
+⚠️ Where h3li0's photos *are* used, the shot must match the SKU sold — their images show the version
+they printed (dual-colour Briosi, taller Apex), which may not be what ships.
 
 ---
 
