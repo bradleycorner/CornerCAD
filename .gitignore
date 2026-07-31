@@ -55,3 +55,6 @@ key.txt
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Excel lock/temp files
+~$*

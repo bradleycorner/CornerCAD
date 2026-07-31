@@ -40,9 +40,15 @@ unused) · Matcha Extra 1.0.7 · Meow Lightbox 5.5.8 · One Click Demo Import 3.
 MonsterInsights 11.1.2 · OptinMonster 2.16.24 · Akismet 5.7 · InstaWP Connect · The Bluehost Plugin 4.18.0 ·
 Hello Dolly.
 
-**Production now runs AI Engine Pro**, so the 93-tool set (incl. `wc_*`) is available there — but MCP
-negotiates its tool list at connection time, so **a Claude Code restart is required** before this session
-can see them. Verified 2026-07-30: `cornercad-com` still exposed only the free 43.
+**Production runs AI Engine Pro and the full 93-tool set is live** — confirmed 2026-07-30 after the
+restart, by real calls rather than schema loads (`mcp_ping` → `cornercad.com`; `wc_list_products`
+returned data). All 25 `wc_*` tools plus the theme/plugin lifecycle tools are available on
+`cornercad-com`. Use `wc_create_product` for product work, not the raw `wp_create_post` path.
+
+⚠️ **`permissions.ask` must be re-audited whenever the tool count changes.** The Pro upgrade landed
+~32 write tools ungated on the live store (incl. `wc_create_refund`, `wp_switch_theme`,
+`wp_delete_plugin`) because the rule list had been written against the free 43. Fixed 2026-07-30 —
+now 61 rules. See `docs/wordpress-mcp-protocol.md` §0.5.
 
 ### Post types
 `post`, `page`, `attachment`, `product`.
@@ -72,11 +78,17 @@ These are the **as-built** categories and they differ from the spec's four (Auto
 Display & Retail · Functional/Hardware). The as-built tree is the source of truth; the spec is stale.
 
 ### Current gaps (the working backlog)
-1. **No published products.** `product` count is 1 **draft**, 0 publish. Slate Coaster still needs
-   finishing and publishing. All `product_cat` counts are 0.
+1. **No published products.** `product` count is 1 **draft**, 0 publish, and that draft is **not** a
+   real product — it is ID **91 "Spec B Test Blank"** (`SPECB-TEST-BLANK`), a throwaway probe whose
+   own description says "Safe to delete." Verified via `wc_list_products` 2026-07-30. **The Slate
+   Coaster does not exist on production at all** — an earlier version of this file wrongly described
+   the draft as the coaster. All `product_cat` counts are 0. Two jobs here: trash ID 91, and build
+   the Slate Coaster from scratch.
 2. **Media library has 5 attachments.** Product imagery is still largely missing.
-3. ~~Square not credentialed.~~ **Square IS connected.** See "Square environment split" below.
-   Remaining work there: paste the sandbox credentials into staging (Bradley is fetching them).
+3. ~~Square not credentialed.~~ ~~Paste sandbox credentials into staging.~~ **DONE — the
+   production→live / staging→sandbox split is complete and verified against the database
+   2026-07-30.** See "Square environment split" below. Remaining Square work is the **statement
+   descriptor** pre-go-live check, not configuration.
 4. **Policy pages are drafts.** Payment gateways generally require these published before go-live.
 
 Resolved since 2026-07-25: static homepage, the page tree (About/Custom Work/Catalog/Blog/Contact), and
@@ -95,15 +107,52 @@ site. Staging is a clone sharing production's token, so disconnecting on staging
 production**. Switching `Environment` to Sandbox is the safe operation — it uses sandbox credentials
 *instead of* the stored production token without revoking it.
 
-### State (2026-07-30)
-| | `enable_sandbox` | Credentials / location |
+### State — **verified 2026-07-30 by direct `wc_square_settings` read on both sites**
+| | production | staging |
 |---|---|---|
-| production | `no` | live seller, OAuth, location `LV94H6Q7QPB42` |
-| staging | **`yes`** (set 2026-07-30 via `wp_update_option`) | sandbox app + sandbox test-account token, entered in admin UI 2026-07-30 |
+| `enable_sandbox` | `no` | **`yes`** |
+| `sandbox_application_id` | *(empty — deliberate, see below)* | `sandbox-sq0idb-D9tOd3hNREjp6QFaAHIlFQ` |
+| `sandbox_location_id` | *(empty)* | `L4KK3G9JY6RDY` |
+| `production_location_id` | **`LS4SZ98SBX4F6`** (CornerCAD) ✅ | `LV94H6Q7QPB42` ⚠️ stale |
+| `system_of_record` | `disabled` | `disabled` |
+| inventory / fulfillment sync | `no` / `no` | `no` / `no` |
 
-The split is in place. Sync remains **off on both** (`system_of_record: disabled`,
-`enable_inventory_sync: no`, `enable_order_fulfillment_sync: no`) — enable it on **staging only**, and
-only after products exist to test with.
+The split is in place and confirmed against the database, not just the admin UI. The live token was
+**not** revoked — `production_location_id` survives on both sites and production's sandbox fields are
+empty, so live checkout is untouched.
+
+Sync remains **off on both** — enable it on **staging only**, and only after products exist to test
+with. Minor known drift: `enable_customer_decline_messages` is `yes` on staging, `no` on production.
+Harmless.
+
+### ⚖️ Decision: production gets NO sandbox credentials, deliberately (2026-07-30)
+Production's empty `sandbox_*` fields are a **fail-safe, not an omission**. If `enable_sandbox` is
+ever flipped to `yes` on production, Square has no sandbox credentials to fall back on, so it breaks
+**loudly and immediately**.
+
+Populate those fields and the same accident becomes **silent**: production would process real
+checkouts against the sandbox. Orders complete, confirmation emails send, WooCommerce records the
+sale — **and no money moves.** That could run for days unnoticed, with every customer believing they
+bought something. Loud breakage on a payment path beats silent success.
+
+This is not hypothetical: per the standing cautions below, a re-clone or restore *does* rewrite this
+config as a matter of routine, and it has already flipped in the wrong direction once. Credentials in
+production's sandbox fields would give the reverse flip somewhere to land.
+
+**To verify live checkout, run one small real transaction and refund it** — that also exercises the
+real Square account, fraud rules, settlement, and the **statement descriptor** (see the pre-go-live
+check below), none of which sandbox can test. One live test closes both items.
+
+### ⚠️ Reading `wc_square_settings` exposes the sandbox token in plaintext
+`sandbox_token` lives inside the same option array as `enable_sandbox`, and `wp_get_option` returns
+the whole array — there is no way to check the sandbox flag without pulling the credential into the
+transcript. This happened 2026-07-30. Treat any read of this option as **credential-exposing**, and
+prefer reading it only when you actually need to act on it.
+
+Not rotated, by Bradley's call 2026-07-30 — the token is a *sandbox* credential (isolated test
+account, fake money, nothing built against it), so the blast radius is small. Note the protective
+factor is the sandbox isolation, **not** that the token is unused; an unused credential is exactly as
+usable as a used one.
 
 ### Setup — DONE 2026-07-30 (admin UI; do NOT paste tokens into chat or git)
 Staging is on Sandbox using a **dedicated `CornerCAD` Square application** (`sq0idp-wqQUPvuC3RFKbxlUUKOtmA`),
@@ -126,6 +175,12 @@ credentials were copied. Verified from the Console 2026-07-30. (I initially flag
 wrongly retracted it on the strength of the app-list card plus a weak secondary source. The Console under
 the Sandbox toggle is the authority — trust it over search results.)
 
+✅ **SETTLED — do not re-litigate.** The stored value on staging reads
+`sandbox-sq0idb-D9tOd3hNREjp6QFaAHIlFQ`, confirmed by direct database read 2026-07-30. Correct
+`sandbox-sq0idb-` prefix. The question flip-flopped twice; the database has now answered it. Any
+future doubt should be resolved the same way — read the option, don't reason from Console screenshots
+or search results.
+
 Square's own page copy is misleading here: with Sandbox active it still says "These are your production
 credentials" and "Grants full production access." Ignore that; the red **Sandbox** labels are what count.
 
@@ -136,10 +191,30 @@ Application IDs are **public identifiers, not secrets**; access tokens are the s
 under it. So the app name looking "wrong" for CornerCAD is expected; don't flag it. **Not a registered
 DBA** as of 2026-07-30 (may be formalized later if needed).
 
-⚠️ **Pre-go-live check:** Square derives receipts and the card-statement descriptor from the account
-holder, so customers could see the parent business name instead of CornerCAD. That collides with the
-"no marketplace/processor branding appears publicly" rule at the top of this file. Set the per-location
-business name / statement descriptor in Square before taking live orders.
+✅ **Statement-descriptor risk resolved 2026-07-31.** Square derives receipts and the card descriptor
+from the **location**, and production was pointed at `LV94H6Q7QPB42` — "Duval County", **INACTIVE**,
+business name "Unique Creations By Lisa C". Customers would have seen the wrong business.
+
+Production now points at **`LS4SZ98SBX4F6`**, whose `business_name` is literally **"CornerCAD"**
+(`cornercad.com`, `sales@cornercad.com`, ACTIVE, created 2026-07-30). Changed via `wp_update_option`
+on `wc_square_settings`, writing the full 15-key array back so nothing else was touched; verified by
+re-read.
+
+Still worth confirming with **one small live transaction, refunded**, before go-live — the descriptor
+is only truly proven on a real card statement.
+
+### Square locations (live account `ML0RSAXT9HH0B`)
+| ID | Name | Status | Business name |
+|---|---|---|---|
+| `LS4SZ98SBX4F6` | **CornerCAD** | ACTIVE | CornerCAD ← **Woo points here** |
+| `L71MXVF5YWZE4` | Unique Creations by Lisa C, LLC | ACTIVE | Unique Creations By Lisa C, LLC |
+| `LV94H6Q7QPB42` | Duval County | INACTIVE | Unique Creations By Lisa C |
+
+Plus 4 further INACTIVE locations belonging to Lisa (Clay, Flagler, Nassau, St Johns ×2). Square's
+CSV export only includes **active** locations, so exports carry just the first two.
+
+⚠️ **Staging still carries `production_location_id: LV94H6Q7QPB42`.** Inert while staging runs on
+sandbox, but it would become live-wrong if staging were ever switched off sandbox.
 
 ### Standing cautions
 - **A re-clone or restore from production overwrites staging's sandbox settings back to live.** Re-check

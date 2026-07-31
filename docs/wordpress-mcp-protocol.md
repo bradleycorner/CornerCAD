@@ -77,19 +77,31 @@ AI Engine Pro 3.6.2 is now installed on **both** staging and production — `wp_
 production reports "AI Engine (Pro) 3.6.2" (verified 2026-07-30). The earlier note that production
 still ran the free plugin is **obsolete**.
 
-| Server | Tools registered on the site | Tools this session can see |
+| Server | Tools registered on the site | Tools a session sees |
 |---|---|---|
 | `cornercad-staging` | **93** — 42 Core + 25 WooCommerce + 13 Plugins + 13 Themes | 93 |
-| `cornercad-com` (production) | **93** (Pro installed) | **43** until Claude Code is restarted |
+| `cornercad-com` (production) | **93** (Pro installed) | **93** ✅ |
 
-⚠️ Re-confirmed 2026-07-30: production has Pro, yet `ToolSearch` for `cornercad-com` `wc_*` /
-`wp_list_themes` returned nothing — the session had already negotiated the free 43. **Restart to pick
-up the production Pro tools.** Until then, production product work must go through the raw
-`wp_create_post` + `wp_update_post_meta` path (§3) or the `woocommerce` proxy server.
+✅ **Resolved 2026-07-30 (post-restart).** Production now serves the full Pro set. Verified live, not
+just by schema load: `mcp_ping` → `cornercad.com` @ 05:38 GMT, and `wc_list_products {status: any}`
+returned real data. All **25 `wc_*`** tools are present and match the inventory below exactly; the 13
+theme and 13 plugin lifecycle tools are present too. The raw `wp_create_post` +
+`wp_update_post_meta` fallback path is no longer required on production — it remains the escape
+hatch for meta the Woo shape doesn't expose (§3).
 
 **A restart is mandatory after installing Pro.** MCP negotiates its tool list at connection time,
 so an existing session cannot see newly registered functions no matter how many times you retry.
-Verified: ToolSearch immediately after the install returned only the original 43.
+Verified twice: ToolSearch immediately after the install returned only the original 43; a restart
+returned all 93. Retrying within a session never works — restart is the only fix.
+
+⚠️ **A Pro upgrade silently widens the ungated write surface.** `permissions.ask` was authored
+against the free 43, so the ~32 Pro write tools (`wc_*` writers, plugin/theme lifecycle + file
+tools) arrived **completely ungated on the live store** — including `wc_create_refund`, which moves
+real money, and `wp_switch_theme` / `wp_delete_plugin`, which can take the site down. Closed
+2026-07-30: `.claude/settings.json` → `permissions.ask` now carries **61** rules (29 → +32), each
+name cross-checked against the running server's advertised list rather than guessed (see §0.3).
+**Whenever the tool count changes, re-audit `permissions.ask` — a rule file that looks
+comprehensive but names nothing real gates nothing.**
 
 ### WooCommerce (25) — use these for Spec B
 `wc_list_products` · `wc_get_product` · `wc_create_product` · `wc_update_product` ·
