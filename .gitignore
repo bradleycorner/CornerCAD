@@ -58,3 +58,10 @@ __pycache__/
 
 # Excel lock/temp files
 ~$*
+
+# h3li0 licensed product photography — 2.3GB of source assets.
+# Keep local; never commit binaries to git. The manifest is versioned instead.
+h3li0 Media/
+
+# Optimised derivatives of the licensed photo library — regenerate with scripts/build_h3li0_images.sh
+h3li0 Media (web)/
