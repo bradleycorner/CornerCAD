@@ -27,3 +27,10 @@ cache/
 # Local system context overrides
 *.local.md
 claude_desktop_config.json
+# Project MCP config — holds API Client ID/Secret (see CLAUDE.md); never commit
+.mcp.json
+
+# Third-party Concrete CMS marketplace addons (installed on the server,
+# not vendored here) and their downloaded installers
+msv_cloudflare_turnstile/
+msv_cloudflare_turnstile.zip
