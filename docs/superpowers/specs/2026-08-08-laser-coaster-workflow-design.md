@@ -118,6 +118,15 @@ Add-ons (thumbnail = preview; proof = design-ID→SVG). That leaves **~2–5 pub
 **Starter tier (~$59/mo annual + 1.9% per custom sale, 10 products)** fits Phase 2's launch with room to
 add 5+ more themes/templates before needing Grow.
 
+**Phase 2 experience = a true visual customizer (a marketing selling point, not just a feature).**
+Zakeke's **Visual Product Customizer** (Web-to-Print & Engraving) shows the customer a **photo of the
+actual round/square slate or wood coaster** and lets them **position/drag their text (or image) onto it
+with a live engraving preview**, then outputs a **print-ready file** and automates the order — no
+back-and-forth. This "design it live on a real slate" interaction is itself a **differentiator worth
+featuring in the personalized product descriptions and ads.**
+Prep for Phase 2: **photograph the coaster blanks** (round/square × slate/wood) to use as the
+customizer base/mockup images.
+
 **Hard selection criteria** (a candidate failing any of these is out):
 1. **Live text-on-template preview** for personalized products.
 2. **Clean order-line data** — the chosen design + typed text land on the order as readable data
