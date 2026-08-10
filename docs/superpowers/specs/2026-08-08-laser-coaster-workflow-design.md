@@ -11,10 +11,33 @@ Turn Bradley's laser assets — a proven coaster process (LightBurn templates + 
 ~3,464-design commercial-licensed bundle — into a **sellable, made-to-order laser-engraved coaster
 line** on cornercad.com, without hand-listing thousands of products.
 
-Launch offering: **decorative** (customer picks a ready design) **+ personalized** (customer adds their
-own text). Custom-logo/art (customer-supplied files) is explicitly deferred.
+Full offering: **decorative** (pick a design), **personalized** (add your own text), and later
+**custom/photo** (upload your own art). To launch fast and start advertising, the build is **phased**
+(see §1a): Phase 1 ships fixed-design coasters with no customization engine; Phase 2 adds the
+personalization layer.
 
-## 2. Architecture — the coaster line is Woo-native (deliberate exception)
+## 1a. Release phasing
+
+**Phase 1 — Launch (now): fixed-design coasters, no customization engine.** A curated starter set of
+proven designs (a few mandala/geometric/ocean + crest/eagle) sold as straightforward products — pick a
+listing, choose material/set, buy. **No design-picker plugin, no Zakeke, no personalization.** With no
+add-ons, these stay **Square-native** (built in Square, synced to Woo like the h3li0 line) — consistent
+with the rest of the catalog, riding the existing sync / category / catalog-mode work. Goal: **products
+live, advertising started.**
+
+**Phase 2 — Customization add-on (later): the Woo-native personalization layer.** Everything below that
+needs a plugin — the decorative **design picker** (Product Add-ons), the **personalized templates**
+(Zakeke live preview + proof image), and the **custom/photo tier** ($10 setup + email proof). This is
+the part that breaks the Square model (needs Woo-native add-ons) and carries the recurring Zakeke cost.
+Layered on once Phase 1 is selling.
+
+The rest of this spec describes the FULL system; the design-picker, personalized, and custom pieces are
+**Phase 2**.
+
+## 2. Architecture — the customization layer is Woo-native (deliberate exception)
+
+*(Applies to **Phase 2**. **Phase 1** fixed-design coasters carry no add-ons, so they stay
+**Square-native** — built in Square and synced to Woo like the h3li0 line, no exception needed.)*
 
 The rest of the store uses **Square as system of record**, synced into WooCommerce. The coaster line
 **cannot** work that way: the design picker and live-text preview require **WooCommerce Product
@@ -86,6 +109,14 @@ personalized templates need a **product-personalizer plugin** with a live-previe
   fee outweighs building on a stale plugin.
 - **Ruled out for Woo:** **Teeinblue** (Shopify-first; its WooCommerce tier is **~$378/mo** — enterprise
   pricing, not viable for this line). **Customily** (no clear Woo support surfaced).
+
+**Zakeke product-count / tier fit (verified):** Zakeke's plan limit counts **published products =
+distinct customizable listings, NOT variations** — material/shape/set are variations of one variable
+product, so each theme/template = **1** published product ([Zakeke docs](https://zakeke.zendesk.com/hc/en-us/articles/360022582493)).
+Design coasters as **variable products**, and let the **decorative** listings skip Zakeke via Product
+Add-ons (thumbnail = preview; proof = design-ID→SVG). That leaves **~2–5 published products**, so the
+**Starter tier (~$59/mo annual + 1.9% per custom sale, 10 products)** fits Phase 2's launch with room to
+add 5+ more themes/templates before needing Grow.
 
 **Hard selection criteria** (a candidate failing any of these is out):
 1. **Live text-on-template preview** for personalized products.
