@@ -18,26 +18,29 @@ personalization layer.
 
 ## 1a. Release phasing
 
-**Phase 1 — Launch (now): fixed-design coasters, no customization engine.** A curated starter set of
-proven designs (a few mandala/geometric/ocean + crest/eagle) sold as straightforward products — pick a
-listing, choose material/set, buy. **No design-picker plugin, no Zakeke, no personalization.** With no
-add-ons, these stay **Square-native** (built in Square, synced to Woo like the h3li0 line) — consistent
-with the rest of the catalog, riding the existing sync / category / catalog-mode work. Goal: **products
-live, advertising started.**
+**Phase 1 — Launch (now): decorative design picker, Woo-native.** One listing per material/shape;
+customer picks **material + shape + set** (variations) *and* **selects a design from a gallery**. Built
+with **WooCommerce Product Add-ons** (cheap, no Zakeke) — the chosen design rides the order as data →
+the **design-ID → SVG map** for production. Because Product Add-ons are Woo-only, these coasters are
+**Woo-native** (managed in Woo, not synced from Square); categories (**Coasters + Laser Engraved**) are
+assigned **directly in Woo**, so **no multi-category Square-sync test is needed.** Thumbnails come from
+the bundle's per-design **PNGs**, and the design-ID→SVG→PNG **map can be scripted** from the bundle
+folders, so a generous curated set per theme is feasible. *(Product Add-ons UX is comfortable at ~20–60
+designs per theme; hundreds want a gallery/Zakeke later.)* Goal: **products live, advertising started.**
 
-**Phase 2 — Customization add-on (later): the Woo-native personalization layer.** Everything below that
-needs a plugin — the decorative **design picker** (Product Add-ons), the **personalized templates**
-(Zakeke live preview + proof image), and the **custom/photo tier** ($10 setup + email proof). This is
-the part that breaks the Square model (needs Woo-native add-ons) and carries the recurring Zakeke cost.
-Layered on once Phase 1 is selling.
+**Phase 2 — Customization add-on (later): personalized + custom.** The **personalized templates**
+(Zakeke Visual Product Customizer — drag text onto a real-slate photo, live engraving preview + proof
+image) and the **custom/photo tier** ($10 setup + email proof). These carry the recurring Zakeke cost;
+layered on once Phase 1 is selling.
 
-The rest of this spec describes the FULL system; the design-picker, personalized, and custom pieces are
-**Phase 2**.
+The rest of this spec describes the FULL system; the **decorative design picker is Phase 1**, and the
+**personalized (Zakeke) + custom pieces are Phase 2**.
 
 ## 2. Architecture — the customization layer is Woo-native (deliberate exception)
 
-*(Applies to **Phase 2**. **Phase 1** fixed-design coasters carry no add-ons, so they stay
-**Square-native** — built in Square and synced to Woo like the h3li0 line, no exception needed.)*
+*(Applies to the whole coaster line, **both phases** — Phase 1's decorative design picker uses
+WooCommerce Product Add-ons and Phase 2 adds Zakeke, so coasters are **Woo-native throughout**. Only
+non-configurable laser products, e.g. signage, stay **Square-native** like the rest of the catalog.)*
 
 The rest of the store uses **Square as system of record**, synced into WooCommerce. The coaster line
 **cannot** work that way: the design picker and live-text preview require **WooCommerce Product
