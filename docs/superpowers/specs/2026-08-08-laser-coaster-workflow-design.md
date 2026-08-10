@@ -75,9 +75,17 @@ preview** on the coaster template → pick material + set → Add to Cart.
 Plain WooCommerce Product Add-ons does image-swatch pickers + text fields but **no live preview**. The
 personalized templates need a **product-personalizer plugin** with a live-preview canvas.
 
-**Leading candidate:** **Fancy Product Designer (FPD)** — text + overlay on a product mockup, and it
-generates an order-attached preview/print file natively. Lighter alternatives (e.g. *Customer Product
-Personalizer*) to be compared.
+**Vetted candidates (WooCommerce/WordPress support confirmed):**
+- **Zakeke — LEAD.** Official "Zakeke Interactive Product Designer for WooCommerce" connector plugin in
+  the WordPress.org repo (install via Plugins → Add New → "Zakeke"); SaaS backend, actively supported.
+  Live preview + order-attached production/proof file. **14-day free trial** → ~$29.90/mo (+ ~1.7%/order).
+  The ideal evaluate-first candidate — trial it on staging.
+- **Fancy Product Designer – WooCommerce Edition** (CodeCanyon, ~$59 **one-time**) — **FALLBACK.**
+  Woo-native, real-time preview, order-attached print file, no monthly fee. ⚠️ **Now maintenance-only —
+  no further updates/versions** — a long-term WP/Woo-compatibility risk; use only if avoiding a monthly
+  fee outweighs building on a stale plugin.
+- **Ruled out for Woo:** **Teeinblue** (Shopify-first; its WooCommerce tier is **~$378/mo** — enterprise
+  pricing, not viable for this line). **Customily** (no clear Woo support surfaced).
 
 **Hard selection criteria** (a candidate failing any of these is out):
 1. **Live text-on-template preview** for personalized products.
@@ -143,8 +151,9 @@ Ties into the settled category scheme (task #7): **method-primary + Coasters cro
 
 ## 9. Open items to finalize during implementation
 
-1. **Plugin choice** — short eval on staging of 1–2 personalizer plugins against the §4 hard criteria
-   (esp. proof-image-on-order). Leading: Fancy Product Designer.
+1. **Plugin choice** — trial **Zakeke** on staging (14-day free WP.org plugin) against the §4 hard
+   criteria (esp. proof-image-on-order + clean order data). Fallback: Fancy Product Designer – Woo
+   Edition (one-time, but maintenance-only). Teeinblue ruled out (~$378/mo for Woo); Customily unverified.
 2. **Pricing numbers** — per material × set, once material + time cost are known.
 3. **Exact launch curation** — which specific designs make the pilot set per theme; the personalized
    template layouts.
