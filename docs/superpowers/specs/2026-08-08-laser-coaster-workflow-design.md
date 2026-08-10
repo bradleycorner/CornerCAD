@@ -143,8 +143,23 @@ Ties into the settled category scheme (task #7): **method-primary + Coasters cro
 
 ## 8. Out of scope / deferred
 
-- **Custom-logo / customer-supplied art tier** (file upload + quote + proof loop) — later; better as a
-  made-to-order "request" than instant-buy.
+- **Custom / photo-upload tier (deferred, but designed):** customer supplies their own photo/art/logo
+  (pet photo, business logo, clan crest). Higher-touch, so it uses a **setup fee + manual email proof**,
+  *not* self-serve live preview:
+  - **Flow:** customer buys a **"$10 Custom Coaster Setup + Proof"** product and uploads their image →
+    Bradley converts it in **LightBurn** (greyscale + dithering, tuned per material — see note below) →
+    **emails a proof** → customer approves → engrave + ship. The **coaster balance is invoiced via Square
+    Invoice** on approval (reuses the same Square Invoices flow used for shows/custom work).
+  - **Why the $10 setup:** covers the image-prep/proof labor and filters low-intent requests; Bradley is
+    paid for the design effort regardless of whether the order proceeds. Recommended over an all-in-one
+    full-price custom listing (where the work happens before the customer can bail).
+  - **Greyscale conversion is a LightBurn production step, NOT a web plugin.** LightBurn's Image mode does
+    greyscale + dithering (Jarvis/Stucki/Atkinson…) tuned per material; a WordPress greyscale plugin would
+    give a flat, un-dithered image that engraves worse. Optional customer-facing engraved-look *preview*
+    could come from the personalizer plugin's image filters or a laser-image tool (Imag-R) — polish only;
+    the real conversion is always in LightBurn.
+  - Note: the launch tiers (decorative vector designs + text) need **no** greyscale — vectors engrave
+    directly. Greyscale only applies to this raster/photo tier.
 - **Plastic (3D-printed) coasters** in the laser launch — they ride the 3D-Printed side; can join as a
   material option later.
 - **Sets of 6**, additional themes/templates, and a production-sheet UI — post-launch expansions.
