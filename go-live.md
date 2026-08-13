@@ -114,14 +114,40 @@ Legend: `[x]` done · `[ ]` pending · `[~]` partially done.
 
 ## Shipping & tax
 
-- [ ] **[admin] Shipping — two separate layers:**
-  - **Checkout price:** launch on **flat rate** (simple/predictable for made-to-order; zones/methods are
-    DB-table config → admin UI only, not MCP).
-  - **Label buying/printing (fulfillment):** **WooCommerce Shipping** — the chosen tool (free, native,
-    discounted USPS/UPS/DHL, works with the existing label printer). **Skip ShipStation** (paid
-    multi-channel platform — revisit only if fulfilling across Etsy/Amazon/etc.).
-  - **Prerequisite:** add product **weights** (+ dims) from slicer output post-import — the Square sync
-    doesn't carry them, and label costs need them.
+- **[admin] Shipping — two separate layers:**
+  - [x] **Checkout price — DONE 2026-08-13 (blocker cleared).** **USA zone** (United States) with:
+    - **Flat rate**, Taxable, base **$8**; shipping-class costs **Coasters $10**, **Heavy $20**, no-class $8;
+      calc type **"Per class"**. **Rest-of-world = no methods** (US-only). ⚠️ **Two things to revisit:**
+      (a) **"Per class" STACKS** — coaster + heavy in one order = $10+$20 = **$30**; switch to **"Per order:
+      most expensive class"** ($20 cap) if you want mixed/bundle orders to be friendlier (recommended given
+      the collections strategy). (b) **Coasters $10 > default $8 is INTENTIONAL** — the coaster line is dense
+      **stone/slate** (heavy per volume vs. a mostly-hollow FDM print), so it genuinely costs more to ship.
+      *Do not "fix" this down to match the default.*
+  - [ ] **📏 FOLLOWUP — dial in real shipping amounts from the scale.** Current $8 / $10 / $20 are estimates.
+    Bradley has a **shipping scale**; weigh representative items per class (default print, stone/slate coaster,
+    heavy/two-part planter) to set data-backed flat-rate + class costs. This same weighing feeds the
+    **product weights** task below (labels need real weight), so do them together post-import.
+    - **Free shipping over $75** (min-amount OR coupon; "apply min before coupon discount" on). Paired with
+      Shipping settings → *"hide rates when free shipping is available"* + *"hide costs until address
+      entered."* This is the **intended** free-ship method (the strategy doc's next-order reward), not the
+      staging leftover.
+    - **Local pickup** enabled ("Pickup", free) at two Jacksonville spots (Starbucks Phillips Hwy · Jax Gem &
+      Mineral Society). Uses store address for tax.
+    - Minor: shipping destination = *billing address* (Woo default is *shipping*); low impact on flat rate.
+  - [ ] **⚠️ Post-import — assign products to shipping classes.** "Coasters"/"Heavy" classes only apply to
+    products tagged with them; the Square sync does NOT set shipping class, so until assigned **everything
+    ships at the $8 no-class rate.** Same post-import pass as weights.
+  - [x] **Label buying/printing (fulfillment) — WooCommerce Shipping installed + activated 2026-08-13.**
+    Settings verified on-screen: **label size = 4"×6"** (thermal printer) ✅, **origin = 4531 Praver Dr N,
+    Jacksonville FL** (default sender + return) ✅, card on file for postage ✅, receipt emails on ✅, **tax
+    IDs IOSS/VOEC/PVA blank** (US-only, correct) ✅, international auto-returns off ✅, USPS SCAN form on,
+    **address validation at checkout ON** ✅, auto-open print dialog ON. **Skip ShipStation** (paid
+    multi-channel — revisit only if fulfilling across Etsy/Amazon/etc.). *(Shippo plugin also present but
+    unused — WooCommerce Shipping is the active tool; deactivate Shippo later to avoid confusion.)*
+  - [ ] **Post-import prerequisite:** add product **weights** (+ dims) from slicer output — the Square sync
+    doesn't carry them, and buying live-rate labels needs them. (Not needed for flat-rate checkout.)
+  - [ ] **Post-import:** buy + print one test **4"×6"** label from a real/test order to prove the thermal
+    printer flow end-to-end.
 - [x] **Store base country = `US:FL` (Florida)** — fixed 2026-08-13, verified via MCP. Drives both the
       shipping origin and the WooCommerce Tax nexus, so automated tax now configures for Florida (state rate
       + county surtax). *(UI check: Settings → Tax notice should read "…configured for Florida.")*
@@ -154,10 +180,9 @@ Legend: `[x]` done · `[ ]` pending · `[~]` partially done.
       good — guest checkout ON, password-setup-link ON, account-erasure options ON, 36-mo inactive-account
       retention. **Privacy-page IS set** (`wp_page_for_privacy_policy=3`, verified via MCP) so the
       `[privacy_policy]` shortcodes in the checkout/registration notices resolve to the published policy.
-      Final pass to decide: (a) leave all three "allow account creation" boxes on vs. simplify;
-      (b) whether to set a **pending/failed-order retention** window (currently blank = kept indefinitely)
-      for privacy hygiene; (c) the "connect to WordPress.com → Enable WooCommerce Shipping" banner on this
-      page is the same activation as the shipping-labels item above.
+      **Pending + failed-order retention set to 60 days** 2026-08-13 (was blank/indefinite) — verified via
+      MCP (`woocommerce_trash_pending_orders` / `woocommerce_trash_failed_orders` = `{number:60, unit:days}`).
+      Final pass still to decide: leave all three "allow account creation" boxes on vs. simplify.
 - [ ] SSL valid across the whole site.
 
 ## Email
