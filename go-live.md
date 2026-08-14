@@ -148,6 +148,39 @@ Legend: `[x]` done · `[ ]` pending · `[~]` partially done.
         rate** — a failed 200mm costs 3 hours, not 50¢.
   - **Affected (verify each is really offered):** Strata (160/180/200) plus the "two sizes" designs —
         Obscura · Quell · Lucid · Fractal · Influx · **Vellis (200mm/300mm)**.
+
+### 💡 Lamps — printed parts only + sell our own UL-listed kits (decided 2026-08-14)
+**Every lamp listing must state, prominently:** *"Supplied as printed parts only — no electrical
+components included. Requires a standard E26 lamp kit with plug and switch, sold separately."*
+Confirmed with Bradley: **all** lamps are printed parts only. A customer expecting a working lamp and
+receiving a printed shade is the most likely refund on the whole catalog.
+
+**Decision: sell the kits ourselves rather than Amazon-affiliate.** Associates pays ~3–4% (≈40¢ on a $12
+kit); stocking cord sets keeps real margin, keeps the customer on-site instead of leaving mid-checkout,
+and is exactly the "complete your collection" attach in
+`docs/CornerCAD_Collections_and_Repeat_Business_Strategy.md`. *(If we ever do use affiliate links, FTC
+rules + Amazon's terms require a clear on-page disclosure near the link.)*
+
+🚨 **Buy UL/ETL-listed cord sets only.** Printed décor is low-risk; **electrical parts in someone's home
+is real product liability.** Worth a call to the business insurer before the first kit ships.
+
+⚠️ **Socket sizing — h3li0's models are specified in EUROPEAN sizes; the US differs.**
+| Design spec | US equivalent | Interchangeable? |
+|---|---|---|
+| **E27** (Euro, 220–240V) | **E26** (US, 120V) | ✅ Same diameter (26.05–26.45mm) — the printed mount fits either. Only the internal insulation distance differs, so **stock E26** for correct 120V rating. |
+| **E14** (Euro) | **E12** (US) | ❌ **NOT interchangeable** — 12mm vs 14mm. Loose contact, flickering, overheating. And the printed mount is sized for a 14mm body, so a US E12 socket sits loose. |
+
+**✅ Resolution: standardize on the E27 plate + E26 kits.** Bradley confirmed at least one lamp ships
+**both socket variants as separate plates**, so this is a which-plate-to-print choice, not CAD work.
+Printing the E27 variant everywhere means **one kit SKU to stock (E26)** — much better for inventory and
+packaging.
+
+- [ ] **Audit the lamp model folders** and record which socket plates each design actually provides:
+      both E14+E27 → print E27 · E27 only → fine · **E14 only → needs a decision** (source 120V-rated E14
+      kits, remodel for E12, or ship an adapter). **Prismal Desk E14** is named for it, so it's the likely
+      problem case. Also check whether the two plates differ *only* in the socket mount or in overall
+      proportions — a lamp designed around a small socket may not look right with the large one.
+- [ ] Source UL/ETL-listed **E26** cord sets (plug + switch); decide packaging and attach pricing.
 - [x] **Product descriptions** — mostly resolved: the h3li0 line imported with real descriptions from
       Square. Still missing on the CornerCAD originals (Clocks, Wall/Desk Clock, Coasters, Baby Dragon, egg).
 - [ ] **Brands** re-assigned post-import (sync-safe: Square has no brand concept).
