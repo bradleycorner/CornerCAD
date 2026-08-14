@@ -100,9 +100,14 @@ Legend: `[x]` done · `[ ]` pending · `[~]` partially done.
   - [x] **Images backfilled 2026-08-14** — re-ran the CLI loop with `start_product_import( true )`;
         **378 attachments, 178/179 products have a featured image.** (The first pass left 17 gaps, one per
         OOM-restart batch; the update pass closed all but one.)
-  - [ ] **Hive Vase (335)** — the ONLY product with no image, and it's also the blank-SKU one. Both stem
-        from **Square**: the item has no SKU and no photo, so there was nothing to import. Fix it in the
-        Square catalog, then re-run the CLI import loop to pick it up.
+  - [x] **Hive Vase (335) — was an EMPTY SHELL, trashed 2026-08-14.** Not a Square data problem: the post
+        had **zero meta** (no SKU, price, image, or Square link) — wreckage from an OOM kill that created
+        the post then died before writing meta. The real one is **336** (`CAD-VAS-0021`, $45). Scan
+        confirmed it was the only orphan: **178 products, 0 with no Square link.**
+  - [ ] **Reclaim the clean slugs.** Both real products sit at `-2` URLs because duplicates squatted the
+        good ones: **Hive Vase 336** → `/product/hive-vase-2/`, **Vanta Vase 265** → `/product/vanta-vase-2/`.
+        Needs a **permanent** delete of 335 + 203 (trash still holds the slug), then update each slug.
+        Do it **before launch** — URLs are painful to change once indexed.
   - [ ] **Ribbed Planter Large (217)** — re-SKU `UCL-PLA-0001` → `CAD-PLA-0070`.
   - [ ] **Delete old duplicate Vanta Vase** — Woo post **203** (blank SKU, variable) + Square
         `CAD-VAS-0003`; superseded by `CAD-VAS-0009` (Woo 265).
