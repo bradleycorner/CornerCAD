@@ -111,7 +111,14 @@ Legend: `[x]` done · `[ ]` pending · `[~]` partially done.
   - [x] **Square Debug Mode → Off** — set via MCP 2026-08-14 and verified by re-read. Sandbox fail-safe
         confirmed still intact (all three `sandbox_*` fields empty); sync settings preserved
         (`system_of_record=square`, inventory on, override images on, 24h).
-  - [ ] Decide: pull **full galleries** (~2,480 in Square) vs the current ~2 images/product.
+  - [~] **Product galleries — WooCommerce Square syncs ONE image per product, by design.** Confirmed via
+        WooCommerce's own docs + long-standing open feature requests: only the main/featured image syncs;
+        every other Square image is ignored. So "add photos in Square → nightly sync" **will never** bring
+        galleries over. Custom puller written: **`~/square-gallery.php`** (WP-CLI, `--user=1`) — maps
+        Square item → Woo product via `_square_item_id`, sideloads all non-featured images, writes
+        `_product_image_gallery`; per-image resume so OOM restarts don't duplicate. **Started 2026-08-14
+        for all 179; re-run it any time images are added in Square.** No template change needed — Woo
+        renders the gallery automatically once the meta exists (Meow Lightbox handles enlarge).
 - [ ] **Filament color/type options won't survive import** (Square modifiers don't sync) → Product Add-ons
       plugin if the storefront needs the dropdowns.
 - [x] **Product descriptions** — mostly resolved: the h3li0 line imported with real descriptions from
