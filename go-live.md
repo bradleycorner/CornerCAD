@@ -97,17 +97,20 @@ Legend: `[x]` done · `[ ]` pending · `[~]` partially done.
       loop: memory `project_square-woo-import-cli-method`, script `~/square-import.php` on the server.
 - [x] **Trashed Woo test product #91** (2026-08-13).
 - [ ] **Post-import cleanup:**
-  - [ ] **17 products missing a featured image** — casualties of the OOM restarts (~1 per batch). Re-run
-        the import loop with `start_product_import( true )` to backfill, or set them by hand. Note
-        **Clocks / Wall Clock / Coasters** may genuinely have no photo in Square.
-  - [ ] **Hive Vase (335)** — blank SKU; fix in **Square**, then re-sync.
+  - [x] **Images backfilled 2026-08-14** — re-ran the CLI loop with `start_product_import( true )`;
+        **378 attachments, 178/179 products have a featured image.** (The first pass left 17 gaps, one per
+        OOM-restart batch; the update pass closed all but one.)
+  - [ ] **Hive Vase (335)** — the ONLY product with no image, and it's also the blank-SKU one. Both stem
+        from **Square**: the item has no SKU and no photo, so there was nothing to import. Fix it in the
+        Square catalog, then re-run the CLI import loop to pick it up.
   - [ ] **Ribbed Planter Large (217)** — re-SKU `UCL-PLA-0001` → `CAD-PLA-0070`.
   - [ ] **Delete old duplicate Vanta Vase** — Woo post **203** (blank SKU, variable) + Square
         `CAD-VAS-0003`; superseded by `CAD-VAS-0009` (Woo 265).
   - [ ] **Empty Trash (8 old test products)** — trashed products are **permanently ignored** by future
         imports, so leaving them there creates silent gaps.
-  - [ ] **Square Debug Mode → Off** (turned on 2026-08-13 to diagnose; it logs every transaction on a
-        live store).
+  - [x] **Square Debug Mode → Off** — set via MCP 2026-08-14 and verified by re-read. Sandbox fail-safe
+        confirmed still intact (all three `sandbox_*` fields empty); sync settings preserved
+        (`system_of_record=square`, inventory on, override images on, 24h).
   - [ ] Decide: pull **full galleries** (~2,480 in Square) vs the current ~2 images/product.
 - [ ] **Filament color/type options won't survive import** (Square modifiers don't sync) → Product Add-ons
       plugin if the storefront needs the dropdowns.
