@@ -139,13 +139,31 @@ Legend: `[x]` done · `[ ]` pending · `[~]` partially done.
         catalog grid leads with the low number, so a low entry price wins clicks; and upcharging for real
         extra material/time is more defensible than permanently "discounting" off an inflated top price
         (cf. the collections doc: don't make discounts the reason people return).
-  - **Price on TIME, not material.** Slicer data for Strata (2026-08-14) — 160mm: 30.29g / ~1h56m ·
-        180mm: 37.81g / ~2h30m · 200mm: 52.88g / ~3h09m. Material across all three is **$0.65–$1.14**
-        (irrelevant); print time swings **+63%**. Don't scale linearly either — handling, packaging and
-        listing are fixed per unit. Model: `price = fixed base + (print hours × hourly rate)`.
-        Worked example at ~$25 base + ~$8/hr → **$40 / $45 / $50**, which lands the existing $45 vase
-        price on the middle size. Set the hourly rate to cover electricity, machine wear **and failure
-        rate** — a failed 200mm costs 3 hours, not 50¢.
+  - **Price from MakerOps, not by hand.** ⚠️ An earlier estimate here (~$40/$45/$50, from a raw slicer
+        screenshot showing ~121g total) was **wrong — that data was ~4× too light**. Use MakerOps: it
+        rolls in machine time and overhead, not just filament.
+
+**📐 PRICING METHOD — MakerOps `True Cost` × 2.7 = SRP.** Established with Strata 2026-08-14; use this for
+every multi-size design.
+
+| Strata | Mass | Time | True cost | SRP @2.7× | **Listed** |
+|---|---|---|---|---|---|
+| 160mm | 129.0 g | 2.87 h | $10.39 | $28.06 | **$30** |
+| 180mm | 163.8 g | 3.64 h | $13.20 | $35.63 | **$38** |
+| 200mm | 206.8 g | 4.60 h | $16.66 | $44.98 | **$45** |
+
+Source: `~/Documents/3dPrinting/Commercial License/h3liØ/Vases/Strata/strata_PLA_2h30m.gcode`
+(0.4mm Standard; 63% margin, $6.16 profit/hr).
+
+- **Cost tracks time almost exactly** (+60% time → +60% price), which is the right shape. Round up to
+  clean price points; keep **$45** as the top-of-ladder anchor since it matches existing vase pricing.
+- ⚠️ **Sanity-check two things before trusting 2.7×:** (a) does `True Cost` include **your labour**
+  (setup, removal, inspection, packing, listing)? If not, $6.16/hr is the entire return on machine *and*
+  time. (b) Is **failure rate** allowed for? A failed 200mm costs 4.6 hrs and 207 g, and tall vase-mode
+  prints are the likeliest to fail.
+- 💡 The 160mm at **$30** becomes the cheapest vase in the catalog (others are $45). That's a feature —
+  a genuine entry price for first-time buyers, per the collections strategy — but expect it to become
+  the volume seller.
   - **Affected (verify each is really offered):** Strata (160/180/200) plus the "two sizes" designs —
         Obscura · Quell · Lucid · Fractal · Influx · **Vellis (200mm/300mm)**.
 
