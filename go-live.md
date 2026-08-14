@@ -240,6 +240,39 @@ Legend: `[x]` done · `[ ]` pending · `[~]` partially done.
 
 ---
 
+## Backlog (post-launch projects)
+
+### 🔌 Build the gallery puller into a real plugin — `cornercad-square-galleries`
+**Why:** WooCommerce Square syncs **only the featured image** (documented limitation, years of open
+feature requests). Our working fix currently lives at **`~/square-gallery.php`** — a loose file in the
+server home dir: not in git, not on staging, invisible to future-us, and easy to lose. Making it a plugin
+fixes all of that *and* fits the decided workflow (code → staging → **files-only deploy**;
+[[feedback_dev-workflow-content-prod-code-staging]]). It also stays cleanly separate from WooCommerce
+Square, so plugin updates can't clobber it (we deliberately never patched that plugin).
+
+**Scope:**
+```
+cornercad-square-galleries/
+  cornercad-square-galleries.php   # plugin header + hooks
+  includes/Gallery_Sync.php        # the working pull logic
+  includes/CLI.php                 # wp cad-gallery sync [--product=<id>] [--all]
+```
+- **WP-CLI command** — the reliable path on this LiteSpeed host; replaces the ad-hoc bash restart loop.
+- **Hook the Square sync completion** → auto-pull galleries for changed items. This restores the workflow
+  Bradley actually wants: *add photos in Square → they show up on the site*, no manual step.
+- Keep the **per-image resume** (`_cad_gallery_done` meta + cursor option) so OOM restarts never
+  duplicate or lose work. Keep the wp-admin includes (`file.php`/`media.php`/`image.php`) — required for
+  `media_sideload_image` outside the browser.
+- Settings: **none at first.** Fewer knobs, less to break.
+
+**Public release = separate decision, deliberately deferred.** Demand is obviously real, but shipping to
+wordpress.org means support tickets, cross-host compatibility, and maintenance on every WooCommerce
+Square API change. Run it privately for a few weeks first, then decide with battle-tested code.
+
+Full technical background: memory `project_square-woo-import-cli-method`.
+
+---
+
 ## Standing cautions (see CLAUDE.md + memory)
 
 - 🚨 **No more full-DB staging→prod syncs.** They overwrite prod's DB (config + orders) and clobber the
