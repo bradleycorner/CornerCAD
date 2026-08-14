@@ -126,6 +126,28 @@ Legend: `[x]` done · `[ ]` pending · `[~]` partially done.
         renders the gallery automatically once the meta exists (Meow Lightbox handles enlarge).
 - [ ] **Filament color/type options won't survive import** (Square modifiers don't sync) → Product Add-ons
       plugin if the storefront needs the dropdowns.
+- [ ] **Size options → build as Square VARIATIONS, not modifiers** (decided 2026-08-14). Several designs
+      ship in multiple heights and we're selling all of them.
+  - 🚨 **Modifiers do NOT sync to Woo; variations DO.** Built as modifiers, the sizes exist in Square and
+        are invisible on the website — the same trap that lost the filament colour pickers.
+  - 🚨 **Every variation needs its own SKU or the WHOLE product fails to import** — this is what the
+        Aug 6 alerts were (*"Variations with missing SKUs cannot be imported"*). Pattern:
+        **`CAD-VAS-0025-160` / `-180` / `-200`** (base SKU + height in mm).
+  - 🚨 **Every variation needs a price in Square.** A Woo variable product whose variations lack `_price`
+        renders as *unavailable* (carried over from the Community Store lesson).
+  - **Pricing direction: price UP from the smallest.** Woo shows a range ("$40.00 – $50.00") and the
+        catalog grid leads with the low number, so a low entry price wins clicks; and upcharging for real
+        extra material/time is more defensible than permanently "discounting" off an inflated top price
+        (cf. the collections doc: don't make discounts the reason people return).
+  - **Price on TIME, not material.** Slicer data for Strata (2026-08-14) — 160mm: 30.29g / ~1h56m ·
+        180mm: 37.81g / ~2h30m · 200mm: 52.88g / ~3h09m. Material across all three is **$0.65–$1.14**
+        (irrelevant); print time swings **+63%**. Don't scale linearly either — handling, packaging and
+        listing are fixed per unit. Model: `price = fixed base + (print hours × hourly rate)`.
+        Worked example at ~$25 base + ~$8/hr → **$40 / $45 / $50**, which lands the existing $45 vase
+        price on the middle size. Set the hourly rate to cover electricity, machine wear **and failure
+        rate** — a failed 200mm costs 3 hours, not 50¢.
+  - **Affected (verify each is really offered):** Strata (160/180/200) plus the "two sizes" designs —
+        Obscura · Quell · Lucid · Fractal · Influx · **Vellis (200mm/300mm)**.
 - [x] **Product descriptions** — mostly resolved: the h3li0 line imported with real descriptions from
       Square. Still missing on the CornerCAD originals (Clocks, Wall/Desk Clock, Coasters, Baby Dragon, egg).
 - [ ] **Brands** re-assigned post-import (sync-safe: Square has no brand concept).
