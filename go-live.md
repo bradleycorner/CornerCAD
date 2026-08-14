@@ -87,12 +87,32 @@ Legend: `[x]` done · `[ ]` pending · `[~]` partially done.
 - [x] **Cleaned the 12 "Sandbox sample" test products off prod** 2026-08-13 (0 active products now).
 - [x] **Test order trashed** — verified via MCP 2026-08-13 (0 orders on prod). Test customer is Bradley's
       own admin account — left in place.
-- [ ] **Run the Square → Woo import** — not yet run.
+- [x] 🎉 **Square → Woo import DONE 2026-08-14 — 179 published products**, **176 clean `CAD-` SKUs**,
+      **zero `UCL-`/Lisa bleed**, **346 images**, descriptions imported for the h3li0 line, categories
+      auto-created (Vases · Planters · Lamps · Gardening · Home Decor · 3D Printed · Coasters).
+      🚨 **The browser "Import all Products" button CANNOT complete on this host** — LiteSpeed kills every
+      request at ~80s (overrides PHP's `max_execution_time`) and breaks the plugin's loopback chain. It
+      must be run via **WP-CLI with `--user=1`** (userless CLI silently imports 0 — fails
+      `current_user_can('publish_products')` and breaks on the first item). Full method + the OOM-restart
+      loop: memory `project_square-woo-import-cli-method`, script `~/square-import.php` on the server.
 - [x] **Trashed Woo test product #91** (2026-08-13).
-- [ ] **Delete old duplicate Vanta Vase** (`CAD-VAS-0003`) in Square before import.
+- [ ] **Post-import cleanup:**
+  - [ ] **17 products missing a featured image** — casualties of the OOM restarts (~1 per batch). Re-run
+        the import loop with `start_product_import( true )` to backfill, or set them by hand. Note
+        **Clocks / Wall Clock / Coasters** may genuinely have no photo in Square.
+  - [ ] **Hive Vase (335)** — blank SKU; fix in **Square**, then re-sync.
+  - [ ] **Ribbed Planter Large (217)** — re-SKU `UCL-PLA-0001` → `CAD-PLA-0070`.
+  - [ ] **Delete old duplicate Vanta Vase** — Woo post **203** (blank SKU, variable) + Square
+        `CAD-VAS-0003`; superseded by `CAD-VAS-0009` (Woo 265).
+  - [ ] **Empty Trash (8 old test products)** — trashed products are **permanently ignored** by future
+        imports, so leaving them there creates silent gaps.
+  - [ ] **Square Debug Mode → Off** (turned on 2026-08-13 to diagnose; it logs every transaction on a
+        live store).
+  - [ ] Decide: pull **full galleries** (~2,480 in Square) vs the current ~2 images/product.
 - [ ] **Filament color/type options won't survive import** (Square modifiers don't sync) → Product Add-ons
       plugin if the storefront needs the dropdowns.
-- [ ] **Product descriptions** — ~155 items lack them.
+- [x] **Product descriptions** — mostly resolved: the h3li0 line imported with real descriptions from
+      Square. Still missing on the CornerCAD originals (Clocks, Wall/Desk Clock, Coasters, Baby Dragon, egg).
 - [ ] **Brands** re-assigned post-import (sync-safe: Square has no brand concept).
 
 ## Payments — Square only
