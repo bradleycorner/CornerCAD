@@ -241,6 +241,15 @@ At ~$5.64/u it sells comfortably at $14–16 (mains kits reasonably carry more t
       bases; this kit ships the socket on a round lamp panel. Confirm the socket detaches or that the
       panel seats inside the print — same fit-test discipline as the LED kits.
 - [ ] Confirm packaging + attach pricing once both kit types are in hand.
+- [ ] 🔥 **"Low-heat LED bulbs only, 25W max" must go on EVERY socket lamp listing.** h3li0 states this
+      for Prismal Living Room; it's a printed-plastic-near-a-hot-bulb melt/fire risk, so treat it as a
+      required safety line, not marketing. Already written into the Prismal descriptions — add it to the
+      rest as each is written, and to **Drift Lamp**'s existing copy in Square.
+- [ ] **EU-only sockets → hide from the storefront for now** (Bradley's call 2026-08-14; decide later).
+      Currently **Prismal Desk E14**. In Woo set *Catalog visibility → Hidden*, or unpublish; better still,
+      handle it in **Square** (system of record) so a sync doesn't republish it. ⚠️ Note the two are
+      different: hiding in Woo is cosmetic, and the 24h sync overwrites Woo content — so confirm the
+      chosen method actually survives a sync.
 - [x] **Product descriptions** — mostly resolved: the h3li0 line imported with real descriptions from
       Square. Still missing on the CornerCAD originals (Clocks, Wall/Desk Clock, Coasters, Baby Dragon, egg).
 - [ ] **Brands** re-assigned post-import (sync-safe: Square has no brand concept).
