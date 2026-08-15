@@ -174,7 +174,16 @@ h3li0 designed **drawer module · reDesk**, **organiser · reDesk** and a third 
 concept in `docs/CornerCAD_Collections_and_Repeat_Business_Strategy.md` — **already built, no design
 work needed.** Merchandise them as a set (bundle price, cross-sell on each product page, "complete your
 desk"), and make it the pilot for the collections strategy rather than starting from scratch.
-Same applies to the **Nimbus series** (vase + box + planter, per h3li0's own note).
+**Verified 2026-08-15:** reDesk is **complete** — Redesk Drawer (687) · Redesk Organiser (477) ·
+Redesk Headphone (288). Merchandisable as a set today.
+
+- [ ] **Nimbus series is incomplete — only the Vase (382) is in the catalog.** h3li0 designed Nimbus as
+      a **vase + box + planter** sharing one aesthetic. We hold the commercial licence, so adding the two
+      missing models turns an orphan vase into a sellable family for the cost of two SKUs. Grab the model
+      files → add to Square → they sync down. Easy collection win.
+- [ ] **Audit the rest of the catalog for other h3li0 families** we own only part of (Prismal Desk +
+      Living Room is another; Wavy Vase + Wavy Planter and Odemira Vase + Planter are already complete
+      pairs worth cross-selling).
 
 ⚠️ **Redesk Drawer is a 15.8 h print (3 plates)** — the longest item found so far, and another that
 must go through MakerOps before listing.
