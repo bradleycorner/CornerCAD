@@ -222,7 +222,25 @@ Not every lamp is a mains socket lamp. Discovered 2026-08-14 via Clarit.
       described as *sheets*, they're likely bare boards with no USB cord or inline switch.
 - [ ] **Sort all 9 lamps into LED-kit vs E26** — this determines stock AND a line of copy on every listing.
       A customer who buys an LED-kit lamp and gets E26 instructions is a support ticket.
-- [ ] Source UL/ETL-listed **E26** cord sets (plug + switch); decide packaging and attach pricing.
+**E26 mains cord set — candidate found 2026-08-14 (Amazon, Yubunt "Blow Mold Light Kit Replacement"):**
+E26/E27 compatible · 26mm socket · **5 ft cord** · inline switch · **fused plug** · white · PC plastic +
+copper wire · 3.5"W × 1.57"H panel · 4.8★ (40).
+| Qty option | Price | Unit |
+|---|---|---|
+| 1 base | $9.49 | $9.49 |
+| 2 base | $15.06 | $7.53 |
+| **3 base** | **$16.91** | **$5.64** ← best value |
+
+At ~$5.64/u it sells comfortably at $14–16 (mains kits reasonably carry more than the $12–13 LED kit).
+
+- [ ] 🚨 **VERIFY UL/ETL LISTING BEFORE BUYING.** The listing does **not** mention it. This is mains
+      voltage going into customers' homes — the single thing that matters legally. Unlisted cord sets are
+      the difference between a defensible position and an uninsurable one. If it can't be confirmed, buy
+      a listed set even at higher cost.
+- [ ] ⚠️ **Check the 3.5" panel doesn't fight the printed base.** h3li0's lamps have their own printed
+      bases; this kit ships the socket on a round lamp panel. Confirm the socket detaches or that the
+      panel seats inside the print — same fit-test discipline as the LED kits.
+- [ ] Confirm packaging + attach pricing once both kit types are in hand.
 - [x] **Product descriptions** — mostly resolved: the h3li0 line imported with real descriptions from
       Square. Still missing on the CornerCAD originals (Clocks, Wall/Desk Clock, Coasters, Baby Dragon, egg).
 - [ ] **Brands** re-assigned post-import (sync-safe: Square has no brand concept).
