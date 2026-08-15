@@ -288,8 +288,26 @@ At ~$5.64/u it sells comfortably at $14–16 (mains kits reasonably carry more t
       handle it in **Square** (system of record) so a sync doesn't republish it. ⚠️ Note the two are
       different: hiding in Woo is cosmetic, and the 24h sync overwrites Woo content — so confirm the
       chosen method actually survives a sync.
-- [x] **Product descriptions** — mostly resolved: the h3li0 line imported with real descriptions from
-      Square. Still missing on the CornerCAD originals (Clocks, Wall/Desk Clock, Coasters, Baby Dragon, egg).
+- [x] 🎉 **87 product descriptions written and PUSHED TO SQUARE 2026-08-15** (planters, vases, all 9 lamps,
+      Redesk Drawer). Source: h3li0's Patreon/MakerWorld/Printables copy, rewritten in CornerCAD voice
+      (avoids lifting their marketing text verbatim) with near-duplicate phrasings deliberately varied so
+      the storefront isn't 15 identical "sits elevated on a drip plate" listings. Master copy:
+      `content/product-descriptions-batch1.csv`.
+  - **Method that works — Square Catalog API, `batchUpdateObjects` with `sparse_update: true`.**
+    Sends *only* `item_data.description`; everything else (SKU, price, images, modifiers, tax_ids,
+    categories, **and `ecom_visibility: HIDDEN`**) is preserved — verified on the response. A full-object
+    upsert would wipe omitted fields, so **always use sparse_update**. Square auto-generates
+    `description_html` / `description_plaintext`. Needs each object's current `id` + `version`.
+    Done in 3 batches of ~30, **0 errors**.
+  - ⚠️ Responses exceed the context limit — they land in a file; parse with `jq`, don't try to read raw.
+  - [ ] **NEXT: pull them into Woo** — run the CLI import loop (`~/square-import.php`, `--user=1`).
+        Square is system-of-record, so descriptions flow down on sync. Nothing shows on the website
+        until this runs.
+  - [ ] **Drift Lamp still says "Requires an E14 lamp kit"** — it was skipped (already had copy) and now
+        contradicts the E26 standard. Update it in Square once the socket audit confirms.
+  - [ ] Still undescribed: the ~20 containers/boxes, bowls, desk/organiser line, gardening, Cova Coasters,
+        seasonal — plus CornerCAD originals (Clocks, Wall/Desk Clock, Coasters, Baby Dragon, egg) and the
+        ~11 planters with no usable h3li0 source.
 - [ ] **Brands** re-assigned post-import (sync-safe: Square has no brand concept).
 
 ## Payments — Square only
