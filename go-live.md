@@ -167,6 +167,18 @@ Source: `~/Documents/3dPrinting/Commercial License/h3liØ/Vases/Strata/strata_PL
   - **Affected (verify each is really offered):** Strata (160/180/200) plus the "two sizes" designs —
         Obscura · Quell · Lucid · Fractal · Influx · **Vellis (200mm/300mm)**.
 
+### 🎯 The **reDesk series** is a ready-made collection — use it
+h3li0 designed **drawer module · reDesk**, **organiser · reDesk** and a third as an intentional
+**series of 3** sharing one design language. We already carry all three: **Redesk Drawer** ·
+**Redesk Organiser** · **Redesk Headphone**. That is exactly the "Office Collection / design family"
+concept in `docs/CornerCAD_Collections_and_Repeat_Business_Strategy.md` — **already built, no design
+work needed.** Merchandise them as a set (bundle price, cross-sell on each product page, "complete your
+desk"), and make it the pilot for the collections strategy rather than starting from scratch.
+Same applies to the **Nimbus series** (vase + box + planter, per h3li0's own note).
+
+⚠️ **Redesk Drawer is a 15.8 h print (3 plates)** — the longest item found so far, and another that
+must go through MakerOps before listing.
+
 ### 💡 Lamps — printed parts only + sell our own UL-listed kits (decided 2026-08-14)
 **Every lamp listing must state, prominently:** *"Supplied as printed parts only — no electrical
 components included. Requires a standard E26 lamp kit with plug and switch, sold separately."*
