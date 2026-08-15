@@ -198,6 +198,30 @@ packaging.
       kits, remodel for E12, or ship an adapter). **Prismal Desk E14** is named for it, so it's the likely
       problem case. Also check whether the two plates differ *only* in the socket mount or in overall
       proportions — a lamp designed around a small socket may not look right with the large one.
+**🔌 TWO lighting types across the lamp line — audit which lamp takes which.**
+Not every lamp is a mains socket lamp. Discovered 2026-08-14 via Clarit.
+1. **`LED Lamp Kit 001` (MH001)** — USB 5V puck light, for the small desk lamps (e.g. **Clarit**). This has
+   become a **de-facto standard form factor** — every seller uses the "001 / MH001" designation and
+   h3li0's own parts dropdown lists `LED Lamp Kit (1pcs) - MH001`, so kits are interchangeable across
+   designs. Low voltage → **far lower product-liability exposure** than mains.
+2. **E26 mains cord sets** — the larger table/pendant lamps (see the socket table above).
+
+**LED kit tiers (prices seen 2026-08-14; h3li0 retails the kit at $13 — useful anchor):**
+| Tier | Product | Cost | Sell | Notes |
+|---|---|---|---|---|
+| **Standard** | BambooSegD LED Lamp Kit 001 (MH001), **10-pack** | **$46.99 = $4.70/u** | ~$12–13 | 4.7★/403. **Dimmable + 3 selectable colour temps + power-off memory**, USB 5V. Worth 50¢/u over the $41.99 10-pack (=$4.20/u) which is single-temp 3000K — switchable removes the stocking decision entirely. |
+| **Premium** | RGB + 24-key remote, 3-pack | $18.99 = $6.33/u | ~$18–20 | Remote is a real, demonstrable feature — a trade-up, not a cheaper option. |
+
+~65% attach margin at those prices, mirroring the MakerOps margin on the prints. This is the
+"complete your collection" attach from `docs/CornerCAD_Collections_and_Repeat_Business_Strategy.md`.
+
+- [ ] ⚠️ **Buy the ~$22.99 mixed 4-pack FIRST** (2 warm + 2 RGB w/ remote) — fit-test in a printed Clarit
+      base and evaluate both tiers before committing to a 10-pack. A kit that doesn't seat in the printed
+      base is dead stock; this is the only real failure mode.
+- [ ] ⚠️ Ignore the **$1.90/unit "LED lamp sheets"** unless verified — at half everyone else's price and
+      described as *sheets*, they're likely bare boards with no USB cord or inline switch.
+- [ ] **Sort all 9 lamps into LED-kit vs E26** — this determines stock AND a line of copy on every listing.
+      A customer who buys an LED-kit lamp and gets E26 instructions is a support ticket.
 - [ ] Source UL/ETL-listed **E26** cord sets (plug + switch); decide packaging and attach pricing.
 - [x] **Product descriptions** — mostly resolved: the h3li0 line imported with real descriptions from
       Square. Still missing on the CornerCAD originals (Clocks, Wall/Desk Clock, Coasters, Baby Dragon, egg).
