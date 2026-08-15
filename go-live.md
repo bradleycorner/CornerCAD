@@ -245,6 +245,10 @@ At ~$5.64/u it sells comfortably at $14–16 (mains kits reasonably carry more t
       h3li0's assembly says *"use a E27 ceiling light fixture kit and put the socket through the outer
       shade."* The Yubunt cord set found above is a **plug-in cord with a 3.5" base panel** — wrong part
       for a hanging lamp. Source an **E26 pendant kit** (cord + canopy, or a plug-in swag cord) separately.
+- [ ] ⭐ **Umber is h3li0's standout lamp — 1,766 likes / 4,884 downloads / 395 makes.** Far ahead of the
+      others (Tejo: 206 likes; Lucent: 784). Strong signal it'll be the lamp that sells — worth
+      prioritising for photography and any featured placement. Print profiles: lamp 8.5 h + connectors
+      2.5 h (2 plates) + shade 2 h ≈ **13 h**, so it's also badly underpriced at $60.
 - [ ] 🚨 **Tejo is almost certainly UNDERPRICED at $60.** MakerWorld print profiles: **outer·mid 9.5 h** +
       inner·mid 1.4 h ≈ **11 h**; outer·small 6.7 h + inner·small 1.2 h ≈ **8 h**; large is longer still.
       For scale, the 200mm Strata vase is **4.6 h → $45**. Tejo mid is ~2.4× that print time, so the
