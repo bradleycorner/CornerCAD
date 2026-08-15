@@ -241,12 +241,25 @@ At ~$5.64/u it sells comfortably at $14–16 (mains kits reasonably carry more t
       bases; this kit ships the socket on a round lamp panel. Confirm the socket detaches or that the
       panel seats inside the print — same fit-test discipline as the LED kits.
 - [ ] Confirm packaging + attach pricing once both kit types are in hand.
+- [ ] 🚨 **Tejo Pendant is a THIRD kit type — a pendant/ceiling fixture, not a plug-in cord set.**
+      h3li0's assembly says *"use a E27 ceiling light fixture kit and put the socket through the outer
+      shade."* The Yubunt cord set found above is a **plug-in cord with a 3.5" base panel** — wrong part
+      for a hanging lamp. Source an **E26 pendant kit** (cord + canopy, or a plug-in swag cord) separately.
+- [ ] 🚨 **Tejo is almost certainly UNDERPRICED at $60.** MakerWorld print profiles: **outer·mid 9.5 h** +
+      inner·mid 1.4 h ≈ **11 h**; outer·small 6.7 h + inner·small 1.2 h ≈ **8 h**; large is longer still.
+      For scale, the 200mm Strata vase is **4.6 h → $45**. Tejo mid is ~2.4× that print time, so the
+      MakerOps number will land far above $60. **Run MakerOps on all three Tejo sizes before listing** —
+      and re-check the other lamps, since all nine are currently $60 flat.
+- [ ] **Tejo needs SIZE VARIATIONS too** — small / mid / large (same rules as the vases: variations not
+      modifiers, SKU + price on each). Note it's a **two-part print** (inner + outer shade), so the
+      MakerOps figure must combine both plates.
 - [ ] 🔥 **"Low-heat LED bulbs only, 25W max" must go on EVERY socket lamp listing.** h3li0 states this
       for Prismal Living Room; it's a printed-plastic-near-a-hot-bulb melt/fire risk, so treat it as a
       required safety line, not marketing. Already written into the Prismal descriptions — add it to the
       rest as each is written, and to **Drift Lamp**'s existing copy in Square.
 - [ ] **EU-only sockets → hide from the storefront for now** (Bradley's call 2026-08-14; decide later).
-      Currently **Prismal Desk E14**. In Woo set *Catalog visibility → Hidden*, or unpublish; better still,
+      Currently **Prismal Desk E14** and **Sines Lamp** (both E14). In Woo set *Catalog visibility →
+      Hidden*, or unpublish; better still,
       handle it in **Square** (system of record) so a sync doesn't republish it. ⚠️ Note the two are
       different: hiding in Woo is cosmetic, and the 24h sync overwrites Woo content — so confirm the
       chosen method actually survives a sync.
