@@ -56,6 +56,27 @@ BOILERPLATE = [
 ]
 
 
+# CornerCAD copy is US English. The h3li0 boilerplate tail uses British spellings
+# ("your choice of colour"), so normalise in the same pass rather than making a
+# second bulk write across the whole catalog.
+US_SPELLING = [
+    (r"\bcolours\b", "colors"), (r"\bColours\b", "Colors"),
+    (r"\bcolour\b", "color"), (r"\bColour\b", "Color"),
+    (r"\bfavourite\b", "favorite"), (r"\bFavourite\b", "Favorite"),
+    (r"\bcentre\b", "center"), (r"\bCentre\b", "Center"),
+    (r"\bgrey\b", "gray"), (r"\bGrey\b", "Gray"),
+    (r"\bcustomise\b", "customize"), (r"\bcustomisable\b", "customizable"),
+]
+
+
+def americanize(text):
+    n = 0
+    for pat, rep in US_SPELLING:
+        text, k = re.subn(pat, rep, text)
+        n += k
+    return text, n
+
+
 def die(msg):
     print("ERROR: %s" % msg, file=sys.stderr)
     sys.exit(1)
@@ -131,6 +152,8 @@ def main():
                     help="skip items whose summary half would be shorter than N chars")
     ap.add_argument("--location", default=CORNERCAD_LOCATION)
     ap.add_argument("--limit", type=int, help="process at most N items")
+    ap.add_argument("--no-spelling-fix", action="store_true",
+                    help="leave British spellings alone (default: normalise to US)")
     args = ap.parse_args()
 
     token = os.environ.get("SQUARE_ACCESS_TOKEN")
@@ -156,12 +179,21 @@ def main():
         if len(summary) < args.min_summary:
             tooshort.append((name, len(summary)))
             continue
-        todo.append((obj, name, summary, details))
+        spell = 0
+        if not args.no_spelling_fix:
+            summary, a = americanize(summary)
+            details, b = americanize(details)
+            spell = a + b
+        todo.append((obj, name, summary, details, spell))
 
     if args.limit:
         todo = todo[:args.limit]
 
     print("%d item(s) to split" % len(todo))
+    fixed = sum(1 for t in todo if t[4])
+    if fixed:
+        print("%d of them also get US spellings (%d word(s) total)"
+              % (fixed, sum(t[4] for t in todo)))
     if tooshort:
         print("%d skipped as too short (--min-summary %d)" % (len(tooshort), args.min_summary))
     if skipped:
@@ -171,7 +203,7 @@ def main():
     print()
 
     if not args.apply:
-        for _, name, s, det in todo[:12]:
+        for _, name, s, det, sp in todo[:12]:
             print("%s" % name)
             print("   SUMMARY (%3d): %s" % (len(s), s[:120]))
             print("   TAB     (%3d): %s\n" % (len(det), det[:120]))
@@ -181,7 +213,7 @@ def main():
         return
 
     done = 0
-    for obj, name, summary, details in todo:
+    for obj, name, summary, details, spell in todo:
         new_html = "<p>%s</p><p>---</p><p>%s</p>" % (summary, details)
         payload = json.loads(json.dumps(obj))
         payload["item_data"]["description_html"] = new_html

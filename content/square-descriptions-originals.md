@@ -2,7 +2,7 @@
 
 Same format and parser as `square-descriptions-A.md`. Everything here sits outside the
 h3li0 licensed line. **Attribution varies per item** — most are Bradley's own designs and
-credit CornerCAD, but third-party models under a permissive licence live here too and carry
+credit CornerCAD, but third-party models under a permissive license live here too and carry
 their own mandatory credit. Never copy a credit line between entries. Push with:
 
     python3 scripts/square_push_descriptions.py content/square-descriptions-originals.md
@@ -19,7 +19,7 @@ provenance at a glance.
 
 A large ribbed planter with a clean vertical rhythm running the full height of the body,
 supplied with its own matching drip plate. Sized for statement plants rather than desktop
-succulents. 3D printed to order in your choice of colour.
+succulents. 3D printed to order in your choice of color.
 
 ### Details
 
@@ -32,7 +32,7 @@ Every piece is 3D printed to order:
 - **Full-Height Ribbing:** Consistent vertical channels catch light and shadow as it moves through the day.
 - **Matching Drip Plate:** Ships with its own plate, sized to the planter rather than adapted from a generic tray.
 - **Built for Larger Plants:** Scaled for specimens that need real root volume, not desktop miniatures.
-- **Colour Customization:** Any colour from our filament range.
+- **Color Customization:** Any color from our filament range.
 
 Crafted with precision, sustainable materials, and attention to detail.
 
@@ -51,8 +51,8 @@ whimsical gift for any fantasy lover. 🐉
 
 ### Details
 
-Each dragon is printed to order and available in a variety of colours — let us know your
-favourite when you order, or choose from our current in-stock shades.
+Each dragon is printed to order and available in a variety of colors — let us know your
+favorite when you order, or choose from our current in-stock shades.
 
 - **Handmade, made-to-order 3D print**
 - **Durable PLA filament**
@@ -72,20 +72,20 @@ Designed by CornerCAD.
 ### Summary
 
 A clean-lined wall clock printed in two tones, with the face and its markers in contrasting
-colours. Choose from five dial styles, from minimalist batons to Roman numerals. Ships ready to
+colors. Choose from five dial styles, from minimalist batons to Roman numerals. Ships ready to
 hang with a silent sweep movement fitted — no ticking. 3D printed to order in your choice of
-colours.
+colors.
 
 ### Details
 
 The **Wall Clock** is built around one idea: let the dial do the talking. The face and its
-markers print in two separate colours, so the numerals sit *in* the surface rather than being
+markers print in two separate colors, so the numerals sit *in* the surface rather than being
 painted on — they can't scratch, fade, or peel.
 
 Every clock is 3D printed to order and fully customizable:
 
 - **Five Dial Styles:** Baton markers for a minimalist look, classic Roman numerals, or three different numeral fonts — pick the one that suits the room.
-- **Two-Tone Printing:** Independent colours for the face and its markers. Go high-contrast for legibility across a room, or tonal for something quieter.
+- **Two-Tone Printing:** Independent colors for the face and its markers. Go high-contrast for legibility across a room, or tonal for something quieter.
 - **Silent Sweep Movement:** A continuous-sweep quartz movement is included and fitted. No second-hand tick, which matters in a bedroom, nursery, or home office.
 - **Choose Your Hands:** Several hand styles are available — tell us which you'd like when you order, or leave it to us and we'll pair it to your dial.
 - **Ready to Hang:** Includes the integrated mounting bracket. Takes a single AA battery, not included.

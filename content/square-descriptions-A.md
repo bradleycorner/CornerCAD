@@ -84,7 +84,7 @@ Designed by h3li0.
 
 Elevate your styling with the **Alvor Vase**, a sculptural piece built from an open diamond
 lattice that spirals from a narrow flared neck down to a full teardrop body. Available in two
-sizes, each printed to order in your choice of colour.
+sizes, each printed to order in your choice of color.
 
 ### Details
 
@@ -96,7 +96,7 @@ Every piece is 3D printed to order:
 
 - **Open Lattice Construction:** Diamond cells are cut clean through the wall, casting patterned shadows that shift as you move around the piece.
 - **Display Vase — Not Watertight:** The perforated shell suits dried stems, preserved botanicals, or standing alone as a sculptural object. It will not hold water or a fresh-cut arrangement.
-- **Colour Customization:** Any colour from our filament range, to match or contrast your interior.
+- **Color Customization:** Any color from our filament range, to match or contrast your interior.
 
 Crafted with precision, sustainable materials, and attention to detail.
 
@@ -110,7 +110,7 @@ Designed by h3li0.
 
 Elevate your styling with the **Apex Vase**, a swelling teardrop body drawn up into a long,
 finely fluted neck. Raised diamond faceting covers the lower form and resolves into vertical
-ribs as it rises. 3D printed to order in your choice of colour.
+ribs as it rises. 3D printed to order in your choice of color.
 
 ### Details
 
@@ -122,7 +122,7 @@ Every piece is 3D printed to order:
 
 - **Faceted Relief Surface:** Raised diamonds catch light across the curve, so the vase shifts between bright and shadowed as you move past it.
 - **Drawn Neck:** The tall, gently canted neck gives single stems and dried branches somewhere to sit without crowding.
-- **Colour Customization:** Any colour from our filament range — pale tones emphasize the shadow lines, saturated ones read as a solid sculptural mass.
+- **Color Customization:** Any color from our filament range — pale tones emphasize the shadow lines, saturated ones read as a solid sculptural mass.
 - ⚠️**Solid Wall:** The surface is relief-textured rather than perforated, unlike the Alvor and Apexis vases. **ONLY** available if ordered with PETG option
 
 Crafted with precision, sustainable materials, and attention to detail.
@@ -136,8 +136,8 @@ Designed by h3li0.
 ### Summary
 
 Elevate your styling with the **Apexis Vase**, a tall column of open diamond latticework rising
-to a short, clean collar. The straight silhouette keeps the geometry front and centre. 3D printed
-to order in your choice of colour.
+to a short, clean collar. The straight silhouette keeps the geometry front and center. 3D printed
+to order in your choice of color.
 
 ### Details
 
@@ -149,7 +149,7 @@ Every piece is 3D printed to order:
 
 - **Full-Height Lattice:** Open diamond cells run uninterrupted from base to shoulder, giving the piece real depth and a strong shadow pattern.
 - **Display Vase — Not Watertight:** The open wall is for dried stems, preserved botanicals, or standing alone. It will not hold water.
-- **Colour Customization:** Any colour from our filament range. Dark tones read as graphic and architectural; light tones emphasize the openwork.
+- **Color Customization:** Any color from our filament range. Dark tones read as graphic and architectural; light tones emphasize the openwork.
 
 Crafted with precision, sustainable materials, and attention to detail.
 
@@ -163,7 +163,7 @@ Designed by h3li0.
 
 Elevate your styling with the **Aveiro Vase**, a bottle form wrapped in bold spiralling blades
 that twist from base to neck. The ribs stand proud of the body, throwing deep shadow lines
-around the whole piece. 3D printed to order in your choice of colour.
+around the whole piece. 3D printed to order in your choice of color.
 
 ### Details
 
@@ -175,7 +175,7 @@ Every piece is 3D printed to order:
 
 - **Spiralling Blade Ribs:** Deep, raised ribs wrap the body at a consistent twist, producing strong directional shadows from any angle.
 - **Drawn Neck and Flared Rim:** The narrow mouth suits single stems, dried grasses, or standing alone as an object.
-- **Colour Customization:** Any colour from our filament range. Metallic and silk finishes exaggerate the spiral; matte finishes emphasize the form.
+- **Color Customization:** Any color from our filament range. Metallic and silk finishes exaggerate the spiral; matte finishes emphasize the form.
 
 Crafted with precision, sustainable materials, and attention to detail.
 
