@@ -90,3 +90,32 @@ Printed to order by CornerCAD.
 
 Original design by Tony Youngblood (YBlood), used under the Creative Commons
 Attribution-ShareAlike licence: https://makerworld.com/en/models/395708-the-original-dragon-egg-updated-now-in-5-sizes
+
+---
+
+## Wall Clock — CAD-CLK-0001
+
+### Summary
+
+A clean-lined wall clock printed in two tones, with the face and its markers in contrasting
+colours. Choose from five dial styles, from minimalist batons to Roman numerals. Ships ready to
+hang with a silent sweep movement fitted — no ticking. 3D printed to order in your choice of
+colours.
+
+### Details
+
+The **Wall Clock** is built around one idea: let the dial do the talking. The face and its
+markers print in two separate colours, so the numerals sit *in* the surface rather than being
+painted on — they can't scratch, fade, or peel.
+
+Every clock is 3D printed to order and fully customizable:
+
+- **Five Dial Styles:** Baton markers for a minimalist look, classic Roman numerals, or three different numeral fonts — pick the one that suits the room.
+- **Two-Tone Printing:** Independent colours for the face and its markers. Go high-contrast for legibility across a room, or tonal for something quieter.
+- **Silent Sweep Movement:** A continuous-sweep quartz movement is included and fitted. No second-hand tick, which matters in a bedroom, nursery, or home office.
+- **Choose Your Hands:** Several hand styles are available — tell us which you'd like when you order, or leave it to us and we'll pair it to your dial.
+- **Ready to Hang:** Includes the integrated mounting bracket. Takes a single AA battery, not included.
+
+Crafted with precision, sustainable materials, and attention to detail.
+
+Designed by CornerCAD.
