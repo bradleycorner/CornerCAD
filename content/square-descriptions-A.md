@@ -29,7 +29,7 @@ Fix or delete the tag on each, then push.
 
 Elevate your plant display with the **Alvao Planter**, a softly tapered pot wrapped in
 undulating open ribwork that runs from rim to base. It seats into a sculpted petal-shaped drip
-tray, with independent colour choice for the pot and the tray. 3D printed to order.
+tray, with independent color choice for the pot and the tray. 3D printed to order.
 
 ### Details
 
@@ -41,8 +41,8 @@ Every piece is 3D printed to order and fully customizable:
 
 - **Flowing Open Ribwork:** Undulating ribs leave open channels through the wall, giving the pot a light, airy presence and casting soft patterned shadows.
 - **Petal Drip Tray:** The pot seats into a curved, petal-shaped tray that catches runoff and lifts the whole composition off the surface.
-- **Two-Tone Customization:** Choose independent colours for the pot and the tray — high-contrast for a bold look, or matched for a quieter one.
-- ⚠️CONFIRM **Open-Wall Design:** Sized to hold a standard nursery pot rather than loose soil.
+- **Two-Tone Customization:** Choose independent colors for the pot and the tray — high-contrast for a bold look, or matched for a quieter one.
+- **Two sizes available:** 80mm and 100mm (3.15in and 3.94in)
 
 Crafted with precision, sustainable materials, and attention to detail.
 
@@ -56,7 +56,7 @@ Designed by h3li0.
 
 Elevate your orchid with the **Alvao Orchid Planter**, an open-ribbed pot built so air reaches
 the roots. The screw-in petal drip plate lifts the pot clear of standing water, with independent
-colour choice for pot and base. 3D printed to order.
+color choice for pot and base. 3D printed to order.
 
 ### Details
 
@@ -69,7 +69,8 @@ Every piece is 3D printed to order and fully customizable:
 
 - **Root Ventilation:** Open ribs run the full height of the wall, giving the aerial roots the airflow orchids need.
 - **Screw-In Drip Plate:** The petal-shaped base threads onto the pot, so the two stay together when you lift or move it.
-- **Two-Tone Customization:** Independent colours for pot and base — pair them tonally or set them against each other.
+- **Two-Tone Customization:** Independent colors for pot and base — pair them tonally or set them against each other.
+- **Two sizes available:** 102mm, 82mm
 
 Crafted with precision, sustainable materials, and attention to detail.
 
@@ -122,7 +123,7 @@ Every piece is 3D printed to order:
 - **Faceted Relief Surface:** Raised diamonds catch light across the curve, so the vase shifts between bright and shadowed as you move past it.
 - **Drawn Neck:** The tall, gently canted neck gives single stems and dried branches somewhere to sit without crowding.
 - **Colour Customization:** Any colour from our filament range — pale tones emphasize the shadow lines, saturated ones read as a solid sculptural mass.
-- ⚠️CONFIRM **Solid Wall:** The surface is relief-textured rather than perforated, unlike the Alvor and Apexis vases.
+- ⚠️**Solid Wall:** The surface is relief-textured rather than perforated, unlike the Alvor and Apexis vases. **ONLY** available if ordered with PETG option
 
 Crafted with precision, sustainable materials, and attention to detail.
 
@@ -156,33 +157,6 @@ Designed by h3li0.
 
 ---
 
-## Arcane Planter — CAD-PLA-0008
-
-### Summary
-
-Elevate your plant display with the **Arcane Planter**, a rounded orb of interlocking diamond
-latticework cradled in a sculpted curved base. Independent colour choice for the lattice and the
-base makes the contrast part of the design. 3D printed to order.
-
-### Details
-
-The **Arcane Planter** pairs two opposites: an intricate, fully open diamond lattice forming the
-body, set into a smooth, solid curved base that sweeps up around one side. The result is a piece
-that looks light on top and grounded below.
-
-Every piece is 3D printed to order and fully customizable:
-
-- **Interlocking Lattice Body:** A dense diamond pattern wraps the full orb, so the planter reads as texture from across the room and as fine detail up close.
-- **Sculpted Cradle Base:** The curved base catches runoff and tilts the body slightly, giving the whole piece a deliberate, off-axis stance.
-- **Two-Tone Customization:** Independent colours for body and base — the photographed white-on-black is the high-contrast extreme, but tonal pairings work just as well.
-- ⚠️CONFIRM **Open-Wall Design:** Sized to hold a standard nursery pot rather than loose soil.
-
-Crafted with precision, sustainable materials, and attention to detail.
-
-Designed by h3li0.
-
----
-
 ## Aveiro Vase — CAD-VAS-0013
 
 ### Summary
@@ -207,55 +181,3 @@ Crafted with precision, sustainable materials, and attention to detail.
 
 Designed by h3li0.
 
----
-
-## Axon Planter — CAD-PLA-0009
-
-### Summary
-
-Elevate your plant display with the **Axon Planter**, a tapered drum banded in three distinct
-geometries — diamond lattice above, vertical slats through the middle, lattice again below. Sits
-on a matching patterned tray, with independent colour choice for pot and tray. 3D printed to order.
-
-### Details
-
-The **Axon Planter** is a study in stacked pattern. Three bands wrap the tapered body — an upper
-field of diamond lattice, a middle run of clean vertical slats, and a lower lattice that mirrors
-the top — each one open, so light passes through the whole wall.
-
-Every piece is 3D printed to order and fully customizable:
-
-- **Three-Band Geometry:** Lattice, slats, lattice — the shifting rhythm gives the pot far more presence than a single repeating pattern would.
-- **Matching Patterned Tray:** The shallow tray carries the same lattice motif around its rim and catches runoff underneath.
-- **Two-Tone Customization:** Independent colours for pot and tray. A contrasting inner pot shows through the openings and becomes a third colour in the composition.
-- ⚠️CONFIRM **Open-Wall Design:** Sized to hold a standard nursery pot rather than loose soil.
-
-Crafted with precision, sustainable materials, and attention to detail.
-
-Designed by h3li0.
-
----
-
-## Axora Organiser — CAD-ORG-0001
-
-### Summary
-
-Bring order to your desk with the **Axora Organiser**, a stadium-shaped caddy with open
-latticework walls and solid dividers inside. Five compartments in graduated sizes handle
-everything from pens down to paperclips. 3D printed to order in your choice of colour.
-
-### Details
-
-The **Axora Organiser** keeps the structure where it matters and opens up everywhere else. The
-outer wall is a fine interlocking lattice — light, and visually quiet on a busy desk — while the
-interior dividers stay solid so nothing migrates between compartments.
-
-Every piece is 3D printed to order and fully customizable:
-
-- **Five Graduated Compartments:** A deep end bay for pens, scissors, and rulers, a mid bay for smaller tools, and compact cells for clips, erasers, and drive keys.
-- **Open Lattice Wall:** The perforated outer shell keeps the caddy from reading as a solid block, while the rounded stadium footprint tucks neatly against a monitor stand or shelf edge.
-- ⚠️CONFIRM **Two-Tone Customization:** Independent colours for the lattice shell and the interior, so the compartments can recede or stand out. (Photographed two-tone, but I can't see from here whether this item carries the Top/Base Colour modifier sets or a single Filament Colour.)
-
-Crafted with precision, sustainable materials, and attention to detail.
-
-Designed by h3li0.
