@@ -126,9 +126,14 @@ add_filter(
 );
 
 /**
- * Product structured data reads the raw description directly, bypassing the_content,
+ * Product structured data reads the description directly, bypassing the_content,
  * so the separator leaks into the Product JSON-LD that search engines consume.
- * Rejoin both halves without it — schema wants the complete description, not a half.
+ *
+ * WooCommerce hands this filter tag-stripped text, and Square's HTML carries no
+ * newlines between paragraphs — so the separator arrives inline ("tables.---Overview")
+ * and none of the patterns can match it. Split the RAW description instead, where the
+ * <p> tags are still intact, then strip tags from the rejoined result. Schema wants
+ * the complete description, not a half.
  */
 add_filter(
 	'woocommerce_structured_data_product',
@@ -137,9 +142,11 @@ add_filter(
 			return $markup;
 		}
 
-		$split = cornercad_split_square_description( $markup['description'] );
+		$raw   = $product->get_short_description() ? $product->get_short_description() : $product->get_description();
+		$split = cornercad_split_square_description( $raw );
+
 		if ( $split ) {
-			$markup['description'] = $split['summary'] . ' ' . $split['details'];
+			$markup['description'] = wp_strip_all_tags( $split['summary'] . ' ' . $split['details'] );
 		}
 
 		return $markup;
