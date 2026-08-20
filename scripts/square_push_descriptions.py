@@ -66,6 +66,12 @@ def blocks_to_html(chunk):
     """Blank-line-separated blocks -> <p>; runs of '- ' lines -> <ul><li>."""
     out = []
     for block in re.split(r"\n\s*\n", chunk.strip()):
+        # A block of nothing but hyphens is the Markdown rule that separates products
+        # in the source file, not content. Emitting it produced a SECOND <p>---</p> at
+        # the end of every description except the last one, which split the copy in the
+        # wrong place. Never treat a bare rule as prose.
+        if re.fullmatch(r"-{3,}", block.strip()):
+            continue
         lines = [l.rstrip() for l in block.strip().splitlines() if l.strip()]
         if not lines:
             continue
