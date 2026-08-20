@@ -1,7 +1,9 @@
 # Square product descriptions — CornerCAD originals
 
-Same format and parser as `square-descriptions-A.md`. These are Bradley's own designs,
-credited to CornerCAD rather than h3li0. Push with:
+Same format and parser as `square-descriptions-A.md`. Everything here sits outside the
+h3li0 licensed line. **Attribution varies per item** — most are Bradley's own designs and
+credit CornerCAD, but third-party models under a permissive licence live here too and carry
+their own mandatory credit. Never copy a credit line between entries. Push with:
 
     python3 scripts/square_push_descriptions.py content/square-descriptions-originals.md
 
@@ -62,3 +64,29 @@ Whether you're building a collection or looking for a unique gift, this baby dra
 little magic to any space.
 
 Designed by CornerCAD.
+
+---
+
+## Dragon Egg — CAD-FIG-0002
+
+### Summary
+
+A threaded dragon egg that unscrews at the middle, its whole surface covered in individually
+placed scales. The two halves twist apart to hide something small inside — a keepsake, a gift,
+or a Baby Dragon. 3D printed to order in your choice of colour.
+
+### Details
+
+This is the original threaded dragon egg, and the scale texture is the reason it prints so
+well: every scale was placed by hand rather than generated, so no two are identical and the
+surface reads as organic instead of repeated.
+
+- ⚠️CONFIRM **Twist-Apart Halves:** A threaded joint with a hard stop, so the two halves line up the same way every time. (The hard stop is also 2025-redesign only; older versions thread without one.)
+- ⚠️CONFIRM **Textured Interior:** Dragon-scale texture continues inside the shell, with a fire symbol on the inner rim. (Only in the April 2025 redesign — check your STL for the fire symbol and YBlood logo on the inside bottom. Delete this bullet if your version is older.)
+- **Hides a Surprise:** Sized to hold a small gift — pairs naturally with our Baby Dragon figure.
+- **Colour Customization:** Any colour from our filament range. Silk finishes suit the scales especially well.
+
+Printed to order by CornerCAD.
+
+Original design by Tony Youngblood (YBlood), used under the Creative Commons
+Attribution-ShareAlike licence: https://makerworld.com/en/models/395708-the-original-dragon-egg-updated-now-in-5-sizes
