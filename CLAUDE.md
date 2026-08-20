@@ -19,6 +19,64 @@ Full inventory and the read/write split:
 
 MCP tools are **deferred** — batch-load them in one `ToolSearch` call before use.
 
+## Environment / access (verified 2026-08-19)
+
+### SSH
+```bash
+ssh cornerfa
+```
+Alias in `~/.ssh/config` -> `box2304.bluehost.com`, user `cornerfa`, key `~/.ssh/Cornerfa2026`.
+
+WARNING: **use the hostname, not the IP.** The `cornerfa-ip` alias (`50.87.182.158`) fails with
+"no route to host" even though `dig` resolves both names to that same address — Bluehost support
+identified the hostname as the fix, after 19 years of the IP working. It is a **jailshell**: `ps`
+shows almost nothing and many standard utilities are absent or restricted.
+
+Site root: `/home1/cornerfa/public_html/cornercad` (`~` = `/home1/cornerfa`).
+
+### WP-CLI — the only invocation that works
+```bash
+cd /home1/cornerfa/public_html/cornercad && /opt/cpanel/ea-php83/root/usr/bin/php /usr/local/bin/wp <command>
+```
+All three parts are load-bearing:
+- **`cd` first** — `wp-cli.yml` is read from the current directory only.
+- **The absolute ea-php83 binary.** Bare `php` is `/usr/local/bin/php`, a wrapper that picks its SAPI
+  from the environment: **8.0.30 CLI** in an interactive shell, but **`cgi-fcgi` under cron**, which
+  WP-CLI refuses to run under. `ea-php80` fails outright too — the `social-engine` plugin's Composer
+  platform check requires >= 8.1. The site runs **ea-php83**.
+- cPanel MultiPHP gives **each site its own `php.ini` and handler**. That governs the *web* SAPI only
+  and tells you nothing about which CLI binary to use.
+
+`--user=1` is **mandatory** for the Square import — a userless CLI silently fails
+`current_user_can('publish_products')` and imports 0. See the `square-woo-import-cli-method` memory.
+
+### Database
+Table prefix is **`awF_`**, not `wp_`. Action Scheduler lives in `awF_actionscheduler_actions` /
+`_claims` / `_logs` / `_groups`.
+
+### Cron
+`DISABLE_WP_CRON` is `true` in `wp-config.php`; a cPanel cron drives WP every 5 minutes:
+```bash
+cd /home1/cornerfa/public_html/cornercad && date >> cron-test.log && /opt/cpanel/ea-php83/root/usr/bin/php /usr/local/bin/wp cron event run --due-now >> cron-test.log 2>&1
+```
+WARNING: **never go back to a curl-based cron.** cornercad.com sits behind **Cloudflare**, which
+bot-challenges the request — that silently killed WP-Cron for weeks and deadlocked Action Scheduler
+with 477 orphaned claims. Side effect of the 5-minute cadence: actions can sit up to 5 minutes past
+due, so WooCommerce's "past-due action" banner appears intermittently and is **cosmetic**.
+
+### Site timezone is UTC
+`timezone_string` is empty and `gmt_offset` is `0`, so every wp-admin timestamp is GMT and matches
+the database directly. Subtract 4 for EDT.
+
+### Local prerequisite: the VPN
+OpenVPN runs 24/7 on Bradley's Mac and **must be in "Preferred" mode, not Legacy**, with IPv6
+disabled at the router (AT&T does not route it). In Legacy mode every MCP call to cornercad.com dies
+with `000`/timeout while Chrome loads the site fine. Diagnose from the **terminal**, not a browser:
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" https://cornercad.com/
+```
+Expect **307**.
+
 ## Platform state (verified 2026-07-30, after the site restore)
 
 **Theme:** `sellany` (block theme). **Permalinks:** `/%postname%/`. **Currency:** USD.
@@ -78,13 +136,15 @@ These are the **as-built** categories and they differ from the spec's four (Auto
 Display & Retail · Functional/Hardware). The as-built tree is the source of truth; the spec is stale.
 
 ### Current gaps (the working backlog)
-1. **No published products.** `product` count is 1 **draft**, 0 publish, and that draft is **not** a
-   real product — it is ID **91 "Spec B Test Blank"** (`SPECB-TEST-BLANK`), a throwaway probe whose
-   own description says "Safe to delete." Verified via `wc_list_products` 2026-07-30. **The Slate
-   Coaster does not exist on production at all** — an earlier version of this file wrongly described
-   the draft as the coaster. All `product_cat` counts are 0. Two jobs here: trash ID 91, and build
-   the Slate Coaster from scratch.
-2. **Media library has 5 attachments.** Product imagery is still largely missing.
+1. **No published products *in WooCommerce* yet.** `product` count is 1 **draft** (ID **91 "Spec B
+   Test Blank"**, `SPECB-TEST-BLANK`, "Safe to delete"), 0 publish. **However, the full CornerCAD
+   product line — 168 items — is now built in the *Square* catalog** (see "Square catalog" below).
+   The plan is no longer to build products in Woo by hand; it is to **import them from Square** via the
+   WooCommerce Square sync (Square = system of record). Remaining Woo jobs: trash ID 91, then run the
+   Square → Woo import once sync is proven on sandbox.
+2. **Media library is sparse, but product imagery now exists in Square** — 2,480 product photos were
+   uploaded to the Square catalog 2026-08-01/02. With "Override product images" on, these come into
+   Woo during sync; no manual Woo media upload is needed for the h3li0 line.
 3. ~~Square not credentialed.~~ ~~Paste sandbox credentials into staging.~~ **DONE — the
    production→live / staging→sandbox split is complete and verified against the database
    2026-07-30.** See "Square environment split" below. Remaining Square work is the **statement
@@ -124,6 +184,25 @@ empty, so live checkout is untouched.
 Sync remains **off on both** — enable it on **staging only**, and only after products exist to test
 with. Minor known drift: `enable_customer_decline_messages` is `yes` on staging, `no` on production.
 Harmless.
+
+**Update 2026-08-02 — products now exist, so sync is being set up.** With the Square catalog built,
+the intended production config (reviewed, not yet saved as of this writing) is: **Environment =
+Production**, **Business location = CornerCAD** (`LS4SZ98SBX4F6`) ✅ — confirmed in the Woo Square
+settings, so **no UCBLC/Lisa catalog bleed on import**. **Sync Settings = Square** (Square is the
+system of record → Square overwrites Woo), Sync Inventory on, Override product images on, Handle
+missing products off, Sync interval 24h, Order fulfillment sync on, Square discount codes on.
+**Plan/order of operations:** prove sync on **staging/sandbox first** (per the fail-safe philosophy
+below) by seeding the sandbox catalog with **10–20 items, one or two per Square category** (the
+sandbox catalog limit is small), verify the flow, *then* enable on production and run "Import all
+Products from Square." After import, verify the count is ~168 with **zero `UCL-` items**.
+
+⚠️ **Two things the Woo↔Square sync will NOT bring over:**
+- **Modifiers.** The filament pickers (Filament Type, Filament Color, Top/Base Color) are Square
+  *modifiers*, and the sync maps name/price/SKU/stock/images/categories/*variations* — not modifiers.
+  So imported planters land on cornercad.com **without** the colour/type dropdowns. To offer those on
+  the Woo storefront, use a **WooCommerce Product Add-ons** plugin (or Woo variations).
+- **Square Online "site visibility."** `ecom_visibility` is a Square-Online-only field and is unrelated
+  to Woo; it also is **not writable via the Catalog API** (see the Square catalog section).
 
 ### ⚖️ Decision: production gets NO sandbox credentials, deliberately (2026-07-30)
 Production's empty `sandbox_*` fields are a **fail-safe, not an omission**. If `enable_sandbox` is
@@ -227,6 +306,61 @@ sandbox, but it would become live-wrong if staging were ever switched off sandbo
 - Docs: [sandbox mode](https://woocommerce.com/document/woocommerce-square/testing-the-woocommerce-square-extension-in-sandbox-mode/) ·
   [Square Sandbox](https://developer.squareup.com/docs/devtools/sandbox/overview) ·
   [OAuth best practices](https://developer.squareup.com/docs/oauth-api/best-practices)
+
+## Square catalog — CornerCAD product line (built 2026-08-01/02)
+
+The full h3li0-licensed product line is now built **in the Square catalog** (live account
+`ML0RSAXT9HH0B`, all items at the **CornerCAD** location `LS4SZ98SBX4F6`). Done directly via the Square
+API/MCP, **not** through WooCommerce — Woo gets populated later by import (see sync section above).
+
+**Scope:** **168 CornerCAD products**, all `CAD-` SKUs (Lisa's are `UCL-`; the account/catalog is
+shared, so always filter on the SKU prefix). 155 were bulk-imported by Bradley via Square's item CSV;
+13 pre-existed. Prices $30–$60. All are **made-to-order**: `track_inventory = false` at CornerCAD, so
+they never read "out of stock."
+
+**Images:** 2,480 photos uploaded via a run-it-yourself script (Bradley runs it locally with a Square
+Personal Access Token; the token never touches chat/git). Kit lives in **`scripts/`**:
+`square_upload_images.py`, `upload_plan.json` (all 168, hero-first ordering), `README-square-image-upload.md`.
+Each product's hero frame (the labelled h3li0 title-card, the **last** frame in each folder) is set as
+the primary image. Re-runnable/idempotent via `upload_state.json`.
+
+**Filament customization = Square modifier sets** (NOT variations — avoids color×color explosion, keeps
+it made-to-order). Reusable sets, single-select:
+- **Filament Type** — PLA / PETG / Matte free, **Silk +$4** (slower print).
+- **Filament Color** — standard palette free (Black/White/Gray/Red/Blue/Green/Purple/Gold/Silver/
+  Rainbow/Marble), **Metallic Copper +$4**. Used on single-part items + the exceptions below.
+- **Top Color** + **Base Color** — same palette; used *instead of* Filament Color on the **60 two-part
+  planters** (top + base printed separately). Metallic Copper on both → +$8 stacks (intentional).
+- Two-part **exceptions kept on single Filament Color** (single-piece prints): Tundra, Spectrum, Seia,
+  Ribbed Planter Large, **Nova** (note: Inova IS two-part), Maia, Evolve, Fusion, Briosi, Beja Planters.
+
+**Categories (Square).** Split the oversized "Vases & Planters" (110+) into **Vases** (39) and
+**Planters** (72); **"Vases & Planters" deleted**. Created **Gardening** (Fluxis + Nexus watering cans)
+and **Fidgets**. Refiled 4 of Lisa's items that were mis-parked in "3D Printed": Chainmail Snake →
+Chainmail, Dragonfly Jewelry → Pendants, Mobius Fidget → Fidgets, Spooky Cuties → Earrings. (The "3D
+Printed" category still legitimately holds CornerCAD 3D prints — clocks, Baby Dragon, egg.) Note: Square
+categories differ from the Woo `product_cat` tree; reconcile on import.
+
+**Real copper-infused = future premium tier, not built.** colorFabb copperFill (~$84/kg, heavy, ~1
+planter/spool, anneal + sand/polish/patina + seal with Sharkhyde). Belongs as its **own premium listing**
+(~$70–120+), not a $4 modifier. Bradley's Creality nozzles (hardened steel + copper jacket) handle
+abrasive metal-fills — wears faster than normal but works; dedicate a nozzle to abrasives.
+
+### Gotchas learned this session (Square Catalog API)
+- **`ecom_visibility` is NOT writable via the Catalog API** — sparse updates to it are silent no-ops.
+  To hide CornerCAD items from Lisa's Square Online store (`uniquecreationsbylisac.com`), Bradley set
+  **Site visibility → Hidden in the Square Dashboard** (done 2026-08-02; the bulk limit is low, so
+  filter into small groups). This is separate from POS: hidden-online items still ring up on the iPhone
+  Checkout app (POS visibility = present-at-location + POS channel, untouched by `ecom_visibility`).
+- **Category moves need a unique `ordinal`** in `categories`/`reporting_category`, or you hit a
+  `duplicate int value … category_id` error (Square reuses the item's old ordinal and it collides).
+- **Modifiers don't sync to WooCommerce** (see sync section).
+
+### Square catalog — open items
+- **Delete the old duplicate Vanta Vase** (`CAD-VAS-0003`, item `QYXL…`, Gold/Copper variations, one
+  photo) — superseded by the new `CAD-VAS-0009` (`36BAC…`). Kept for now, Bradley to delete.
+- **Product descriptions:** the 13 pre-existing items have them; the rest mostly don't. A batched
+  hero-shot → description pass is queued (~1k tokens/product downscaled, ~150k for all).
 
 ## Migration mapping — Concrete CMS → WordPress
 
