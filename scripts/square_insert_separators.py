@@ -66,6 +66,10 @@ US_SPELLING = [
     (r"\bcentre\b", "center"), (r"\bCentre\b", "Center"),
     (r"\bgrey\b", "gray"), (r"\bGrey\b", "Gray"),
     (r"\bcustomise\b", "customize"), (r"\bcustomisable\b", "customizable"),
+    (r"\bOrganiser\b", "Organizer"), (r"\borganiser\b", "organizer"),
+    (r"\bOrganisers\b", "Organizers"), (r"\borganisers\b", "organizers"),
+    (r"\bJewellery\b", "Jewelry"), (r"\bjewellery\b", "jewelry"),
+    (r"\bFibre\b", "Fiber"), (r"\bfibre\b", "fiber"),
 ]
 
 
@@ -158,6 +162,8 @@ def main():
                     help="skip items whose summary half would be shorter than N chars")
     ap.add_argument("--location", default=CORNERCAD_LOCATION)
     ap.add_argument("--limit", type=int, help="process at most N items")
+    ap.add_argument("--fix-names", action="store_true",
+                    help="fix British spellings in ITEM NAMES (does not touch descriptions)")
     ap.add_argument("--spelling-only", action="store_true",
                     help="fix spellings on ALL items without changing any splits")
     ap.add_argument("--no-spelling-fix", action="store_true",
@@ -171,6 +177,31 @@ def main():
     print("Loading catalog...")
     items = [o for o in list_items(token) if at_location(o, args.location)]
     print("  %d items at %s\n" % (len(items), args.location))
+
+    if args.fix_names:
+        renames = []
+        for obj in items:
+            d = obj.get("item_data") or {}
+            old_name = d.get("name") or ""
+            new_name, n = americanize(old_name)
+            if n:
+                renames.append((obj, old_name, new_name))
+        print("%d item name(s) to fix\n" % len(renames))
+        for _, o, nn in renames:
+            print("   %-30s -> %s" % (o, nn))
+        if not args.apply:
+            print("\nDry run. Re-run with --apply to write to Square.")
+            return
+        for obj, old_name, new_name in renames:
+            payload = json.loads(json.dumps(obj))
+            payload["item_data"]["name"] = new_name
+            api(token, "POST", "/catalog/object", {
+                "idempotency_key": hashlib.sha1(
+                    (payload["id"] + new_name).encode()).hexdigest(),
+                "object": payload})
+            print("   renamed: %s" % new_name)
+        print("\nDone: %d renamed." % len(renames))
+        return
 
     todo, skipped, tooshort = [], [], []
     for obj in items:
