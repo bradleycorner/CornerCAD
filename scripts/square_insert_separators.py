@@ -122,11 +122,17 @@ def split_description(html):
     # These are all a single <p>...</p>. Anything else has structure worth
     # preserving, and a blind split could land mid-list. Skip and report.
     body = html.strip()
+    # Trailing <br> is decoration, not structure -- drop it before matching.
+    body = re.sub(r"(?:\s*<br\s*/?>)+\s*$", "", body, flags=re.I).strip()
     m = re.fullmatch(r"<p>(.*?)</p>", body, re.S | re.I)
-    if not m:
-        return None, None, "not a single paragraph -- needs a human"
-    inner = m.group(1)
-    if re.search(r"<(p|ul|ol|li|h[1-6]|br)\b", inner, re.I):
+    if m:
+        inner = m.group(1)
+    elif not re.search(r"<(p|ul|ol|li|h[1-6]|div|br)\b", body, re.I):
+        # Bare text with no wrapper at all -- Square stores some items this way.
+        inner = body
+    else:
+        return None, None, "mixed block markup -- needs a human"
+    if re.search(r"<(p|ul|ol|li|h[1-6]|div|br)\b", inner, re.I):
         return None, None, "contains block markup -- needs a human"
 
     idx = None
@@ -152,6 +158,8 @@ def main():
                     help="skip items whose summary half would be shorter than N chars")
     ap.add_argument("--location", default=CORNERCAD_LOCATION)
     ap.add_argument("--limit", type=int, help="process at most N items")
+    ap.add_argument("--spelling-only", action="store_true",
+                    help="fix spellings on ALL items without changing any splits")
     ap.add_argument("--no-spelling-fix", action="store_true",
                     help="leave British spellings alone (default: normalise to US)")
     args = ap.parse_args()
@@ -170,6 +178,11 @@ def main():
         html = (d.get("description_html") or "").strip()
         name = d.get("name", "?")
         if not html:
+            continue
+        if args.spelling_only:
+            fixed, n = americanize(html)
+            if n:
+                todo.append((obj, name, None, fixed, n))
             continue
         summary, details, reason = split_description(html)
         if reason:
@@ -205,8 +218,11 @@ def main():
     if not args.apply:
         for _, name, s, det, sp in todo[:12]:
             print("%s" % name)
-            print("   SUMMARY (%3d): %s" % (len(s), s[:120]))
-            print("   TAB     (%3d): %s\n" % (len(det), det[:120]))
+            if s is None:
+                print("   SPELLING (%d word(s)): %s\n" % (sp, det[:130]))
+            else:
+                print("   SUMMARY (%3d): %s" % (len(s), s[:120]))
+                print("   TAB     (%3d): %s\n" % (len(det), det[:120]))
         if len(todo) > 12:
             print("... and %d more\n" % (len(todo) - 12))
         print("Dry run. Re-run with --apply to write to Square.")
@@ -214,7 +230,8 @@ def main():
 
     done = 0
     for obj, name, summary, details, spell in todo:
-        new_html = "<p>%s</p><p>---</p><p>%s</p>" % (summary, details)
+        new_html = details if summary is None else \
+                   "<p>%s</p><p>---</p><p>%s</p>" % (summary, details)
         payload = json.loads(json.dumps(obj))
         payload["item_data"]["description_html"] = new_html
         res = api(token, "POST", "/catalog/object", {
