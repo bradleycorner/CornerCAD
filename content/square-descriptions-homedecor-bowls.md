@@ -5,16 +5,6 @@ they close with "Designed by h3li0."
 
     python3 scripts/square_push_descriptions.py content/square-descriptions-homedecor-bowls.md
 
-## ⚠️ One question for Bradley
-
-The `⚠️CONFIRM` bullet on the **Horizon Cake Plate** is about **direct food contact**. A cake
-plate implies cake sitting on the surface, and FDM prints are generally not recommended for
-direct food contact — layer lines trap residue and are hard to sanitize. The Halloween and Xmas
-bowls are lower risk because they're photographed with wrapped candy.
-
-Three options: state it's for wrapped or covered items only, state that it's sealed/food-safe
-if you finish it that way, or drop the line entirely. Your call — I won't guess about a food
-claim on a live store. The push script blocks while the tag remains.
 
 ---
 
@@ -154,26 +144,31 @@ Designed by h3li0.
 
 ### Summary
 
-A wide flat serving plate raised on a tapered pedestal, ringed by a pierced wave lattice around
-its full edge. The lattice runs the whole rim, so the plate reads as a floating disc. 3D printed
-to order in your choice of colors.
+A wide serving plate ringed by a pierced wave lattice, resting on a stand that twist-locks
+underneath — and hides a compartment inside. Twist to lift the plate away and there's discreet
+storage waiting, sized for candles or anything small you'd rather not leave out. 3D printed to
+order in your choice of colors.
 
 ### Details
 
-The **Horizon Cake Plate** hides its detail where you notice it last. From above it's a clean
-uninterrupted disc; from the side, the entire rim is a band of open, interlocking waves, lit
-from within by whatever the plate is standing on.
+The **Horizon Cake Plate** looks like a clean disc from above and reveals itself from every
+other angle. The full rim is an unbroken band of open, interlocking waves cut clean through the
+edge. Underneath, the tapered stand isn't solid — the plate twist-locks onto it, and lifting it
+free opens a hidden compartment.
 
 Every piece is 3D printed to order:
 
-- **Pierced Rim Band:** An unbroken wave lattice runs the full circumference, cut clean through so the edge glows in raking light.
-- **Pedestal Base:** A tapered conical foot lifts the plate to display height and prints as a separate piece in its own color.
-- **Two-Tone Construction:** Plate and pedestal are independently colored — match them, or set a pale top against a dark base as photographed.
-- ⚠️CONFIRM **Food Contact:** State the intended use here. FDM prints are generally not recommended for direct food contact, so this should either say "for wrapped or covered items" or describe whatever sealing you apply.
+- **Twist-Lock Hidden Storage:** The plate detaches with a simple twist to reveal a concealed compartment in the stand — small candles, matches, or keepsakes, out of sight until you want them.
+- **Pierced Rim Band:** A continuous wave lattice runs the full circumference, cut through so the edge catches light from beneath.
+- **Smooth or Textured Stand:** The stand can be printed with a fine textured finish or left smooth — your choice when you order.
+- **Generous Size:** The plate is roughly 249 mm across (about 9.8"), standing 94 mm tall on its base — a real cake plate, not a coaster.
+- **Two-Tone Construction:** Plate and stand print separately and are independently colored.
+- **Please Use Parchment:** We recommend parchment paper rather than placing cake directly on the plate. This is the designer's own guidance and we pass it on.
 
 Crafted with precision, sustainable materials, and attention to detail.
 
 Designed by h3li0.
+
 
 ---
 
