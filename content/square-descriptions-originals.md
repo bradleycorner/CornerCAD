@@ -67,11 +67,11 @@ Designed by CornerCAD.
 
 ---
 
-## Wall Clock — CAD-CLK-0001-M
+## Wall Clock — CAD-CLK-0001-MER
 
 <!-- NOTE: keyed to the Meridian VARIATION sku, not an item sku. The push script builds its
      lookup from variation SKUs and then writes description_html to the PARENT item, so any one
-     of the five dial SKUs (-M/-F/-H/-B/-V) resolves to the same item. Bare CAD-CLK-0001 no
+     of the five dial SKUs (-MER/-FOR/-HER/-BLO/-...) resolves to the same item. Bare CAD-CLK-0001 no
      longer exists on anything and would not match. -->
 
 ### Summary
