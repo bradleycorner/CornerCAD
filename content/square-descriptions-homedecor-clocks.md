@@ -4,30 +4,51 @@ Same format and parser as the other description files.
 
     python3 scripts/square_push_descriptions.py content/square-descriptions-homedecor-clocks.md
 
-## Cost basis (confirmed 2026-08-23)
+## Cost basis and pricing (confirmed 2026-08-23)
 
-Movement and screws ARE included; the clock ships assembled. Costs per unit:
+Movement and screws ARE included; ships assembled. Presuming the EMOON movement
+(~$2 in the 15-pack) replaces the $7.20 kit, pending Bradley's fit test.
+
+**Base unit (FDM face)**
 
 | | |
 |---|---|
-| filament | $2.02 (101 g across 3 plates) |
-| print time | **3h42m** |
-| clock components kit | $7.20 |
+| filament | $2.02 (101 g, 3 plates) |
+| movement (EMOON) | ~$2.00 |
 | 4x M3 screws | ~$0.20 |
-| face: walnut | ~$1 (6-pack $23.17, several faces per sheet) |
-| face: acrylic | ~$0.50 (3x 300x300 $13.42) |
-| **COGS** | **~$9.40-10.40** |
+| **COGS** | **~$4.22** |
+| **print time** | **3h42m** |
 
-At $30 that returns roughly **$5.30 per printer-hour**, against **~$13.90** for the Wall Clock
-($35, 2h09m, ~$4 COGS). Print hours are the binding constraint, not dollars, so this is the
-number that matters. Repriced to $55-65 the Vexel matches the Wall Clock's hourly return.
+**Face material.** The face is 57.675 mm square, so material is negligible — a 300x300
+acrylic sheet yields ~25 faces at $0.18 each; walnut lands at $0.15-0.26. What actually
+costs is LASER TIME:
 
-Open: whether the EMOON movements (~$2/unit in the 15-pack) can replace the $7.20 kit -- shaft
-length and the dial fit decide it. That substitution alone is $5 of COGS.
+| | laser time | material | machine cost @ $14/h |
+|---|---|---|---|
+| black walnut | 10:21 | $0.26 | ~$2.68 |
+| acrylic | 13:00 | $0.18 | ~$3.21 |
 
-Face material should probably be a variation (Printed / Black Walnut / Acrylic) -- single
-dimension, so the sync accepts it. Each variation needs its own SKU, and walnut/acrylic could
-carry a small premium.
+⚠️ Acrylic takes LONGER than walnut, so it must not be priced below it. An earlier
+draft had that backwards.
+
+**Prices.** Print hours are the binding constraint, so price on return per machine-hour.
+The Wall Clock sets the benchmark at ~$13.90/printer-hour ($35, 2h09m, ~$4 COGS).
+
+| Variation | SKU | Price | Rationale |
+|---|---|---|---|
+| FDM face | `CAD-CLK-0005-FDM` | **$55** | $13.30/printer-hour — parity |
+| Acrylic face | `CAD-CLK-0005-ACR` | **$67** | +$12 |
+| Black walnut face | `CAD-CLK-0005-WAL` | **$70** | +$15, the premium option |
+
+Cost-based floor for the upgrades is only ~$3-4 each; the rest is positioning. Hardwood
+is what people pay for, so walnut sits highest even though it cuts faster.
+
+**Batch the faces.** 25 come off one sheet. Cutting them per-order instead of per-sheet is
+where the margin actually leaks — same logic as batching print plates.
+
+**Variations, not modifiers.** Face material is a single dimension, so the sync accepts it and
+it reaches cornercad.com. Each needs its own SKU (`has_sku()` gates the sync). Do NOT add a
+second axis — smooth/textured case must stay a modifier or the product stops syncing entirely.
 
 ---
 
