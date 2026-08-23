@@ -88,6 +88,4 @@ This product is a 3D-printed physical item. Boxes and contents shown in photos a
 
 Designed by h3li0.
 
-⚠️CONFIRM **SKU:** This item does not exist in Square yet. Create it with an `Insert Size` option
-set of four values, give each variation its own SKU, then replace the heading SKU above with one
-of them and delete this line.
+- ⚠️CONFIRM **SKU placeholder:** This item does not exist in Square yet. Create it with an `Insert Size` option set of four values, give each variation its own SKU, then replace the heading SKU above with one of them and delete this bullet. (Written as a bullet deliberately — the guard only inspects bullet lines.)
