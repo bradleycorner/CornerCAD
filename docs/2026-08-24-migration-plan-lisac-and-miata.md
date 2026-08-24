@@ -310,9 +310,37 @@ is far richer than the live GoDaddy form:
 of this 2020 form) the club's membership officer himself. Worth confirming whether that's still
 his role, since it bears on open question 5 ("who administers it after handover").
 
-There's also an `fcmc-migration-proposal.docx.pdf` already sitting in Bradley's Downloads —
-unread, not opened without being asked, but flagged here since it's obviously on-topic and may
-contain prior thinking worth reusing.
+**RESOLVED — `fcmc-migration-proposal.docx.pdf` read, 2026-08-24 (at Bradley's request).** It's a
+real board proposal Bradley wrote in **March 2026** — before Steve (the previous admin) died. It
+confirms and adds real detail:
+
+- **Page list matches exactly**: Home, Event Calendar, Picture Gallery, Newsletters, Join Our
+  Club, Favorites, Contact Us, Club Store — same 8 pages this doc's live-site audit found.
+- **Brand colors, in Bradley's own words: "dark teal, gold accents."** Supersedes this doc's
+  earlier "olive-green" description from screenshot inspection alone — use the club's own stated
+  palette (cross-check against the actual round club logo's colors when building).
+- **Picture Gallery is a named, specific pain point, not just "a gallery":** the current GoDaddy
+  page **redirects to Facebook** because GoDaddy has no on-site album hosting — breaks the
+  experience for anyone without a Facebook account. The proposal already specifies the fix:
+  **NextGEN Gallery**, a free WordPress plugin, for bulk-upload event albums with on-site lightbox
+  viewing — and its **password-protected albums** feature is a natural fit for the per-field
+  member privacy/directory consent already found on the paper form. Supersedes this doc's earlier
+  generic "WordPress native Gallery block" suggestion for that page specifically.
+- **Phased 4–6 week plan already drafted**: Phase 1 (board approval, hosting decision, theme setup,
+  ~2 wks) → Phase 2 (content migration, ~3 wks) → Phase 3 (review, launch, 30-day GoDaddy
+  read-only fallback, announce via newsletter/Facebook, ~1 wk).
+- **⚠️ Worth raising directly, not silently adopting either way:** the proposal's own Risk
+  Mitigation section recommends "creating a dedicated club email account to own the Bluehost
+  account **independently of any individual member**" — specifically to avoid the site being tied
+  to one person's account. **This is the exact failure pattern that then happened**: Steve's death
+  cut the club off from the old Square account because it wasn't club-owned. The current working
+  plan (per this doc's brief) puts the Miata WordPress install on the **same Bluehost account as
+  CornerCAD** — i.e., tied to Bradley individually, the same pattern the proposal warned against.
+  Doesn't have to change the near-term build (temp DNS name on the CornerCAD account is fine to
+  start), but the board-owned-account question the proposal raises deserves a real answer before
+  calling this migration done, not just the technical Square-account fix already in progress.
+- **Not yet known: was this proposal ever voted on / approved by the board** before Steve's death,
+  or does it need re-presenting given the circumstances changed? Worth asking Bradley.
 
 ### Template recommendation
 Checked purpose-built free options: **VW Automobile Lite** (wordpress.org, 900+ installs, updated
