@@ -20,9 +20,14 @@ Drift mixes PLA (body) with PETG (connector and shade). PETG next to a bulb is a
 choice — it tolerates heat far better than PLA — so it belongs in the copy as a selling point,
 not just a spec. Anyone printing the same model entirely in PLA has a worse product.
 
-⚠️ Cost: a mixed-material print purges on every material change. On the Wall Clock that was
-16.22 g of 66.54 g — **26% waste**. Check the *flushed* figure in the slicer before pricing, and
-batch plates to amortise it.
+**No purge cost.** The designer puts the three parts on SEPARATE plates — body (PLA), connector
+(PETG), shade (PETG) — so no plate ever changes material and there is no flush waste. An earlier
+note here wrongly carried the Wall Clock's 26% purge figure across; that applies to multi-material
+plates, which these are not.
+
+The real consequence of separate plates is the opposite of a problem: each part batches with
+others of its own material. A plate of shades, a plate of bodies. Handling goes up slightly,
+waste stays at zero.
 
 ---
 
