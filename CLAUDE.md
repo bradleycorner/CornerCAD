@@ -9,9 +9,14 @@ Site design + IA (platform-neutral; written against Concrete but the IA/content 
 the migration mapping at its top): `docs/superpowers/specs/2026-06-24-cornercad-site-structure-design.md`.
 
 ## Operating protocol
-Two MCP servers, split by job:
+Three MCP servers, split by job:
 - **`woocommerce`** (9 tools) — products and orders. The only way to read orders.
 - **`cornercad-com`** (43 tools) — pages, blocks, media, terms, options, users.
+- **Square** (official connector, `get_service_info` / `get_type_info` / `make_api_request`) —
+  reads and writes the Square catalog directly. Verified working 2026-08-24 (renamed an item and
+  repriced five variations). ⚠️ **Always pass `sparse_update: true`** on `batchUpdateObjects` — a
+  full update REPLACES the object and would wipe descriptions, variations and images. Writes need
+  Bradley's explicit confirmation, per Square's own rule and the write-safety section below.
 
 Full inventory and the read/write split:
 
@@ -135,24 +140,54 @@ Vases & Planters (27) · Uncategorized (20). All counts 0.
 These are the **as-built** categories and they differ from the spec's four (Automotive · Home & Garden ·
 Display & Retail · Functional/Hardware). The as-built tree is the source of truth; the spec is stale.
 
-### Current gaps (the working backlog)
-1. **No published products *in WooCommerce* yet.** `product` count is 1 **draft** (ID **91 "Spec B
-   Test Blank"**, `SPECB-TEST-BLANK`, "Safe to delete"), 0 publish. **However, the full CornerCAD
-   product line — 168 items — is now built in the *Square* catalog** (see "Square catalog" below).
-   The plan is no longer to build products in Woo by hand; it is to **import them from Square** via the
-   WooCommerce Square sync (Square = system of record). Remaining Woo jobs: trash ID 91, then run the
-   Square → Woo import once sync is proven on sandbox.
-2. **Media library is sparse, but product imagery now exists in Square** — 2,480 product photos were
-   uploaded to the Square catalog 2026-08-01/02. With "Override product images" on, these come into
-   Woo during sync; no manual Woo media upload is needed for the h3li0 line.
-3. ~~Square not credentialed.~~ ~~Paste sandbox credentials into staging.~~ **DONE — the
-   production→live / staging→sandbox split is complete and verified against the database
-   2026-07-30.** See "Square environment split" below. Remaining Square work is the **statement
-   descriptor** pre-go-live check, not configuration.
-4. **Policy pages are drafts.** Payment gateways generally require these published before go-live.
+### Current state (verified 2026-08-24)
 
-Resolved since 2026-07-25: static homepage, the page tree (About/Custom Work/Catalog/Blog/Contact), and
-the `product_cat` tree all now exist on production.
+**179 published products.** The Square → Woo import is done and the sync is the working pipeline;
+products are never built in Woo by hand. Square is the system of record for name, price,
+description, category and images.
+
+| | |
+|---|---|
+| published products | **179** |
+| with a `---` split description | **115** |
+| with no description at all | **62** |
+
+**Product copy pipeline.** Descriptions are authored in `content/square-descriptions-*.md`, pushed
+to Square with `scripts/square_push_descriptions.py`, and reach the site on the next sync. The
+`---` separator splits summary (Woo excerpt) from details (Description tab) via the WPCode snippet
+mirrored at `snippets/wpcode-square-description-split.php`. `scripts/square_insert_separators.py`
+bulk-inserts separators and normalises to US spelling; `scripts/square_audit_catalog.py` is a
+read-only catalog audit.
+
+⚠️ **A `⚠️CONFIRM` tag blocks the whole FILE, not one entry** — never leave an unresolved product
+in a file with shippable ones. Unresolved copy lives in `square-descriptions-pending.md`.
+
+**Variable products** (built 2026-08-23): Wall Clock (5 dial faces, $45), Vexel Clock (3 face
+materials, $55/$67/$70), Engraved Slate Coaster (4 shape×pack). Hard constraints learned:
+- **One variation dimension only.** `has_multiple_variation_attributes()` silently drops a product
+  with 2+ from the sync. Flatten a second axis into the label (as the coasters do).
+- **Variations must come from a Square OPTION SET**, not hand-made. The Woo attribute name is read
+  from the item option; without one the storefront dropdown is labelled "Attribute".
+- **Never reuse the parent's SKU on a variation.** Doing so deleted Woo product 339 and swallowed a
+  variation. Use distinct 3-letter suffixes (`-FDM`, `-MER`).
+- Converting an item to variable **deletes and recreates** the Woo product with a `-2` slug — reset
+  the slug afterwards.
+
+**Pricing model: return per printer-hour**, not margin percent — plate hours are the binding
+constraint. Wall Clock $45 / 2h09m = **$18.50/hr** is the benchmark. Vexel $55 = $13.30/hr. The
+Clarit set at $30 / 13h21m = **$1.50/hr** and needs re-slicing coarser than 0.12 mm before pricing.
+
+### Open items
+1. 🐛 **Variable products revert to out-of-stock on every sync.** Square says
+   `track_inventory: false`; the import path honours it, the update path does not. Reproduced and
+   handed off as its own task. Both variable clocks are currently unpurchasable.
+2. **62 products still have no description**, concentrated in Home Decor and Office.
+3. **Policy pages are drafts.** Gateways generally require these published before go-live.
+4. **Catalog mode is ON** — a WPCode snippet filters `woocommerce_is_purchasable` to
+   `__return_false`, so nothing is buyable by design until launch.
+5. Seasonal items carry years in their names (`Xmas 2025`, `Eggs Easter 2026`) — rename before they
+   accumulate sales history.
+
 
 ## Square environment split — production→live, staging→sandbox
 
