@@ -196,9 +196,28 @@ applies; the transferable parts are the environment, cron, and deployment discip
 ### What we know
 - Currently collects membership fees only.
 - A **new Square account will be set up — this is mandatory, not a preference.** The previous club
-  web admin passed away, and the club has no access to the old Square account as a result. So none
-  of the existing location/credential mess applies — but it does mean a fresh statement-descriptor
-  check before the first real payment, and no export/history to carry forward from the old account.
+  web admin (Steve) passed away, and the club lost admin/reporting access to the old Square
+  account as a result. So none of the existing location/credential mess applies — but it does mean
+  a fresh statement-descriptor check before the first real payment, and no export/history to carry
+  forward from the old account.
+  **⚠️ Correction, Bradley 2026-08-24: the old account isn't dead, it's worse than that — it's
+  still live and processing real credit card payments right now (the GoDaddy `$30` Buy Now button
+  works), with nobody able to log in and see who paid, pull a report, or issue a refund.** Real
+  member dues are moving through an account with zero oversight or auditability until the new
+  account replaces it. This raises the practical urgency of Part 2 beyond "nice to modernize" —
+  money is currently unaccounted for in a way that compounds every month it continues.
+- Getting admin access back to the GoDaddy site itself was also a real struggle (Bradley,
+  2026-08-24) — consistent with the same single-admin-dependency pattern showing up everywhere
+  this club's infrastructure touches Steve's accounts.
+- **Same risk pattern, a third time: the club's Facebook page is solely managed by a member who
+  stepped down as president and now "updates it when he remembers"** (Bradley, 2026-08-24). Not
+  urgent, but worth designing around rather than repeating: Jetpack Social's free auto-cross-posting
+  (already planned for Lisa's site, see Part 1) would let new WordPress content post to Facebook
+  automatically, reducing reliance on that one member remembering to do it manually.
+- **Board is informal — no formal vote required.** Bradley confirmed the March 2026 proposal was
+  never formally voted on because there's no formal board process; it stands as the working plan
+  by practice, not by ratification. Resolves the earlier open question about whether it was
+  approved.
 - Apricot (Sumac) is being considered. Preference is to do it in WordPress if it's comparable.
 - **RESOLVED — build on a temporary DNS name.** Bradley's plan: stand up the WordPress site on a
   temporary hostname now, decoupled from the `firstcoastmiataclub.org` domain decision, so the
@@ -339,8 +358,23 @@ confirms and adds real detail:
   Doesn't have to change the near-term build (temp DNS name on the CornerCAD account is fine to
   start), but the board-owned-account question the proposal raises deserves a real answer before
   calling this migration done, not just the technical Square-account fix already in progress.
-- **Not yet known: was this proposal ever voted on / approved by the board** before Steve's death,
-  or does it need re-presenting given the circumstances changed? Worth asking Bradley.
+- ~~Not yet known: was this proposal ever voted on / approved by the board~~ **RESOLVED** — see
+  "board is informal" above.
+
+**RESOLVED — the club-owned-account question, 2026-08-24.** Bradley's answer isn't to stand up a
+separate club-owned Bluehost account now — it's to keep the site cheap to exit rather than costly
+to leave: he'll host it on the CornerCAD Bluehost account at a **heavily discounted rate to the
+club (~$30–100/year, well under the real ~$120–168/year Bluehost cost)**, and rely on the fact that
+**it's portable WordPress, not a proprietary builder** — a future admin can take a WordPress
+backup and move it to any other Bluehost (or other host's) account with relatively little friction,
+made easier by Bluehost's automatic monthly backups plus whatever additional backup process this
+project adds. This directly answers the risk the March proposal itself raised: the mitigation
+isn't organizational independence up front, it's technical portability plus routine backups,
+which is a real and reasonable answer given WordPress's export/migrate story versus GoDaddy's or
+Square Online's lock-in. Also directly addresses "it would be great if we could pass
+responsibilities around" (Bradley, 2026-08-24) — the explicit goal driving this whole
+consideration, and the reason the Facebook-page and old-admin patterns above are worth naming, not
+just the Square account.
 
 ### Template recommendation
 Checked purpose-built free options: **VW Automobile Lite** (wordpress.org, 900+ installs, updated
