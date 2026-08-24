@@ -183,6 +183,24 @@ wasn't required this pass.)
 `square_audit_catalog.py`, `square_push_descriptions.py`, `square_insert_separators.py`, the `---`
 WPCode snippet, the catalog-mode snippet, the import loop. All take a location or run per-site.
 
+### Branding — live site verified, 2026-08-24 (not from memory)
+Actually browsed `uniquecreationsbylisac.com` rather than assuming from the platform check alone:
+**soft blush-pink/cream background, a floral watercolor "UC" logo mark, dusty-rose accent buttons,
+delicate minimal typography** — a boutique/feminine handcrafted-jewelry aesthetic. The shop page
+itself (sidebar filters — price/availability/sale, product grid, popularity sort) is a completely
+conventional WooCommerce-shaped layout, so **Storefront (WooCommerce's own free official theme,
+90k+ installs, actively maintained) is a good structural match** — but its default palette is
+generic and does **not** match this look out of the box. Getting the actual blush/rose/floral
+identity requires real Customizer/CSS work using her real assets, not something any theme choice
+gives for free.
+
+⚠️ **Under evaluation, not decided: a new tree-motif logo** (Bradley showed two color versions,
+2026-08-24) — a hand-drawn tree with pendant/gem-shaped "fruit," in either brown/earth tones or
+teal/purple. **If adopted, the brown/earth-tone version, not teal/purple** — but this is explicitly
+still an open option, not a committed rebrand. Already purchased/licensed (full file available, not
+just a watermarked preview). Don't build the site's palette around this until Bradley decides —
+the live site's actual current brand (blush/rose/floral) remains what to design against for now.
+
 ### Worth deciding early
 - **Attribution.** CornerCAD mixes h3li0-licensed, Bradley's own, and third-party CC-BY-SA work, and
   a miscredit took real effort to unpick. Establish Lisa's provenance classes before writing copy.
