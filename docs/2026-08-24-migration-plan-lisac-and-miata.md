@@ -274,11 +274,45 @@ most of this natively:
    custom admin view/column (active vs. lapsed based on most recent order date) turns it into an
    at-a-glance roster — same scoped-customization pattern as #2.
 
-**Still needed from Bradley before finalizing the field list:** the "other metrics" mentioned
-2026-08-24 aren't fully enumerated yet (Miata model/generation, year, and color are confirmed;
-what else — how they heard about the club, T-shirt size, join date for anniversary recognition,
-something else) — get the complete list before building the Checkout Field Editor field set, so
-it isn't built twice.
+**RESOLVED — full field list recovered from the club's actual 2020 paper renewal form**
+(`FCMC 2020 Membership Renewal form.pdf`, provided by Bradley 2026-08-24). Two other sources were
+checked and came up empty first: `miata.odb` (an old LibreOffice Base file) is a **blank shell,
+never populated** — 512-byte Firebird backup, created 2019-10-08, no tables/data, confirmed by
+extracting and inspecting it directly, not assumed. The paper form is the real source of truth and
+is far richer than the live GoDaddy form:
+
+- Date, Membership Type (New/Renewal), Name(s) — up to 2 members
+- Mailing Address, City, State, Zip
+- Primary Phone, Secondary Phone(s) — up to 2
+- Email Address(es) — up to 2
+- **Newsletter delivery preference**: Paper via USPS or Digitally via Email — matters
+  operationally; some members may still need a physical mailing list export, not just email.
+- **Per-field privacy consent for the Club Directory** — separate Yes/No checkboxes for whether
+  Name(s), Address, Phone, Email, and Car Information may each be listed. **Separately**, a Yes/No
+  for whether the member's name may appear on the public Club web page. This is a real design
+  requirement, not a nice-to-have: any member directory or public roster the new site builds must
+  respect these per-field, per-member opt-outs — it isn't safe to assume "all members" means
+  "all fields public."
+- Car info: **Model Year, Package (trim level), Color (Body), Color (Top), Purchase Date
+  (mm/yyyy), Car Name/Radio Call Name** (a nickname used during group drives — real club culture,
+  worth keeping).
+- Payment: $30 dues, method (Check/Cash/Other), check number if applicable.
+- **Membership year runs June 1 – May 31**, not a calendar year. ⚠️ Confirm this is still current —
+  the live GoDaddy site's `$30` Buy Now product doesn't show a June-only renewal window, suggesting
+  the club may already be renewing on a rolling/anytime basis in practice even though the fixed
+  date was confirmed. Worth a direct check before locking the renewal-cadence design.
+- "Club Use Only" box: `Dbase ___ Email ___ Membership Voucher ___` — checkboxes confirming a
+  paper form was manually keyed into *some* database and a voucher/card issued. Consistent with
+  "we used to have a Windows database, but migrated to spreadsheets" — the tooling changed, the
+  process (paper form → manual entry → card) didn't.
+
+**Also noted:** the form lists mailing address as `c/o Brad Corner, Membership` — Bradley was (as
+of this 2020 form) the club's membership officer himself. Worth confirming whether that's still
+his role, since it bears on open question 5 ("who administers it after handover").
+
+There's also an `fcmc-migration-proposal.docx.pdf` already sitting in Bradley's Downloads —
+unread, not opened without being asked, but flagged here since it's obviously on-topic and may
+contain prior thinking worth reusing.
 
 ### Template recommendation
 Checked purpose-built free options: **VW Automobile Lite** (wordpress.org, 900+ installs, updated
