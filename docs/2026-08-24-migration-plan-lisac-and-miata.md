@@ -195,8 +195,10 @@ applies; the transferable parts are the environment, cron, and deployment discip
 
 ### What we know
 - Currently collects membership fees only.
-- A **new Square account** will be set up. So none of the existing location/credential mess applies
-  — but it does mean a fresh statement-descriptor check before the first real payment.
+- A **new Square account will be set up — this is mandatory, not a preference.** The previous club
+  web admin passed away, and the club has no access to the old Square account as a result. So none
+  of the existing location/credential mess applies — but it does mean a fresh statement-descriptor
+  check before the first real payment, and no export/history to carry forward from the old account.
 - Apricot (Sumac) is being considered. Preference is to do it in WordPress if it's comparable.
 - **RESOLVED — build on a temporary DNS name.** Bradley's plan: stand up the WordPress site on a
   temporary hostname now, decoupled from the `firstcoastmiataclub.org` domain decision, so the
@@ -232,6 +234,22 @@ one-time Buy Now purchase, repeated manually each renewal, no subscription. A st
 naturally carries this forward: **WooCommerce simple product, not a subscription**, unless Bradley
 decides mid-build he wants to upgrade to automatic billing.
 
+### Known problem to fix, not carry forward: the two-step process loses records
+Bradley, 2026-08-24: **the current two-step flow is broken in practice.** Step 1 (registration
+form: names, contact info, car info) and step 2 (the separate `$30` Buy Now product) are two
+unlinked systems — some members pay without ever submitting the form, so there's no reliable
+report of who actually paid vs. who registered. This should **not** be carried forward in the
+"straight migration" — it's a genuine defect in the current site, not a feature to replicate.
+
+**Fix, verified feasible 2026-08-24:** WooCommerce's Block Checkout supports native custom
+required fields via the free **"Checkout Field Editor (Checkout Manager) for WooCommerce"** plugin
+(wordpress.org, no code, saves custom fields to the order via WooCommerce's Store API). Attach the
+missing registration fields (2nd member name/phone/email, car model/year/color) directly onto the
+`$30` membership product's own checkout, as required fields. Payment and registration become
+**one atomic step** — an order can't complete without the fields, and the WooCommerce order itself
+becomes the single source of truth for "who paid and who they are," which is exactly the report
+that's currently missing. No separate form-then-payment glue needed.
+
 ### Template recommendation
 Checked purpose-built free options: **VW Automobile Lite** (wordpress.org, 900+ installs, updated
 Oct 2025, actively maintained) is the closest literal "car" theme, but it's built for dealership/
@@ -248,8 +266,10 @@ option with real, active maintenance over a niche plugin/theme with thin adoptio
 
 ### ❓ Questions that decide everything — needed before a plan can be firm
 1. **How many members, and what's the renewal cadence?**
-   **RESOLVED (partial) — fixed annual date, not rolling.** Confirmed by Bradley 2026-08-24. Member
-   count still unknown — ask club leadership.
+   **RESOLVED — fixed annual date, not rolling; ~100 members.** Both confirmed by Bradley
+   2026-08-24. 100 members at $30/year is ~$3,000/year in dues — small enough that manual renewal
+   admin (one annual email blast) stays very tractable, reinforcing the simple-product
+   recommendation over subscription machinery.
 2. **Does it need to be recurring/automatic**, or is an annual "renew now" email acceptable?
    **Bradley's answer: "Square provides subscription capability."** This is correct at the Square
    API level and changes the picture — see "What must be verified" below, now resolved with a
