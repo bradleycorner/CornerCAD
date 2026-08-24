@@ -250,6 +250,36 @@ missing registration fields (2nd member name/phone/email, car model/year/color) 
 becomes the single source of truth for "who paid and who they are," which is exactly the report
 that's currently missing. No separate form-then-payment glue needed.
 
+### Member tracking (admin roster + self-service accounts) — new requirement, 2026-08-24
+Bradley confirmed both: an admin-side roster (all members, car info, paid/lapsed status) **and**
+member self-service accounts (log in, view/update own info, see renewal status).
+
+**Recommendation: stay inside the WooCommerce + Square stack already chosen, don't bolt on a
+second membership-plugin ecosystem.** The alternative — Paid Memberships Pro (free core, genuinely
+built for member directories/self-service) — was considered, but its only real Square gateway is
+the third-party `payments-connect-square` plugin flagged earlier at **<10 active installs**.
+Introducing both a new plugin ecosystem *and* an unproven payment gateway for real dues money from
+~100 members is more risk than the payoff justifies, especially when WooCommerce already covers
+most of this natively:
+
+1. **Self-service accounts** — WooCommerce's native "My Account" login is free and already gives
+   every member their own renewal/order history with zero extra plugins.
+2. **Persistent editable profile** (car info, household member, viewable/editable between
+   renewals, not locked inside a single past order) — needs a small, scoped customization to sync
+   Checkout Field Editor's fields to user profile meta and surface them on the Edit Account tab.
+   Same pattern already used elsewhere in this project (WPCode snippets) — not a new plugin
+   ecosystem, a targeted piece of code reviewed before it ships.
+3. **Admin roster** — WooCommerce's native Orders screen, filtered to the membership product, is
+   already most of a roster (who paid, when, their custom fields) with zero extra plugins. A small
+   custom admin view/column (active vs. lapsed based on most recent order date) turns it into an
+   at-a-glance roster — same scoped-customization pattern as #2.
+
+**Still needed from Bradley before finalizing the field list:** the "other metrics" mentioned
+2026-08-24 aren't fully enumerated yet (Miata model/generation, year, and color are confirmed;
+what else — how they heard about the club, T-shirt size, join date for anniversary recognition,
+something else) — get the complete list before building the Checkout Field Editor field set, so
+it isn't built twice.
+
 ### Template recommendation
 Checked purpose-built free options: **VW Automobile Lite** (wordpress.org, 900+ installs, updated
 Oct 2025, actively maintained) is the closest literal "car" theme, but it's built for dealership/
@@ -275,8 +305,12 @@ option with real, active maintenance over a niche plugin/theme with thin adoptio
    API level and changes the picture — see "What must be verified" below, now resolved with a
    third real option this doc didn't originally have. The manual-vs-automatic decision itself is
    still open; it now hinges on cost/effort of Option 3 below, not just "is automatic possible."
-3. **What does membership gate?** Member-only pages, a directory, event signup, a newsletter, a
-   printed roster? Or is it purely a dues receipt? — **still open**, needs an answer.
+3. **What does membership gate?**
+   **RESOLVED, and scope grew.** Bradley, 2026-08-24: "it would be fantastic if we could use the
+   site as a member tracking site as well" — **admin roster + member self-service accounts**, not
+   just a dues receipt. Membership unit confirmed as per-car/household (1–2 members sharing one
+   $30 fee, tied to one vehicle), with fields beyond the original form list: Miata model/generation,
+   year, color, and other metrics not yet fully enumerated. See "Member tracking" design below.
 4. **Is the club a registered nonprofit?**
    **RESOLVED — 501(c)(7) social club.** Confirmed by Bradley 2026-08-24. Does **not** qualify for
    Square's nonprofit processing rate; standard rates apply.
