@@ -159,6 +159,18 @@ wasn't required this pass.)
   option dimension**, zero at risk. Largest: Full Persian Bracelet (12 variations), Byzantine
   Chainmail Bracelet (11), Barrel Weave Bracelet (9).
 
+### Build status — started 2026-08-24
+**Live at `uniquecreationsbylisac.store`** (Bluehost's "Add Website" flow, PHP 8.3 explicitly set,
+staggered cron at `:14,:35,:56`). **Storefront theme installed and branded against the actual live
+Square Online site** (colors/logo pulled directly from `uniquecreationsbylisac.com`, not
+approximated): background `#F5EFF0`, accent `#E67E86`, font Inter, her real logo uploaded and set.
+WooCommerce + WooCommerce Square + Jetpack Social installed and active.
+
+**WooCommerce Square connected to Sandbox, deliberately** (Bradley, 2026-08-24) — "for now I just
+switched to sandbox until we're ready to start pulling inventory." Confirmed via the actual
+in-product settings screen, not assumed. This is the correct, safe staging point: no risk to the
+live Square Online catalog until Bradley deliberately flips to Production.
+
 ### Sequence
 1. ~~Decide A/B/C above. Confirm the Square plugin licence covers a second site.~~ Done — see above.
 2. **Decide the `.com` vs `.store` domain question** (open, Bradley wants to discuss).
