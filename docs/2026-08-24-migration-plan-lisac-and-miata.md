@@ -6,6 +6,10 @@ migrations onto the same hosting: one is a near-clone of CornerCAD, the other is
 **Status: plan only.** Nothing here is decided. The open questions are marked and several need
 answers before any work starts.
 
+**Update, same day (later 2026-08-24):** several of the open questions below are now answered —
+see the "RESOLVED" callouts inline in Parts 1 and 2. Superseded assumptions are struck through
+rather than deleted, so the reasoning that led to the correction stays visible.
+
 ---
 
 ## Part 0 — What carries over
@@ -59,7 +63,20 @@ value of doing these second and third rather than first.
 
 ## Part 1 — uniquecreationsbylisac.com
 
-The easy one. Same shape as CornerCAD: physical products, Square catalog, same Square account.
+~~The easy one. Same shape as CornerCAD: physical products, Square catalog, same Square account.~~
+
+**RESOLVED — this is not a from-scratch build.** `uniquecreationsbylisac.com` is a live
+**Square Online** storefront today (`<meta name="generator" content="Square Online">`, served via
+Square's Weebly-derived infrastructure) — checkout, catalog display, everything already works
+end-to-end on the same Square account/location this doc already references. The task is **migrate
+off Square Online onto WordPress/WooCommerce**, not stand up a store from nothing. Reason, from
+Bradley directly: **cost** — Square Online runs ~$350/year on top of normal Square processing fees,
+and WooCommerce + WooCommerce Square is free — plus two capabilities Square Online doesn't give her:
+tighter social cross-posting and a public event calendar. See "New requirements" below.
+
+`uniquecreationsbylisac.store` is **purchased but unconfigured** — no DNS response on port 80 or
+443 as of 2026-08-24. Whether the new WordPress site lands on `.store` or replaces `.com` is
+**still open** — Bradley wants to discuss it, not decided yet.
 
 ### What's already true
 - Lisa's products already exist in the **same Square account** (`ML0RSAXT9HH0B`) under
@@ -79,28 +96,74 @@ storefronts.** Three options:
 | **B. Two separate installs** | Second WP in its own directory, own database prefix | Simplest to reason about, fully isolated, no new concepts. Two of everything to maintain. |
 | **C. One store, two brands** | Single Woo, categories/brands split the catalog | ❌ Not recommended. One Woo Square connection means one location, so both catalogs would import into one store. Branding, checkout and email would all be shared. |
 
-**Recommendation: B, two separate installs.** Multisite's benefit is shared user accounts and
-central updates, neither of which matters here — the two stores have different customers and
-different products. B keeps the CornerCAD blast radius exactly where it is, and everything learned
-above applies unchanged.
+**RESOLVED — B, two separate installs. Confirmed by Bradley 2026-08-24.** Multisite's benefit is
+shared user accounts and central updates, neither of which matters here — the two stores have
+different customers and different products. B keeps the CornerCAD blast radius exactly where it
+is, and everything learned above applies unchanged.
 
-⚠️ **Check first:** does the WooCommerce Square plugin licence permit a second site? The Woo.com
-subscription may be single-site. That's a cost question, not a technical one, but it decides
-whether B is affordable.
+~~⚠️ **Check first:** does the WooCommerce Square plugin licence permit a second site?~~
+**RESOLVED — not a blocker.** WooCommerce Square is **free**, distributed on WordPress.org
+(80,000+ active installs), no per-site license key. Confirmed via web search 2026-08-24; the
+plugin already installed on cornercad.com (v5.4.3) came from the same free channel. There is no
+licensing cost gate on running a second install.
+
+### New requirements (from Bradley, 2026-08-24 — not in the original scope)
+- **Public event calendar.** Lisa does onsite events (craft fairs, markets) around North Florida.
+  Goal is better advertising of when/where she'll be, to build a following. This is read-only
+  promotion, not a booking system — a lightweight WordPress custom post type or a free calendar
+  plugin (e.g. The Events Calendar core) covers it. No paid plugin needed.
+- **Custom-order consultation booking — nice-to-have.** She advertises custom orders. Bradley
+  looked at WooCommerce Bookings and ruled it out as too expensive for now. **Square Appointments**
+  is the fallback and is "probably good enough" (Bradley's words): it has a genuine free plan
+  (3.3%+30¢ per transaction on Free vs 2.9%+30¢ on paid tiers — no monthly fee), and its booking
+  widget/button can be embedded on a WordPress page. ⚠️ The booking flow itself happens on Square's
+  domain, not WordPress — embed is a link/button, not a native in-page experience. Confirmed via
+  web search 2026-08-24; verify current pricing/embed mechanics at build time, terms move.
+- **Social cross-posting.** When she adds a product, it should auto-post to Instagram Business and
+  Facebook. **Jetpack Social's free tier does this out of the box for WooCommerce products** —
+  WooCommerce ships with Jetpack Social support already wired to the `product` post type, no extra
+  plugin config beyond connecting the accounts. ⚠️ Sources disagree on the free-tier share cap:
+  one says unlimited since a Sept 2024 policy change, another (WP Tavern) says a 30-shares/month
+  cap exists. For a small craft business posting new items a few times a week either way is
+  probably fine, but **verify the actual current cap when Jetpack Social is connected** rather than
+  assume — same "don't trust the docs" lesson as `has_multiple_variation_attributes`.
+
+### Catalog audit — RESOLVED, ran 2026-08-24 via the Square MCP connector directly
+(No token export or script run needed — the Square MCP connector already has account access.
+`scripts/square_audit_catalog.py --location L71MXVF5YWZE4` remains available as a fallback but
+wasn't required this pass.)
+
+- **64 items** present at `L71MXVF5YWZE4`, out of 243 total across the whole Square account.
+- **33/64 (52%) missing descriptions** — same class of finding as CornerCAD's initial audit.
+- **0/144 variations missing a SKU** — clean. All 144 variation SKUs are present and correctly
+  `UCL-`-prefixed; no non-prefixed SKUs found, so no bleed risk like the CornerCAD "Celtic Line"
+  incident.
+- **29 items with plural-looking names** — needs Lisa's/Bradley's judgment on whether each is a
+  single piece or a set, same as the CornerCAD naming question.
+- **23 multi-variation items, checked against the two-axis landmine** (`has_multiple_variation_attributes()`
+  silently drops a product with two option dimensions from Woo sync) — **all 23 use a single
+  option dimension**, zero at risk. Largest: Full Persian Bracelet (12 variations), Byzantine
+  Chainmail Bracelet (11), Barrel Weave Bracelet (9).
 
 ### Sequence
-1. Decide A/B/C above. Confirm the Square plugin licence covers a second site.
-2. Stand up the install; set `DISABLE_WP_CRON` + WP-CLI cron; install the watchdog snippet
+1. ~~Decide A/B/C above. Confirm the Square plugin licence covers a second site.~~ Done — see above.
+2. **Decide the `.com` vs `.store` domain question** (open, Bradley wants to discuss).
+3. Stand up the install; set `DISABLE_WP_CRON` + WP-CLI cron; install the watchdog snippet
    **before** the first bulk import.
-3. Connect Square, set the location to **`L71MXVF5YWZE4`**, system of record = Square.
+4. Connect Square, set the location to **`L71MXVF5YWZE4`**, system of record = Square.
    ⚠️ Verify the location BEFORE importing — CornerCAD nearly shipped with the wrong business name
    on card statements because production pointed at an inactive location.
-4. Install catalog mode so nothing is buyable while it's built.
-5. Audit her catalog first (`scripts/square_audit_catalog.py --location L71MXVF5YWZE4`) — it needs
-   no changes to work. Expect the same findings: missing descriptions, missing SKUs, plural names
-   that hide whether an item is a set.
-6. Import via WP-CLI (`~/square-import.php` loop, `--user=1`), never the browser button.
-7. Descriptions via the same `content/*.md` → push → sync pipeline.
+5. Install catalog mode so nothing is buyable while it's built.
+6. ~~Audit her catalog first~~ Done — see "Catalog audit" above. 33 descriptions and 29
+   plural-name judgment calls to work through before import.
+7. Import via WP-CLI (`~/square-import.php` loop, `--user=1`), never the browser button.
+8. Descriptions via the same `content/*.md` → push → sync pipeline.
+9. Connect Jetpack Social (free tier) for product auto-cross-posting; set up the event-calendar
+   post type/plugin; embed the Square Appointments booking button once Square Appointments is
+   configured.
+10. **Cut over from Square Online** once parity is confirmed — cancel/downgrade the Square Online
+    subscription only after the WooCommerce site is live and verified, to realize the cost saving
+    without a gap in Lisa's storefront.
 
 ### Reusable as-is
 `square_audit_catalog.py`, `square_push_descriptions.py`, `square_insert_separators.py`, the `---`
@@ -126,46 +189,65 @@ applies; the transferable parts are the environment, cron, and deployment discip
 - A **new Square account** will be set up. So none of the existing location/credential mess applies
   — but it does mean a fresh statement-descriptor check before the first real payment.
 - Apricot (Sumac) is being considered. Preference is to do it in WordPress if it's comparable.
+- **RESOLVED — build on a temporary DNS name.** Bradley's plan: stand up the WordPress site on a
+  temporary hostname now, decoupled from the `firstcoastmiataclub.org` domain decision, so the
+  build isn't blocked waiting on DNS/domain logistics. Cut over the real domain once it's live.
 
 ### ❓ Questions that decide everything — needed before a plan can be firm
-1. **How many members, and what's the renewal cadence?** Annual on a fixed date, or rolling from
-   join date? Fixed-date renewal is far simpler.
+1. **How many members, and what's the renewal cadence?**
+   **RESOLVED (partial) — fixed annual date, not rolling.** Confirmed by Bradley 2026-08-24. Member
+   count still unknown — ask club leadership.
 2. **Does it need to be recurring/automatic**, or is an annual "renew now" email acceptable?
-   This is the single biggest fork.
+   **Bradley's answer: "Square provides subscription capability."** This is correct at the Square
+   API level and changes the picture — see "What must be verified" below, now resolved with a
+   third real option this doc didn't originally have. The manual-vs-automatic decision itself is
+   still open; it now hinges on cost/effort of Option 3 below, not just "is automatic possible."
 3. **What does membership gate?** Member-only pages, a directory, event signup, a newsletter, a
-   printed roster? Or is it purely a dues receipt?
-4. **Is the club a registered nonprofit?** 501(c)(3) qualifies for Square's nonprofit rate;
-   most car clubs are 501(c)(7) social clubs, which do not.
-5. **Who administers it after handover?** That should drive the choice more than features do —
-   a volunteer treasurer will not maintain a complex stack.
+   printed roster? Or is it purely a dues receipt? — **still open**, needs an answer.
+4. **Is the club a registered nonprofit?**
+   **RESOLVED — 501(c)(7) social club.** Confirmed by Bradley 2026-08-24. Does **not** qualify for
+   Square's nonprofit processing rate; standard rates apply.
+5. **Who administers it after handover?** — **still open**, needs an answer. Should drive the
+   choice more than features do — a volunteer treasurer will not maintain a complex stack.
 
 ### Options, honestly compared
 
 | | Fit | Notes |
 |---|---|---|
 | **Apricot / Sumac** | Purpose-built | Real membership management: renewals, directory, reporting. Costs money and lives outside WordPress. Fine if the club wants software rather than a website feature. |
-| **Paid Memberships Pro** | Strong | Free core, mature, handles levels/expiry/member content. ⚠️ **Square gateway support needs verifying** — PMPro's first-class gateways are Stripe and PayPal. |
-| **WooCommerce Subscriptions** | Workable | Reuses the Woo + Square stack we already know. Subscriptions is a **paid** extension. ⚠️ **Verify that WooCommerce Square supports recurring billing** — it tokenizes cards, but that is not the same as subscription support, and I have not checked. |
-| **Woo + a simple annual product** | Simplest | Membership as a $X product bought once a year, renewal by email reminder. No recurring billing, no extra plugin, no subscription liability. Manual-ish but very robust. |
+| **Paid Memberships Pro (core gateways)** | Weak for Square | Free core, mature, handles levels/expiry/member content. **RESOLVED — confirmed no native Square gateway.** PMPro core ships Stripe, PayPal, Braintree, and 2Checkout; Square isn't one of them (verified against `paidmembershipspro.com/gateway/`, 2026-08-24). |
+| **PMPro + "Connect Square Payments" (3rd-party, wordpress.org)** | Real but unproven | A wordpress.org plugin (`payments-connect-square`) explicitly advertises PMPro support via Square Hosted Checkout, "recurring memberships without WooCommerce Subscriptions." **⚠️ Fewer than 10 active installs** as of 2026-08-24, though recently updated and 5-star reviewed. Real functionality, but essentially unproven at scale — risky for real dues money on a small club with a volunteer administrator. |
+| **WooCommerce Subscriptions (paid) + WooCommerce Square as token gateway** | Workable, now verified | **RESOLVED.** Confirmed by reading plugin source (`Payment_Gateway_Integration_Subscriptions.php`, `Handlers/`): WooCommerce Square declares `add_support(['subscriptions', 'subscription_suspension', 'subscription_cancellation', ...])` and hooks WooCommerce Subscriptions' own renewal cron (`woocommerce_scheduled_subscription_payment_*`) to charge a stored card token via `process_renewal_payment()`. **It does not call Square's native Subscriptions API — WC Subscriptions does the scheduling, Square Woo is just the charge gateway.** Requires buying WooCommerce Subscriptions (paid Woo.com extension); cost not yet checked. |
+| **Square's own Subscriptions API directly** | New option, not in original doc | **Confirmed via the Square MCP connector, 2026-08-24: Square has a genuine first-class Subscriptions API** — `create`, `search`, `get`, `update`, `cancel`, `pause`, `resume`, `changeBillingAnchorDate`, `swapPlan`, `listEvents`. Square itself schedules and charges; WordPress would only need a thin link-out or embed to a Square-hosted subscription checkout (similar pattern to Square Appointments in Part 1) — no WooCommerce Subscriptions purchase needed. **Not yet scoped**: how much custom glue this needs vs. Square's own hosted checkout/payment-link support for subscription plans. Worth costing against the WC Subscriptions path before choosing. |
+| **Woo + a simple annual product** | Simplest | Membership as a $X product bought once a year, renewal by email reminder. No recurring billing, no extra plugin, no subscription liability. Manual-ish but very robust. Still valid given fixed-date renewal is now confirmed. |
 
-**My instinct, stated as instinct:** if the club is small and renews on a fixed annual date, the
-last option is probably right and everyone underestimates it. Recurring billing brings failed
-cards, dunning, expiry edge cases and PCI questions — a lot of machinery for one transaction per
-member per year. But questions 1–3 decide this, and I would not commit before answering them.
+**Updated instinct:** fixed-date renewal (confirmed) removes most of the argument for automatic
+billing — a once-a-year "renew now" email to the whole membership at once is simple to execute
+manually. If Bradley wants automatic anyway, **Square's native Subscriptions API directly is now
+the strongest automatic option** — it avoids both the paid WC Subscriptions extension and the
+unproven third-party PMPro gateway. This wasn't visible until the Subscriptions API was actually
+checked today; the original doc only considered WooCommerce/PMPro-mediated paths.
 
 ### What must be verified, not assumed
-- Whether **WooCommerce Square supports subscriptions/recurring** at all. Check the plugin source
-  the way we checked `has_multiple_variation_attributes` — the docs are not authoritative.
-- Whether **PMPro has a maintained Square gateway**.
+- ~~Whether WooCommerce Square supports subscriptions/recurring at all.~~ **RESOLVED above** — yes,
+  as a token gateway for WC Subscriptions, not via Square's native API.
+- ~~Whether PMPro has a maintained Square gateway.~~ **RESOLVED above** — not in core; a real but
+  tiny (<10 installs) third-party plugin exists.
+- **Not yet checked:** what it actually takes to wire Square's native Subscriptions API to a
+  WordPress "Join/Renew" flow — hosted checkout vs. custom glue, and the cost of WooCommerce
+  Subscriptions for comparison.
 - Whether the new Square account needs to be **separate from Lisa's** or can be a location under it.
   ⚠️ Given the statement-descriptor near-miss on CornerCAD, a genuinely separate account is safer:
   members should see the club's name on their card statement, not a craft business.
 
 ### Sequence (once questions are answered)
-1. Answer 1–5 above. They change the plan materially.
-2. Stand up the WordPress install (same environment rules as Part 1).
+1. ~~Answer 1–5 above.~~ 1, 4 resolved; 3, 5, and member count still need answers from club
+   leadership, not Bradley.
+2. ~~Stand up the WordPress install~~ — plan confirmed: temporary DNS name, same environment rules
+   as Part 1, domain cutover deferred.
 3. Set up the new Square account; verify the location's `business_name` **before** taking a payment.
-4. Build the membership mechanism chosen above.
+4. Decide manual-annual vs. Square-native-Subscriptions vs. WC-Subscriptions-paid, using the table
+   above, once cost figures for the last two are in hand.
 5. Migrate content from the existing site. Scope unknown — needs a look at what's actually there.
 6. **Run one small real transaction and refund it** before go-live. That is the only way to prove
    the statement descriptor, fraud rules and settlement — sandbox cannot test any of it.
