@@ -84,8 +84,13 @@ be Square-Online-related; worth Bradley checking what that line item actually is
 Square Online might not touch it.
 
 `uniquecreationsbylisac.store` is **purchased but unconfigured** — no DNS response on port 80 or
-443 as of 2026-08-24. Whether the new WordPress site lands on `.store` or replaces `.com` is
-**still open** — Bradley wants to discuss it, not decided yet.
+443 as of 2026-08-24.
+
+**RESOLVED — domain split, Bradley 2026-08-24.** New WordPress/WooCommerce site builds on
+`.store`. `.com` gets CNAMEd to redirect to it once live; Bradley may additionally mask `.store`
+behind `.com` via `.htaccess` if he wants the address bar to keep showing `.com` — noted as a
+detail to work out at cutover time (URL masking + a valid SSL cert on `.com` needs care, not just
+a plain redirect).
 
 ### What's already true
 - Lisa's products already exist in the **same Square account** (`ML0RSAXT9HH0B`) under
@@ -442,6 +447,39 @@ checked today; the original doc only considered WooCommerce/PMPro-mediated paths
 - Whether the new Square account needs to be **separate from Lisa's** or can be a location under it.
   ⚠️ Given the statement-descriptor near-miss on CornerCAD, a genuinely separate account is safer:
   members should see the club's name on their card statement, not a craft business.
+
+### Build status — started 2026-08-24
+**Live at [fcmc-dev.cornerfamily.com](https://fcmc-dev.cornerfamily.com)** (temp DNS name, per plan).
+
+⚠️ **Provisioning note for next time:** the subdomain/DB/WP-core were first created manually via
+cPanel UAPI + WP-CLI (matching the pattern used everywhere else in this project), but **Bluehost's
+own dashboard doesn't track sites created that way** — it wouldn't show up under "Websites," and
+critically **AutoSSL hadn't been issued** (site served Bluehost's generic `*.bluehost.com` cert,
+failing hostname validation). Bradley used Bluehost's dashboard "Add Website" flow to provision a
+throwaway site, then **"Connect Domain"** to point it at the already-existing
+`fcmc-dev.cornerfamily.com` subdomain — this triggered AutoSSL and dashboard tracking **without
+touching the existing WP install's files or database**. Net effect: same WordPress site, now with
+valid SSL and proper Bluehost dashboard visibility. **For Lisa's site, use Bluehost's "Add
+Website" flow from the start** rather than manual UAPI, to avoid this rework.
+
+Done so far:
+- PHP explicitly set to **8.3** on this vhost (subdomains inherit the parent domain's PHP version
+  by default — `cornerfamily.com`, the account's main domain, is on PHP 8.0, which would have
+  silently put this site on an unsupported PHP version if left unset).
+- `DISABLE_WP_CRON` + a cPanel cron entry staggered at `:07,:28,:49` (offset from cornercad.com's
+  `*/21` pattern, per the shared-cage risk in Part 0).
+- Permalinks set to `/%postname%/`.
+- Plugins installed & active: **WooCommerce 11.0.1, WooCommerce Square 5.4.3** (same versions
+  already running on cornercad.com), **Checkout Field Editor (Checkout Manager) for WooCommerce
+  2.1.9**, **Contact Form 7 6.1.7**.
+- WooCommerce base config: USD, Jacksonville FL store address.
+- Draft product created: **"FCMC Annual Membership," $30, simple product** — draft until Square is
+  connected.
+
+Still to do: theme selection/branding (dark teal, gold accents), NextGEN Gallery for Picture
+Gallery, an events list/page for the Event Calendar, configuring the Checkout Field Editor fields
+(member 2 info, car info, directory/web-page consent flags per the paper form), and — blocked on
+Bradley — creating the new Square account and connecting it.
 
 ### Sequence (once questions are answered)
 1. ~~Answer 1–5 above.~~ 1, 4 resolved; 3, 5, and member count still need answers from club
