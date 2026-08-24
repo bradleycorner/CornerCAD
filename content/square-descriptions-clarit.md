@@ -2,8 +2,8 @@
 
     python3 scripts/square_push_descriptions.py content/square-descriptions-clarit.md
 
-Clarit Lamp (`CAD-LMP-0002`) has copy already, though it is much thinner (322 chars against
-~1,400 here) and the set will read unevenly until it is expanded.
+All three Clarit products are covered here. Each names the other two — the collection only works
+as a cross-sell if the links run in every direction.
 
 ## Structure decided 2026-08-23
 
@@ -87,6 +87,35 @@ Every piece is 3D printed to order and fully customizable:
 - **Three Smaller Cells:** Squared-off compartments alongside it for clips, erasers, drive keys, and the small things that otherwise end up loose in a drawer.
 - **Two-Tone Construction:** Shell and insert print separately and are independently colored — high contrast as photographed, or tonal if you'd rather it disappear.
 - **Fluted Shell:** The same fine vertical texture as the Clarit Boxes and Clarit Lamp, so the pieces read as a family on one desk.
+
+Crafted with precision, sustainable materials, and attention to detail.
+
+Designed by h3li0.
+
+---
+
+## Clarit Lamp — CAD-LMP-0002
+
+### Summary
+
+A small modern desk lamp — a softly tapered square shade over a finely ribbed cube base, with
+lined surfaces that come alive once the light is behind them. Built around our 5V USB LED Lamp
+Kit, sold separately. 3D printed to order in your choice of color.
+
+### Details
+
+The **Clarit Lamp** is the quiet member of the Clarit collection. Unlit, it reads as a small
+architectural block — the same fine vertical lining that wraps the Clarit Boxes and Pen Holder,
+here folded into a tapered shade and a squared base. Lit, those lines become the whole point,
+throwing fine banded light across the surface it sits on.
+
+Every lamp is 3D printed to order:
+
+- **Sized for the LED Kit:** Designed around our **LED Lamp Kit** — a 5V USB unit with three selectable color temperatures (cool, neutral and warm white), adjustable brightness, power-off memory, and a 1.5 m USB cable. Sold separately so you can reuse one you already have.
+- **Printed Parts Only:** Supplied as printed components. No electrical parts, bulb, or cable are included.
+- **Desk-Scaled:** Small enough for a bedside table, a shelf, or the corner of a working desk without dominating it.
+- **Part of the Clarit Collection:** Shares its surface language with the Clarit Stackable Boxes and Clarit Pen Holder for a coordinated setup.
+- **Color Customization:** Any color from our filament range. Pale tones glow softly; darker tones throw sharper banding.
 
 Crafted with precision, sustainable materials, and attention to detail.
 
