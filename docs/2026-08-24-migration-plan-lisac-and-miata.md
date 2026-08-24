@@ -74,6 +74,15 @@ Bradley directly: **cost** — Square Online runs ~$350/year on top of normal Sq
 and WooCommerce + WooCommerce Square is free — plus two capabilities Square Online doesn't give her:
 tighter social cross-posting and a public event calendar. See "New requirements" below.
 
+**🚨 HARD DEADLINE — confirmed from billing history, 2026-08-24:** Square Online Plus Plan renews
+annually on **October 1** — `$348.00` charged 2024-10-01 and 2025-10-01. That's **~5 weeks from
+today**. Miss it and the next $348 charge lands. This turns "migrate Lisa's site" from open-ended
+into **time-boxed: WooCommerce site needs to be live and Square Online cancelled before 2026-10-01**
+to actually realize the cost saving this migration is for. There's also a separate, smaller
+`$19.95` "Square Paid Services" charge on Aug 17 (2025 and 2026) — **unidentified**, may or may not
+be Square-Online-related; worth Bradley checking what that line item actually is, since cancelling
+Square Online might not touch it.
+
 `uniquecreationsbylisac.store` is **purchased but unconfigured** — no DNS response on port 80 or
 443 as of 2026-08-24. Whether the new WordPress site lands on `.store` or replaces `.com` is
 **still open** — Bradley wants to discuss it, not decided yet.
@@ -192,6 +201,50 @@ applies; the transferable parts are the environment, cron, and deployment discip
 - **RESOLVED — build on a temporary DNS name.** Bradley's plan: stand up the WordPress site on a
   temporary hostname now, decoupled from the `firstcoastmiataclub.org` domain decision, so the
   build isn't blocked waiting on DNS/domain logistics. Cut over the real domain once it's live.
+- **RESOLVED — Bradley wants a straight migration, not a rebuild.** "Pretty much copy the site as
+  is. Find a template that is close." His reason for leaving GoDaddy Website Builder: expensive,
+  and deliberately unintuitive/feature-limited to push upsells — his words, 2026-08-24.
+
+### Current site audit — RESOLVED, browsed 2026-08-24 (GoDaddy Website Builder 8.0.0000, not WordPress)
+The whole site is 8 pages, all simple content types — nothing here needs anything beyond standard
+free WordPress plugins:
+
+| Page | What it actually is | WordPress equivalent |
+|---|---|---|
+| **Home** | Nav + full-width hero photo (Miata lineup), olive-green header band, no other content | Cover block hero + custom theme colors |
+| **Event Calendar** | Manually-written monthly text list under a heading ("Upcoming Events" — dates, plain descriptions), NOT an interactive calendar widget | A page, or The Events Calendar (free) if recurring-event structure is wanted later |
+| **Join Our Club** | Membership info text + a **registration form** (App date, member name/phone/email ×2 for household, address, car model/year/color, reCAPTCHA) feeding into a **separate** `$30.00 USD` Buy Now/Add to Cart product | WPForms (already installed on cornercad.com, free) for the form + WooCommerce simple product for the $30 charge |
+| **Newsletters** | "The Road Runner" — monthly PDF archive by year, 30+ back issues to 2022 (club itself founded 1991) | WordPress Media Library + a plain page listing links, no plugin needed |
+| **Picture Gallery** | Photo gallery from car events | WordPress native Gallery block |
+| **Favorites** | Static bullet list of external links (Mazda news, forums, vendors, SCCA, YouTube) | Plain page |
+| **Contact Us** | Standard contact form | WPForms |
+| **Club Store** | Separate merch store (not checked in detail — URL slug not confirmed) | Existing WooCommerce install, separate product category from membership |
+
+**This resolves part of open question 3 ("what does membership gate?") by observation, not
+assumption:** none of Newsletters, Picture Gallery, or Event Calendar sit behind a login today —
+all are publicly browsable. Membership today is a dues/social concept, not an access-control
+mechanism. A straight migration doesn't need a member-login gate unless Bradley/the club wants to
+add one deliberately.
+
+**This also effectively answers the recurring-billing question (open item 2) by precedent:** the
+live site already does the "simplest" option from this doc's original table — a flat `$30/year`
+one-time Buy Now purchase, repeated manually each renewal, no subscription. A straight migration
+naturally carries this forward: **WooCommerce simple product, not a subscription**, unless Bradley
+decides mid-build he wants to upgrade to automatic billing.
+
+### Template recommendation
+Checked purpose-built free options: **VW Automobile Lite** (wordpress.org, 900+ installs, updated
+Oct 2025, actively maintained) is the closest literal "car" theme, but it's built for dealership/
+inventory display — more surface area than an 8-page social club site needs.
+
+**Recommendation: don't hunt for a niche "car club" theme.** The current site's actual layout —
+solid-color header band, big photo hero, plain white sections with centered headings under a thin
+divider rule — is trivially reproduced with WordPress's own default block theme (Twenty
+Twenty-Five) plus the existing olive-green/cream palette and round club logo, via the native Site
+Editor. Zero theme cost, zero third-party maintenance risk (core-maintained), matches the
+"straight migration" instruction without importing a dealership feature set nobody asked for. This
+mirrors the same reasoning already applied to Jetpack Social and PMPro-Square above: prefer the
+option with real, active maintenance over a niche plugin/theme with thin adoption.
 
 ### ❓ Questions that decide everything — needed before a plan can be firm
 1. **How many members, and what's the renewal cadence?**
@@ -256,10 +309,12 @@ checked today; the original doc only considered WooCommerce/PMPro-mediated paths
 
 ## Sequencing across both
 
-Do **Lisa's site first.** It is a near-clone, it exercises every tool already built, and it will
-surface whatever is CornerCAD-specific in those scripts while the knowledge is fresh. The Miata
-club is a different problem that shares only infrastructure, and it has open questions that need
-answers from people other than Bradley.
+Do **Lisa's site first** — now with a real deadline behind it, not just a preference: the Square
+Online Plus Plan renews **2026-10-01** (~5 weeks from today), so this is the actual critical path,
+not merely "do it while the tooling is fresh." Miata's build (temporary DNS name, straight
+migration) can run in parallel since it's a separate site, separate Square account, and mostly
+blocked on answers from club leadership rather than on Bradley's time — but **never run both
+sites' bulk imports/cron on the same window**, per the shared-cage risk below.
 
 ## Biggest risk
 
