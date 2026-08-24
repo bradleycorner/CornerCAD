@@ -171,6 +171,14 @@ switched to sandbox until we're ready to start pulling inventory." Confirmed via
 in-product settings screen, not assumed. This is the correct, safe staging point: no risk to the
 live Square Online catalog until Bradley deliberately flips to Production.
 
+**RESOLVED — both environments now connected** (checked directly via `wc_square_settings`,
+2026-08-24): production OAuth tokens are stored (`production_location_id` = `L71MXVF5YWZE4`,
+correct), alongside sandbox. `enable_sandbox` is still `yes` — sandbox remains the active mode,
+production is staged and ready. **Agreed plan, matching the proven CornerCAD playbook**: sandbox
+checkout test (sandbox location `L4KK3G9JY6RDY` already configured) → catalog mode while building
+→ flip to production only once verified → one small real transaction + refund to prove statement
+descriptor/settlement before calling it live. Same sequence that worked for CornerCAD 2026-08-07.
+
 ### Sequence
 1. ~~Decide A/B/C above. Confirm the Square plugin licence covers a second site.~~ Done — see above.
 2. **Decide the `.com` vs `.store` domain question** (open, Bradley wants to discuss).
