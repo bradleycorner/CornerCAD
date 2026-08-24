@@ -514,10 +514,32 @@ Done so far:
 - Draft product created: **"FCMC Annual Membership," $30, simple product** — draft until Square is
   connected.
 
-Still to do: theme selection/branding (dark teal, gold accents), NextGEN Gallery for Picture
-Gallery, an events list/page for the Event Calendar, configuring the Checkout Field Editor fields
-(member 2 info, car info, directory/web-page consent flags per the paper form), and — blocked on
-Bradley — creating the new Square account and connecting it.
+~~Still to do: theme selection/branding...~~ **Content migration pass, 2026-08-24:**
+- **Storefront branded**: real club logo, dark teal (`#0F3D3E`) + gold (`#A69538`, sampled from the
+  logo's actual star) via Additional CSS.
+- **All 58 RoadRunner newsletter PDFs migrated** from `~/Documents/RoadRunner Newsletter/`
+  (Vol 29–36, 2019–2026). Deduped first — 3 exact byte-for-byte duplicate files found and skipped
+  (verified via md5, not guessed), leaving 58 unique issues, zero import errors. **Newsletters**
+  page built: latest issue featured at top, archive grouped by year (matches the original site's
+  own "RoadRunner Archive YYYY" grouping convention) — real direct PDF URLs, not attachment-page
+  wrappers.
+- **NextGEN Gallery installed** (the fix for the Facebook-redirect problem) — **Picture Gallery**
+  page created with the gallery shortcode, but empty: needs the club's actual photos, which
+  haven't been supplied yet.
+- **Favorites** page rebuilt from the live site's actual link list (Mazda News, SCCA, vendor
+  links, etc. — content captured while auditing the live site earlier).
+- **Contact Us** page created with the default Contact Form 7 form.
+- **Home** page written (intro copy from the paper form / live site) — not yet set as the static
+  front page.
+- **Event Calendar** page created with the upcoming-events text visible on the live site at audit
+  time — will go stale; whoever administers events needs to keep it current.
+- **Join Our Club** page has the membership info text, but the actual registration/checkout is
+  intentionally left as a placeholder — blocked on the still-incomplete "other metrics" field list
+  (see "Member tracking" above) and the Checkout Field Editor configuration.
+- **Club Store** — placeholder only, no merch products exist yet to show.
+- Not yet done: primary navigation menu, setting Home as the static front page.
+- Still blocked on Bradley: the new Square account itself, and the complete field list for the
+  membership checkout.
 
 ### Sequence (once questions are answered)
 1. ~~Answer 1–5 above.~~ 1, 4 resolved; 3, 5, and member count still need answers from club
