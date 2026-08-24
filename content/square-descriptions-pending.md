@@ -53,3 +53,30 @@ Printed to order by CornerCAD.
 
 Original design by Tony Youngblood (YBlood), used under the Creative Commons
 Attribution-ShareAlike license: https://makerworld.com/en/models/395708-the-original-dragon-egg-updated-now-in-5-sizes
+
+---
+
+## Clarit Box Inserts — CAD-BOX-0002-INSERT-PLACEHOLDER
+
+### Summary
+
+Divided inserts that drop straight into any Clarit Stackable Box, turning an open box into sorted
+compartments. Sized to match each box configuration, and printed in a contrasting color so the
+layout reads at a glance. 3D printed to order.
+
+### Details
+
+The inserts are the part that turns a Clarit box into an organizer. Each one is dimensioned to
+its box, so it sits flush without rattling, and lifts straight out when you want the full volume
+back.
+
+- **Matched to Your Box:** Choose the insert for the configuration you own — Mid Short, Mid Tall, Slim Short, or Slim Tall.
+- **Contrasting Color:** Printed in a second color so compartments read clearly against the box interior.
+- **Lift-Out Design:** No fixings and no adhesive. Drop it in, lift it out, swap it for another.
+- **Buy Only What You Need:** Sold separately from the boxes, so an empty box stays an empty box if that is what you wanted.
+
+This product is a 3D-printed physical item. Boxes and contents shown in photos are not included.
+
+Designed by h3li0.
+
+- ⚠️CONFIRM **SKU placeholder:** This item does not exist in Square yet. Create it with an `Insert Size` option set of four values, give each variation its own SKU, then replace the heading SKU above with one of them and delete this bullet. (Written as a bullet deliberately — the guard only inspects bullet lines.)

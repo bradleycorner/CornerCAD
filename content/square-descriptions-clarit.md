@@ -24,8 +24,9 @@ cost into an upsell. Price both only after re-slicing at a coarser layer height 
 clock-face quality on a surface whose fluting hides layer lines, and it is the single biggest
 lever on these numbers.
 
-⚠️ The inserts entry below is tagged because its Square item does not exist yet. Create it, give
-its four variations SKUs, then put one of those SKUs in the heading and clear the tag.
+The **Clarit Box Inserts** copy lives in `square-descriptions-pending.md` until its Square item
+exists — an unresolved entry must never share a file with shippable ones, because the guard
+blocks the whole file, not one entry.
 
 ---
 
@@ -62,30 +63,3 @@ both.
 This product is a 3D-printed physical item. Contents shown in photos are not included.
 
 Designed by h3li0.
-
----
-
-## Clarit Box Inserts — CAD-BOX-0002-INSERT-PLACEHOLDER
-
-### Summary
-
-Divided inserts that drop straight into any Clarit Stackable Box, turning an open box into sorted
-compartments. Sized to match each box configuration, and printed in a contrasting color so the
-layout reads at a glance. 3D printed to order.
-
-### Details
-
-The inserts are the part that turns a Clarit box into an organizer. Each one is dimensioned to
-its box, so it sits flush without rattling, and lifts straight out when you want the full volume
-back.
-
-- **Matched to Your Box:** Choose the insert for the configuration you own — Mid Short, Mid Tall, Slim Short, or Slim Tall.
-- **Contrasting Color:** Printed in a second color so compartments read clearly against the box interior.
-- **Lift-Out Design:** No fixings and no adhesive. Drop it in, lift it out, swap it for another.
-- **Buy Only What You Need:** Sold separately from the boxes, so an empty box stays an empty box if that is what you wanted.
-
-This product is a 3D-printed physical item. Boxes and contents shown in photos are not included.
-
-Designed by h3li0.
-
-- ⚠️CONFIRM **SKU placeholder:** This item does not exist in Square yet. Create it with an `Insert Size` option set of four values, give each variation its own SKU, then replace the heading SKU above with one of them and delete this bullet. (Written as a bullet deliberately — the guard only inspects bullet lines.)
