@@ -330,15 +330,17 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `coaster_manifest.load_manifest`, `coaster_manifest.validate_manifest` (Task 1).
-- Produces: `square_push_coaster_designs.build_option_value_object(row: dict, option_id: str) ->
-  dict` — one `ITEM_OPTION_VAL` object per manifest row.
+- Produces: `square_push_coaster_designs.build_option_value_object(row: dict, shape: str, option_id:
+  str) -> dict` — one `ITEM_OPTION_VAL` object per manifest row **per shape** (a two-shape row needs
+  one call per shape, not one call total).
 - Produces: `square_push_coaster_designs.build_variation_objects(row: dict, item_id: str, option_id:
-  str, option_value_ids: dict[str, str]) -> list[dict]` — one `ITEM_VARIATION` object per shape in
-  the row (so a two-shape row produces two variations, SKU-suffixed per shape).
-- Produces: `square_push_coaster_designs.sku_for(row: dict, shape: str) -> str` — e.g.
-  `sku_for(row, "Round")` with `row["sku_code"] == "GRK"` returns `"CAD-COA-0004-GRK"` (the numeric
-  segment is the existing Engraved Slate Coaster parent SKU number, passed in via `--parent-sku`; see
-  Step 3 below for how the CLI wires this).
+  str, option_value_ids: dict[str, str], parent_sku_number: str) -> list[dict]` — one
+  `ITEM_VARIATION` object per shape in the row (so a two-shape row produces two variations,
+  SKU-suffixed per shape).
+- Produces: `square_push_coaster_designs.sku_for(row: dict, shape: str, parent_sku_number: str) ->
+  str` — e.g. `sku_for(row, "Round", parent_sku_number="0004")` with `row["sku_code"] == "GRK"`
+  returns `"CAD-COA-0004-GRK"` (the numeric segment is the existing Engraved Slate Coaster parent
+  SKU number, passed in via `--parent-sku-number`; see Step 3 below for how the CLI wires this).
 - Produces: `square_push_coaster_designs.variation_label(row: dict, shape: str) -> str` — e.g.
   `"Octagon Greek-Key Maze — Round"`, or just `"Octagon Greek-Key Maze"` when the row has exactly one
   shape (spec §3: a single-shape design doesn't need the shape in its label).
@@ -719,6 +721,8 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 **Files:**
 - Modify: `scripts/coaster_manifest.py`
 - Modify: `scripts/test_coaster_manifest.py`
+- Modify: `scripts/square_push_coaster_designs.py` (Step 5 wires the new `resolve_thumbnail` into the
+  CLI's dry-run output)
 
 **Interfaces:**
 - Consumes: a manifest row dict from `load_manifest` (Task 1).
