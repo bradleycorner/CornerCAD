@@ -104,3 +104,17 @@ def validate_manifest(rows):
             errors.append(f"{name}: price_usd must be > 0 for a 'ready' row")
 
     return errors
+
+
+def resolve_thumbnail(row, search_dirs):
+    """Find the PNG that already exists for this design's source LightBurn
+    file -- same basename, .png extension, checked across search_dirs in
+    order. Returns the first match, or None if it isn't found anywhere.
+    Never generates a thumbnail; Bradley keeps a PNG on hand for every
+    template already."""
+    stem = os.path.splitext(os.path.basename(row["source_file"]))[0]
+    for d in search_dirs:
+        candidate = os.path.join(d, f"{stem}.png")
+        if os.path.exists(candidate):
+            return candidate
+    return None

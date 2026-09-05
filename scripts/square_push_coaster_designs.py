@@ -32,7 +32,7 @@ try:
 except ImportError:
     sys.exit("Missing dependency. Run:  pip install requests")
 
-from coaster_manifest import load_manifest, validate_manifest
+from coaster_manifest import load_manifest, validate_manifest, resolve_thumbnail
 
 BASE = {
     "sandbox": "https://connect.squareupsandbox.com",
@@ -135,6 +135,8 @@ def main():
     ap.add_argument("--design-option-id", default=None,
                      help="existing 'Design' ITEM_OPTION id, if one was already created; omit to create one")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--thumbnail-dir", action="append", default=[],
+                     help="directory to search for each design's existing PNG (repeatable)")
     ap.add_argument("--yes-really-push-production", action="store_true", help=argparse.SUPPRESS)
     args = ap.parse_args()
 
@@ -180,9 +182,12 @@ def main():
     print(f"Manifest    : {args.manifest}  ({len(ready_rows)} ready design(s))")
     print(f"Mode        : {'DRY RUN (no writes)' if args.dry_run else 'LIVE UPLOAD'}\n")
     for row in ready_rows:
+        thumb = resolve_thumbnail(row, args.thumbnail_dir) if args.thumbnail_dir else None
+        thumb_note = thumb if thumb else "NO THUMBNAIL FOUND" if args.thumbnail_dir else "(no --thumbnail-dir given)"
         for shape in row["shapes"]:
             print(f"  {sku_for(row, shape, args.parent_sku_number):24s} "
                   f"{variation_label(row, shape):38s} ${row['price_usd']:.2f}")
+        print(f"      thumbnail: {thumb_note}")
 
     if args.dry_run:
         print("\n(dry run -- nothing was written to Square)")

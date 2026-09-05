@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from coaster_manifest import load_manifest, validate_manifest, ManifestError
+from coaster_manifest import load_manifest, validate_manifest, resolve_thumbnail, ManifestError
 
 HEADER = "name,sku_code,shapes,source_file,price_usd,status\n"
 
@@ -93,6 +93,35 @@ class ValidateManifestTests(unittest.TestCase):
         rows = [self._valid_row(status="maybe")]
         errors = validate_manifest(rows)
         self.assertTrue(any("status" in e.lower() for e in errors))
+
+
+class ResolveThumbnailTests(unittest.TestCase):
+    def test_finds_matching_png_in_first_search_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dir_a = os.path.join(tmp, "a")
+            dir_b = os.path.join(tmp, "b")
+            os.makedirs(dir_a)
+            os.makedirs(dir_b)
+            open(os.path.join(dir_a, "CoasterSet2_design1.png"), "w").close()
+            row = {"source_file": "CoasterSet2_design1.lbrn2"}
+            found = resolve_thumbnail(row, [dir_a, dir_b])
+            self.assertEqual(found, os.path.join(dir_a, "CoasterSet2_design1.png"))
+
+    def test_falls_back_to_second_search_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dir_a = os.path.join(tmp, "a")
+            dir_b = os.path.join(tmp, "b")
+            os.makedirs(dir_a)
+            os.makedirs(dir_b)
+            open(os.path.join(dir_b, "geo-coaster.png"), "w").close()
+            row = {"source_file": "geo-coaster.lbrn2"}
+            found = resolve_thumbnail(row, [dir_a, dir_b])
+            self.assertEqual(found, os.path.join(dir_b, "geo-coaster.png"))
+
+    def test_returns_none_when_not_found_anywhere(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            row = {"source_file": "nonexistent-design.lbrn2"}
+            self.assertIsNone(resolve_thumbnail(row, [tmp]))
 
 
 if __name__ == "__main__":
