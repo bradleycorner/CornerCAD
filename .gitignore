@@ -72,3 +72,6 @@ scripts/description_push_state.json
 
 # Generated reports — regenerate from the DB, do not version
 reports/
+
+# Subagent-driven-development scratch workspace (ledgers, briefs, reports)
+.superpowers/
