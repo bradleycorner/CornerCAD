@@ -34,7 +34,8 @@ plugin — treat it as a distinct future decision, not something to half-build n
 
 **One parent product per material.** Material is not a variation dimension — it's which parent
 product a design's variation lives under. This is what keeps the architecture open-ended: adding a
-new material later (see §6) means adding a new parent product, not redesigning the attribute.
+new material later (see §9, open item 3) means adding a new parent product, not redesigning the
+attribute.
 
 - **Engraved Slate Coaster** (existing product 4787, id stays, variations rebuilt) — slate blanks,
   the material Bradley has already tested and calibrated cut settings for (`Slate/Engrave Settings/…`
@@ -90,7 +91,47 @@ shapes → Cut → paste into a new file → save) is the reliable path and is f
 **Exact launch design list is not finalized in this spec** — it's gated on Bradley's own
 split-and-verify pass in LightBurn. This doc defines the structure the finalized list plugs into.
 
-## 5. SKU pattern
+## 5. Onboarding pipeline: adding designs in bulk
+
+Adding "all the templates currently on hand" — or any later batch — follows the same shape as the
+existing product-copy pipeline (`content/square-descriptions-*.md` → `square_push_descriptions.py` →
+Square → Woo sync), not a series of one-off manual product edits.
+
+1. **Split & finalize source files (Bradley, in LightBurn).** For each multi-design sheet
+   (`CoasterSet1`, `CoasterSet2`, etc.), select each design's shapes → Cut → paste into a new file →
+   save as its own standalone `.lbrn2`. Already-single-design files (`geo-coaster`, `coaster - ocean`,
+   `mandella01`, Eagle Coaster) need no split. This is the one manual, per-batch step — everything
+   after it is scripted.
+
+2. **Build a design manifest** — `content/coaster-designs.csv` (or `.md`), one row per design, the
+   single source of truth a script reads from:
+
+   | Design name | SKU code | Shape(s) | Source file | Price | Status |
+   |---|---|---|---|---|---|
+   | Octagon Greek-Key Maze | GRK | Round | `CoasterSet2_design1.lbrn2` | $9 | ready |
+   | Diamond Lattice | LAT | Round, Square | geometric 2-1 / 2-2 | $9 | ready |
+
+3. **Thumbnails: already on hand, no new export step.** Bradley already has a PNG for every template
+   (paired alongside the `.lbrn2` source, or generated separately) — the manifest's Source File column
+   just needs to resolve to that existing PNG for the Square variation photo, reusing the same
+   image-prep pattern as `scripts/square_upload_images.py`.
+
+4. **A script pushes the manifest to Square** — new, small, same shape as
+   `square_push_descriptions.py` / `square_seed_sandbox.py`: for each `ready` row, create/reuse a
+   "Design" Option Set value on the Engraved Slate Coaster item, add the variation with its
+   SKU/price/image, `sparse_update: true` as always (per the project's standing Square write-safety
+   rule).
+
+5. **Run the normal Square → Woo sync** (WP-CLI, `--user=1` mandatory) — pulls every new variation
+   into the live Woo product in one pass.
+
+6. **Spot-check the live product page** — variation dropdown shows every design, images swap
+   correctly, price and min-qty-4 behave.
+
+Adding a later batch (a proven Birch design, a cleared Military/Clan design) is new manifest rows
+plus a re-run of steps 4–6 — no new plumbing.
+
+## 6. SKU pattern
 
 Keep the existing convention: `CAD-COA-####-<3-letter design code>` per variation, extending the SKU
 prefix already used for coaster products (e.g. `CAD-COA-0001`, `CAD-COA-0002`). Design codes are
@@ -99,7 +140,7 @@ wolf-head) — assigned when the final design list is locked, avoiding the paren
 that broke a variation once before (see `project_square-untracked-variation-stock-bug` and the
 Variable Products section of the project `CLAUDE.md`).
 
-## 6. Pricing & minimum order quantity
+## 7. Pricing & minimum order quantity
 
 **Per-unit pricing, not pack-size variations** — this replaces the pack-size axis the original
 Engraved Slate Coaster variations used. Each Design value is priced individually.
@@ -119,7 +160,7 @@ bundle at a discounted price. This needs its own design/testing pass before it's
 here so the pricing mechanism above (bulk discount tiers) is designed with room for a bundle discount
 to reuse the same underlying approach, rather than needing a second one-off mechanism later.
 
-## 7. Relationship to the FDM (3D-printed) coaster line
+## 8. Relationship to the FDM (3D-printed) coaster line
 
 The existing FDM coaster products (`Cova Coasters`, `Hex Coaster Set`, both simple Square-synced
 products) are a separate line from the laser-engraved one, but **list together under the same
@@ -128,7 +169,7 @@ between the two lines can reuse the existing auto-cross-sell WPCode snippet
 (`snippets/wpcode-cornercad-auto-crosssells.php`) or a manual curated list — **deferred, not a launch
 blocker.**
 
-## 8. Open items
+## 9. Open items
 
 1. **Final design list + SKU codes** — pending Bradley's LightBurn split-and-verify pass on
    `CoasterSet1`/`CoasterSet2` and the other proven files.
@@ -139,8 +180,10 @@ blocker.**
 4. **Military/Clan design sourcing** — Bradley's own original art or verified royalty-free assets;
    no timeline set.
 5. **Coaster stand/holder design + bundle mechanism** — not started.
+6. **The manifest-to-Square push script (§5 step 4)** — not written yet; part of the implementation
+   plan.
 
-## 9. Success criteria
+## 10. Success criteria
 
 - The Engraved Slate Coaster product carries a "Design" variation attribute populated from Bradley's
   proven `Commercial/Coasters` designs, synced from Square exactly like the rest of the catalog.
