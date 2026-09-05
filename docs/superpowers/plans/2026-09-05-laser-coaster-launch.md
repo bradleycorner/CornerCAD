@@ -1069,21 +1069,41 @@ do not run these as part of an unattended task-executor pass.
 
 3. **Fill in real manifest rows** in `content/coaster-designs.csv`, flipping each to `status: ready`
    once its price and confirmed standalone source file are set. Run
-   `python3 scripts/coaster_manifest.py`-backed validation (or just `validate_manifest` interactively)
-   before pushing.
+   `python3 scripts/coaster_manifest.py content/coaster-designs.csv` (or just `validate_manifest`
+   interactively) before pushing.
 
-4. **Dry-run against sandbox first**, then push for real: get the existing Engraved Slate Coaster's
-   Square `ITEM` id and its parent SKU number, then run
+4. **One-time per-parent-item setup: create and attach the "Design" `ITEM_OPTION`.** This step is
+   NOT done by `square_push_coaster_designs.py` (see its module docstring) — the script requires an
+   existing, already-attached option id via `--design-option-id` and refuses to run without one. Do
+   this interactively via the **Square MCP connector** (`make_api_request` against
+   `batch-upsert`/`batch-retrieve` on the Catalog API), **always with `sparse_update: true`**:
+   create an `ITEM_OPTION` named "Design", then update the parent coaster ITEM (Engraved Slate
+   Coaster, or a future material's parent item) to add that option's id to its own `item_options`
+   list. **Prove this works in sandbox first** — Square's own documentation does not confirm that
+   retrofitting an `ITEM_OPTION` onto an item that already has option-less variations (the real
+   situation for product 4787) is supported at all, so a sandbox dry run against a throwaway/cloned
+   item is the only way to find out before touching the live parent item. Record the resulting
+   `ITEM_OPTION` id for use as `--design-option-id` in step 5.
+
+5. **Dry-run against sandbox first**, then push for real: get the existing Engraved Slate Coaster's
+   Square `ITEM` id, its parent SKU number (see the note below), and the `ITEM_OPTION` id from step
+   4, then run
    ```bash
    export SQUARE_ACCESS_TOKEN='<sandbox token>'
    python3 scripts/square_push_coaster_designs.py --dry-run \
        --parent-item-id <ITEM id> --parent-sku-number 0004 \
+       --design-option-id <ITEM_OPTION id from step 4> \
        --thumbnail-dir "/Users/bradleycorner/Documents/Laser/Commercial/Coasters"
    ```
    Confirm the printed SKUs/labels/thumbnails look right, then re-run without `--dry-run` against
    `--env production` (only with `--yes-really-push-production`, and only after Bradley says go).
 
-5. **Run the Square→Woo sync** (WP-CLI, `--user=1` mandatory) and spot-check the live product page —
+   **`--parent-sku-number`:** the live Engraved Slate Coaster product's own SKU field is currently
+   **empty** — there is no `####` to read off the parent. Instead, scan the existing `CAD-COA-####`
+   SKUs already in the Square catalog for an unused 4-digit number and use that, to avoid colliding
+   with another coaster product's SKU namespace.
+
+6. **Run the Square→Woo sync** (WP-CLI, `--user=1` mandatory) and spot-check the live product page —
    variation dropdown shows every pushed design, images swap correctly, price and min-qty-4 behave as
    the snippet from Task 4 intends.
 

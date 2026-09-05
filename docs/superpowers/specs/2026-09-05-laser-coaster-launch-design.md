@@ -182,6 +182,10 @@ blocker.**
 5. **Coaster stand/holder design + bundle mechanism** — not started.
 6. **The manifest-to-Square push script (§5 step 4)** — not written yet; part of the implementation
    plan.
+7. **Thumbnail upload to Square** — `resolve_thumbnail` locates each design's existing PNG, but
+   nothing yet uploads it to Square or attaches it to a variation's `image_ids`; coasters will ship
+   imageless in the Design dropdown until this is built as its own follow-up task (multipart upload
+   to Square's `/v2/catalog/images`, matching the pattern in `scripts/square_upload_images.py`).
 
 ## 10. Success criteria
 

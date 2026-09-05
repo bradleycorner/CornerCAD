@@ -13,12 +13,28 @@ SAFETY -- same pattern as square_seed_sandbox.py:
     --yes-really-push-production.
   * --dry-run prints exactly what would be created/updated and writes
     nothing.
-  * Every write uses sparse_update: true.
+  * This script only ever sends NEW `#`-prefixed temporary-id objects to
+    Square (a new "Design" option value per design/shape, a new variation
+    per design/shape) -- it never sends an existing object's id with
+    modified fields. No existing Square object (the parent item included)
+    is ever replaced or has its data wiped by this script.
+
+NOT DONE BY THIS SCRIPT -- one-time parent-item setup:
+  The parent item's own "Design" ITEM_OPTION must already exist and already
+  be attached to the parent item's `item_options` list before you run this
+  script. That is a one-time, per-parent-item setup step done interactively
+  via the Square MCP connector (with sparse_update: true) -- see the
+  Deployment Runbook. This script deliberately does NOT create or attach
+  that option itself: retrofitting an ITEM_OPTION onto an item that already
+  has option-less variations is not documented as supported by Square, and
+  a mis-shaped ITEM update via this raw REST endpoint risks replacing the
+  whole item (see SAFETY above and CLAUDE.md's sparse_update warnings).
 
 QUICK START
   export SQUARE_ACCESS_TOKEN='<sandbox access token>'
   python3 square_push_coaster_designs.py --dry-run \\
-      --parent-item-id <existing coaster ITEM id> --parent-sku-number 0004
+      --parent-item-id <existing coaster ITEM id> --parent-sku-number 0004 \\
+      --design-option-id <existing 'Design' ITEM_OPTION id>
 """
 
 import argparse
@@ -32,7 +48,7 @@ try:
 except ImportError:
     sys.exit("Missing dependency. Run:  pip install requests")
 
-from coaster_manifest import load_manifest, validate_manifest, resolve_thumbnail
+from coaster_manifest import load_manifest, validate_manifest, resolve_thumbnail, ManifestError
 
 BASE = {
     "sandbox": "https://connect.squareupsandbox.com",
@@ -126,14 +142,20 @@ def main():
     ap = argparse.ArgumentParser(
         description="Push content/coaster-designs.csv to the Square catalog.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    ap.add_argument("--manifest", default="../content/coaster-designs.csv")
+    ap.add_argument(
+        "--manifest",
+        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "content", "coaster-designs.csv"),
+    )
     ap.add_argument("--env", choices=list(BASE), default="sandbox")
     ap.add_argument("--parent-item-id", required=True,
                      help="Square ITEM id of the existing coaster parent (e.g. Engraved Slate Coaster)")
     ap.add_argument("--parent-sku-number", required=True,
                      help="the ####  segment of the parent's own SKU, e.g. '0004' for CAD-COA-0004")
-    ap.add_argument("--design-option-id", default=None,
-                     help="existing 'Design' ITEM_OPTION id, if one was already created; omit to create one")
+    ap.add_argument("--design-option-id", required=True,
+                     help="id of the 'Design' ITEM_OPTION that ALREADY EXISTS and is ALREADY attached "
+                          "to the parent item's own item_options list -- this script never creates or "
+                          "attaches that option itself (see the module docstring); attach it first via "
+                          "the Square MCP connector, proven in sandbox before production")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--thumbnail-dir", action="append", default=[],
                      help="directory to search for each design's existing PNG (repeatable)")
@@ -143,7 +165,10 @@ def main():
     if args.env == "production" and not args.yes_really_push_production:
         sys.exit("ERROR: Refusing to push to PRODUCTION without --yes-really-push-production.")
 
-    rows = load_manifest(args.manifest)
+    try:
+        rows = load_manifest(args.manifest)
+    except ManifestError as e:
+        sys.exit(f"ERROR: {e}")
     ready_rows = [r for r in rows if r["status"] == "ready"]
     errors = validate_manifest(rows)
     if errors:
@@ -156,14 +181,8 @@ def main():
         print("No 'ready' rows in the manifest. Nothing to push.")
         return
 
-    option_id = args.design_option_id or "#opt_design"
+    option_id = args.design_option_id
     objects = []
-    if not args.design_option_id:
-        objects.append({
-            "type": "ITEM_OPTION",
-            "id": option_id,
-            "item_option_data": {"name": "Design", "display_name": "Design"},
-        })
 
     option_value_ids = {}
     for row in ready_rows:
@@ -205,7 +224,7 @@ def main():
     }
     resp = check(
         sess.post(f"{base}/v2/catalog/batch-upsert",
-                  data=json.dumps({**body, "sparse_update": True}), timeout=120),
+                  data=json.dumps(body), timeout=120),
         "batch-upsert catalog",
     )
     result = resp.json()

@@ -94,6 +94,26 @@ class ValidateManifestTests(unittest.TestCase):
         errors = validate_manifest(rows)
         self.assertTrue(any("status" in e.lower() for e in errors))
 
+    def test_duplicate_shape_within_row_is_an_error(self):
+        rows = [self._valid_row(shapes=["Round", "Round"])]
+        errors = validate_manifest(rows)
+        self.assertTrue(any("duplicate shape" in e.lower() for e in errors))
+
+    def test_too_short_sku_code_is_an_error(self):
+        rows = [self._valid_row(sku_code="GR")]
+        errors = validate_manifest(rows)
+        self.assertTrue(any("sku_code" in e.lower() for e in errors))
+
+    def test_lowercase_sku_code_is_an_error(self):
+        rows = [self._valid_row(sku_code="grk")]
+        errors = validate_manifest(rows)
+        self.assertTrue(any("sku_code" in e.lower() for e in errors))
+
+    def test_empty_name_is_an_error(self):
+        rows = [self._valid_row(name="")]
+        errors = validate_manifest(rows)
+        self.assertTrue(any("name" in e.lower() and "blank" in e.lower() for e in errors))
+
 
 class ResolveThumbnailTests(unittest.TestCase):
     def test_finds_matching_png_in_first_search_dir(self):
@@ -122,6 +142,16 @@ class ResolveThumbnailTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             row = {"source_file": "nonexistent-design.lbrn2"}
             self.assertIsNone(resolve_thumbnail(row, [tmp]))
+
+    def test_resolves_nested_source_file_subdirectory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dir_a = os.path.join(tmp, "a")
+            nested = os.path.join(dir_a, "MandellaCoasters")
+            os.makedirs(nested)
+            open(os.path.join(nested, "mandella01.png"), "w").close()
+            row = {"source_file": "MandellaCoasters/mandella01.lbrn2"}
+            found = resolve_thumbnail(row, [dir_a])
+            self.assertEqual(found, os.path.join(nested, "mandella01.png"))
 
 
 if __name__ == "__main__":

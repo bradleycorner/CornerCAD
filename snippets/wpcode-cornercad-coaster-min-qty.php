@@ -14,14 +14,35 @@
  * Does NOT apply to the FDM (3D-printed) coaster products (Cova Coasters,
  * Hex Coaster Set) -- they have no Design attribute, so they're untouched.
  *
- * Two enforcement points, both required -- the quantity-input filter alone
- * is a UI nicety a customer can bypass by editing the request directly:
- *   1. woocommerce_quantity_input_args -- sets the visible minimum in the
- *      quantity stepper on the product page and in the cart.
- *   2. woocommerce_add_to_cart_validation /
- *      woocommerce_update_cart_validation -- actually blocks a below-floor
- *      quantity from being added or updated in the cart, with a clear
- *      notice.
+ * cornercad.com's cart page (id 15) uses the WooCommerce BLOCKS cart
+ * (`<!-- wp:woocommerce/cart -->`, Store-API-driven), not the classic
+ * shortcode cart -- confirmed live. That changes which hooks actually fire,
+ * so enforcement here has THREE parts, all required:
+ *   1. woocommerce_add_to_cart_validation -- blocks a below-floor quantity
+ *      from being added to the cart in the first place, with a clear
+ *      notice. Honored by the Blocks cart's CartController, so this one
+ *      works as-is.
+ *   2. woocommerce_store_api_product_quantity_minimum -- the Store-API
+ *      equivalent of the classic quantity-stepper minimum. This is what the
+ *      Blocks cart actually reads for both its displayed stepper minimum
+ *      AND its "update quantity" Store API request
+ *      (PUT wc/store/v1/cart/items/{key}) -- classic
+ *      woocommerce_quantity_input_args does NOT cover the Blocks cart at
+ *      all (kept below for the product page's classic-cart rendering path
+ *      and any other classic-cart usage, but it is not sufficient alone on
+ *      this store's Blocks-based cart).
+ *   3. woocommerce_check_cart_items -- a backstop that runs on every
+ *      cart/checkout page load regardless of which cart UI (classic or
+ *      Blocks) touched the quantity, re-validating every line item and
+ *      adding a notice for anything under the floor. This is what actually
+ *      closes the gap: woocommerce_update_cart_validation (still present
+ *      below) is a classic-cart-only hook fired by
+ *      WC_Form_Handler::update_cart_action() -- the Blocks cart updates
+ *      quantity via the Store API and NEVER fires it, so a customer could
+ *      add 4 to the cart then edit the quantity down to 1 in the cart
+ *      itself and bypass the floor silently before this backstop was
+ *      added. It is kept here only because it's harmless and still covers
+ *      a classic-cart request if one ever reaches this store.
  *
  * Mirrored in git at snippets/wpcode-cornercad-coaster-min-qty.php
  *
@@ -90,6 +111,12 @@ if ( ! function_exists( 'cornercad_coaster_min_qty' ) ) {
 		return $passed;
 	}, 10, 4 );
 
+	// Classic-cart-only hook (WC_Form_Handler::update_cart_action()). The
+	// Blocks cart used on this store updates quantity via the Store API and
+	// never fires this -- kept only in case a classic-cart request ever
+	// reaches this store; the real cross-UI coverage is the
+	// woocommerce_store_api_product_quantity_minimum filter and the
+	// woocommerce_check_cart_items backstop below.
 	add_filter( 'woocommerce_update_cart_validation', function( $passed, $cart_item_key, $values, $quantity ) {
 		$product = $values['data'];
 		if ( $product && cornercad_coaster_is_min_qty_product( $product ) ) {
@@ -104,4 +131,39 @@ if ( ! function_exists( 'cornercad_coaster_min_qty' ) ) {
 		}
 		return $passed;
 	}, 10, 4 );
+
+	// Store-API equivalent of woocommerce_quantity_input_args -- the Blocks
+	// cart's stepper AND its update-quantity Store API request both read
+	// their minimum from this filter, not from woocommerce_quantity_input_args.
+	add_filter( 'woocommerce_store_api_product_quantity_minimum', function( $quantity_minimum, $product ) {
+		if ( cornercad_coaster_is_min_qty_product( $product ) ) {
+			return cornercad_coaster_min_qty();
+		}
+		return $quantity_minimum;
+	}, 10, 2 );
+
+	// Backstop: runs on every cart/checkout page load regardless of which
+	// cart UI (classic or Blocks) touched the quantity, so a below-floor
+	// line item can't silently survive to checkout no matter how it got
+	// there (e.g. added at 4, then edited down to 1 via the Blocks cart's
+	// Store API request, which woocommerce_update_cart_validation never
+	// sees).
+	add_action( 'woocommerce_check_cart_items', function() {
+		if ( ! WC()->cart ) {
+			return;
+		}
+		$floor = cornercad_coaster_min_qty();
+		foreach ( WC()->cart->get_cart() as $cart_item ) {
+			$product = isset( $cart_item['data'] ) ? $cart_item['data'] : null;
+			if ( $product && cornercad_coaster_is_min_qty_product( $product ) ) {
+				$quantity = isset( $cart_item['quantity'] ) ? (int) $cart_item['quantity'] : 0;
+				if ( $quantity < $floor ) {
+					wc_add_notice(
+						sprintf( 'This coaster design has a minimum order quantity of %d.', $floor ),
+						'error'
+					);
+				}
+			}
+		}
+	} );
 }

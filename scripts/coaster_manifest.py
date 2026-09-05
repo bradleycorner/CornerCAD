@@ -12,10 +12,12 @@ never edit Square directly for a coaster design -- edit this CSV instead.
 
 import csv
 import os
+import re
 
 REQUIRED_COLUMNS = ["name", "sku_code", "shapes", "source_file", "price_usd", "status"]
 VALID_SHAPES = {"Round", "Square"}
 VALID_STATUSES = {"draft", "ready"}
+SKU_CODE_RE = re.compile(r"^[A-Z]{3}$")
 
 
 class ManifestError(Exception):
@@ -65,8 +67,15 @@ def validate_manifest(rows):
     """Return a list of human-readable error strings for problems that
     would break a Square push -- duplicate SKU codes, invalid shape values,
     a non-positive price on a `ready` row, or an unrecognized status. A
-    `draft` row is exempt from the price/shape checks (it isn't launching
-    yet). Returns an empty list when everything is valid."""
+    `draft` row is exempt from the price/shape/sku_code/name checks below
+    (it isn't launching yet). Returns an empty list when everything is
+    valid.
+
+    For `ready` rows this also rejects: a duplicate shape within one row's
+    own `shapes` list (e.g. `["Round", "Round"]`), which would otherwise
+    make build_variation_objects emit two variations sharing one SKU and
+    one Square client id; a `sku_code` that isn't exactly three uppercase
+    letters; and a blank `name`."""
     errors = []
     seen_skus = {}
 
@@ -99,6 +108,19 @@ def validate_manifest(rows):
             )
         if not row["shapes"]:
             errors.append(f"{name}: a 'ready' row must list at least one shape")
+        elif len(set(row["shapes"])) != len(row["shapes"]):
+            errors.append(
+                f"{name}: duplicate shape value(s) within row {row['shapes']} -- "
+                f"would produce colliding SKUs/variations"
+            )
+
+        if not SKU_CODE_RE.match(sku):
+            errors.append(
+                f"{name}: sku_code '{sku}' must be exactly 3 uppercase letters"
+            )
+
+        if not row["name"]:
+            errors.append("(unnamed row): 'name' must not be blank for a 'ready' row")
 
         if row["price_usd"] <= 0:
             errors.append(f"{name}: price_usd must be > 0 for a 'ready' row")
@@ -111,10 +133,47 @@ def resolve_thumbnail(row, search_dirs):
     file -- same basename, .png extension, checked across search_dirs in
     order. Returns the first match, or None if it isn't found anywhere.
     Never generates a thumbnail; Bradley keeps a PNG on hand for every
-    template already."""
+    template already.
+
+    A `source_file` may be nested in a subdirectory (e.g.
+    'MandellaCoasters/mandella01.lbrn2') -- for each search dir, try the
+    matching nested-relative path first, then fall back to a basename-only
+    probe directly in that search dir (for source_files with no
+    subdirectory, or thumbnail dirs that flatten everything)."""
+    source_dir = os.path.dirname(row["source_file"])
     stem = os.path.splitext(os.path.basename(row["source_file"]))[0]
     for d in search_dirs:
+        if source_dir:
+            nested = os.path.join(d, source_dir, f"{stem}.png")
+            if os.path.exists(nested):
+                return nested
         candidate = os.path.join(d, f"{stem}.png")
         if os.path.exists(candidate):
             return candidate
     return None
+
+
+def _main(argv):
+    """Minimal CLI: `python3 coaster_manifest.py <manifest.csv>` loads and
+    validates the manifest, printing each error (or 'Manifest OK') and
+    exiting 1 if there were errors, 0 otherwise."""
+    if len(argv) != 2:
+        print(f"usage: {argv[0]} <manifest.csv>")
+        return 1
+    try:
+        rows = load_manifest(argv[1])
+    except ManifestError as e:
+        print(f"ERROR: {e}")
+        return 1
+    errors = validate_manifest(rows)
+    if errors:
+        for e in errors:
+            print(f"  - {e}")
+        return 1
+    print("Manifest OK")
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(_main(sys.argv))
