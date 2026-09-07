@@ -162,6 +162,14 @@ read-only catalog audit.
 ⚠️ **A `⚠️CONFIRM` tag blocks the whole FILE, not one entry** — never leave an unresolved product
 in a file with shippable ones. Unresolved copy lives in `square-descriptions-pending.md`.
 
+**Laser coaster design pipeline** (spec: `docs/superpowers/specs/2026-09-05-laser-coaster-launch-design.md`).
+Designs are tracked in `content/coaster-designs.csv` (schema/loader: `scripts/coaster_manifest.py`)
+and pushed to Square as variations of the coaster parent product via
+`scripts/square_push_coaster_designs.py`, then reach the site on the next Square→Woo sync — the same
+shape as the description pipeline above, applied to design variations instead of description text.
+Minimum order quantity (4, for any coaster product with a Design attribute) is enforced by
+`snippets/wpcode-cornercad-coaster-min-qty.php`.
+
 **Variable products** (built 2026-08-23): Wall Clock (5 dial faces, $45), Vexel Clock (3 face
 materials, $55/$67/$70), Engraved Slate Coaster (4 shape×pack). Hard constraints learned:
 - **One variation dimension only.** `has_multiple_variation_attributes()` silently drops a product
