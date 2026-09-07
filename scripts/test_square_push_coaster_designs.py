@@ -1,5 +1,7 @@
 import unittest
 
+import coaster_manifest
+import square_push_coaster_designs
 from square_push_coaster_designs import (
     build_option_value_object,
     build_variation_objects,
@@ -90,6 +92,15 @@ class BuildVariationObjectsTests(unittest.TestCase):
         self.assertEqual(len(variations), 2)
         skus = {v["item_variation_data"]["sku"] for v in variations}
         self.assertEqual(skus, {"CAD-COA-0004-LAT-RND", "CAD-COA-0004-LAT-SQR"})
+
+
+class ShapeCodeConsistencyTests(unittest.TestCase):
+    def test_sku_for_shape_codes_are_the_manifest_module_s_own_dict(self):
+        # Regression guard: this used to be a second SHAPE_CODE dict defined
+        # locally in this module, independent of coaster_manifest.VALID_SHAPES
+        # -- a shape added to one without the other passed manifest
+        # validation and then crashed sku_for() with an unhandled KeyError.
+        self.assertIs(square_push_coaster_designs.SHAPE_CODES, coaster_manifest.SHAPE_CODES)
 
 
 if __name__ == "__main__":

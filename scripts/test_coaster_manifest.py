@@ -2,7 +2,14 @@ import os
 import tempfile
 import unittest
 
-from coaster_manifest import load_manifest, validate_manifest, resolve_thumbnail, ManifestError
+from coaster_manifest import (
+    load_manifest,
+    validate_manifest,
+    resolve_thumbnail,
+    ManifestError,
+    SHAPE_CODES,
+    VALID_SHAPES,
+)
 
 HEADER = "name,sku_code,shapes,source_file,price_usd,status\n"
 
@@ -50,6 +57,24 @@ class LoadManifestTests(unittest.TestCase):
             path = write_csv(tmp, "name,sku_code\nFoo,ABC\n")
             with self.assertRaises(ManifestError):
                 load_manifest(path)
+
+    def test_malformed_price_parses_as_none_not_a_silent_zero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_csv(
+                tmp,
+                HEADER + "Typo Price,TYP,Round,typo.lbrn2,9.oo,ready\n",
+            )
+            rows = load_manifest(path)
+            self.assertIsNone(rows[0]["price_usd"])
+
+    def test_blank_price_still_parses_as_zero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_csv(
+                tmp,
+                HEADER + "No Price Yet,NPY,Round,npy.lbrn2,,draft\n",
+            )
+            rows = load_manifest(path)
+            self.assertEqual(rows[0]["price_usd"], 0.0)
 
 
 class ValidateManifestTests(unittest.TestCase):
@@ -113,6 +138,31 @@ class ValidateManifestTests(unittest.TestCase):
         rows = [self._valid_row(name="")]
         errors = validate_manifest(rows)
         self.assertTrue(any("name" in e.lower() and "blank" in e.lower() for e in errors))
+
+    def test_two_blank_sku_codes_on_draft_rows_are_not_flagged_as_duplicates(self):
+        rows = [
+            self._valid_row(name="Placeholder A", sku_code="", status="draft", shapes=[], price_usd=0.0),
+            self._valid_row(name="Placeholder B", sku_code="", status="draft", shapes=[], price_usd=0.0),
+        ]
+        errors = validate_manifest(rows)
+        self.assertEqual(errors, [])
+
+    def test_malformed_price_is_an_error_even_on_a_draft_row(self):
+        rows = [self._valid_row(price_usd=None, status="draft", shapes=[])]
+        errors = validate_manifest(rows)
+        self.assertTrue(any("price_usd" in e.lower() and "valid number" in e.lower() for e in errors))
+
+    def test_malformed_price_is_an_error_on_a_ready_row(self):
+        rows = [self._valid_row(price_usd=None)]
+        errors = validate_manifest(rows)
+        self.assertTrue(any("price_usd" in e.lower() and "valid number" in e.lower() for e in errors))
+
+    def test_every_valid_shape_has_a_sku_code(self):
+        # Regression guard for the SHAPE_CODES/VALID_SHAPES split that used
+        # to live in two files -- a shape that passes this validator but has
+        # no entry in SHAPE_CODES crashes square_push_coaster_designs.sku_for
+        # with an unhandled KeyError on any 2+-shape row using it.
+        self.assertEqual(set(SHAPE_CODES), VALID_SHAPES)
 
 
 class ResolveThumbnailTests(unittest.TestCase):

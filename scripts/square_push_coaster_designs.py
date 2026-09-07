@@ -48,23 +48,31 @@ try:
 except ImportError:
     sys.exit("Missing dependency. Run:  pip install requests")
 
-from coaster_manifest import load_manifest, validate_manifest, resolve_thumbnail, ManifestError
+from coaster_manifest import (
+    load_manifest,
+    validate_manifest,
+    resolve_thumbnail,
+    ManifestError,
+    SHAPE_CODES,
+)
 
 BASE = {
     "sandbox": "https://connect.squareupsandbox.com",
     "production": "https://connect.squareup.com",
 }
 SQUARE_VERSION = os.environ.get("SQUARE_VERSION", "2025-04-16")
-SHAPE_CODE = {"Round": "RND", "Square": "SQR"}
 
 
 def sku_for(row, shape, parent_sku_number):
     """CAD-COA-<parent_sku_number>-<design code>[-<shape code>].
     The shape suffix is only added when the row offers more than one
-    shape -- a single-shape design's SKU has no shape code."""
+    shape -- a single-shape design's SKU has no shape code. Shape codes
+    come from coaster_manifest.SHAPE_CODES -- the same dict validate_manifest
+    checks shape values against -- so a shape can never pass manifest
+    validation and then have no SKU code to map it to here."""
     base = f"CAD-COA-{parent_sku_number}-{row['sku_code']}"
     if len(row["shapes"]) > 1:
-        return f"{base}-{SHAPE_CODE[shape]}"
+        return f"{base}-{SHAPE_CODES[shape]}"
     return base
 
 
