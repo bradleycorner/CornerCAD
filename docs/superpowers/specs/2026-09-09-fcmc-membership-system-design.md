@@ -100,9 +100,33 @@ would fail silently — the worst outcome, since nobody notices until renewals d
 Requires WP Mail SMTP against an authenticated sender with SPF and DKIM on the domain. Volume is
 trivial (~48 households) so this is a configuration decision, not a cost one.
 
-Club mail is on **Proton** (`info@`, `membership@`). Proton SMTP submission is a paid-tier
-feature, so the sender is either Proton (if the plan allows) or a free Brevo/SES tier sending
-as `membership@firstcoastmiataclub.org` — in which case SPF must cover both. See open question 2.
+### Mail: as built and verified 2026-09-09
+
+Club mail is on **Proton** (`info@`, `membership@`), independent of GoDaddy — the 2026-09-25
+cancellation cannot affect it. Proton **SMTP submission is available on the club's plan**, so no
+third-party sender is needed and no DNS changes were required.
+
+- **WP Mail SMTP 4.9.0**, mailer `smtp`, Proton host on **587 / STARTTLS**, authenticated
+- Sends as `membership@firstcoastmiataclub.org`, name "First Coast Miata Club of Jacksonville FL",
+  **From forced** so WooCommerce and CF7 cannot substitute an unauthenticated sender
+- **mail-tester.com score 10/10** (`test-sbgeql4rj`, 2026-09-09 10:36 UTC):
+  SPF **pass** (`v=spf1 include:_spf.protonmail.ch ~all`) · DKIM **valid**, 2048-bit,
+  `d=firstcoastmiataclub.org` · **DKIM_VALID_AU pass** (signed by the club's own domain, not
+  Proton's) · DMARC **pass** against `p=quarantine` · rDNS present · not on any of 20 blocklists ·
+  SpamAssassin 0.2
+
+rDNS and author-domain DKIM matter specifically here: the membership skews to AOL, BellSouth,
+Comcast and Earthlink, and AOL rejects outright from servers without rDNS.
+
+🔧 **Build requirement — List-Unsubscribe.** The test flagged its absence. Correct for dues
+reminders (transactional, no unsubscribe). **Required for the weekly digest**: Gmail and Yahoo
+demand one-click unsubscribe from bulk senders, and without it the digest gets throttled once it
+goes to ~100 recipients at once. Implement `List-Unsubscribe` and `List-Unsubscribe-Post` headers
+on the digest send path only.
+
+Credentials were entered by Bradley directly in wp-admin and have never appeared in a transcript
+or in git. Do not read the `wp_mail_smtp` option wholesale — it contains the SMTP token; pluck
+individual non-secret keys instead.
 
 ### Two mail categories — must stay separate
 
@@ -160,16 +184,7 @@ The 415 is an announcement list, useful for subsystem D outreach only.
 
 1. **The April rule** — does a member joining Apr 1 – Jun 1 get through the *following* June 1?
    Affects ~6 people/year. Board question. One constant.
-2. ✅ **RESOLVED 2026-09-09 — club email is not at risk.** `info@` and
-   `membership@firstcoastmiataclub.org` are hosted on **Proton**, independent of GoDaddy, so the
-   2026-09-25 cancellation cannot affect them. Remaining nuance: that covers *receiving*. For the
-   site to **send** as `membership@`, WordPress needs **server-side SMTP submission**, which on
-   Proton means the Business-tier **SMTP token** — a different capability from sending via the
-   Proton app or webmail (mailbox send/receive already verified working 2026-09-09; Proton is
-   also used for cornercad.com and uniquecreationsbylisac.com). Proton Bridge does not apply — it
-   runs locally, not on a web host. If no SMTP token is available, the sender becomes Brevo/SES
-   sending as `membership@`, and the domain's SPF must list that service alongside Proton, each
-   with its own DKIM key.
+2. ✅ **RESOLVED AND VERIFIED 2026-09-09 — outbound mail is done.** See "Mail: as built" below.
 3. **Road Runner overlap** — a weekly digest overlaps Colin Busch's monthly newsletter.
    Organisational, not technical. Talk to him before the first send.
 4. **Events are not objects** — the Event Calendar is hand-written prose. §3's digest cannot
