@@ -171,9 +171,10 @@ Reconstructed evidence assembled 2026-09-09, in `~/Desktop/temp/`:
 | `fcmc-paid-orders-linked.csv` | 42 paid orders (May 1 – Sep 9), 35 with email recovered by matching form-submission timestamps to card charges |
 | `fcmc-jobforms-all.csv` | 37 households with both members, both emails, address, car. 29 join to a paid order |
 
-Known gaps: 8 form submissions with no matching payment (3 of them — Jacques, Gordon Tubesing,
-Antoni Scott — submitted inside the transaction window and are genuine non-payment candidates);
-6 payments in early May whose form records were not captured.
+Known gaps: 8 form submissions with no matching payment — 3 of those submitted inside the
+transaction window and are genuine non-payment candidates, the other 5 fall outside it and may
+well have paid; plus 6 payments in early May whose form records were not captured. Individuals
+are identified in the local working files only, never in this repo.
 
 ⚠️ **The 415-contact export is NOT the roster.** 300 of those are contact-form traffic with no
 phone or address; 115 are anyone who ever transacted since 2018. Its `Member` flag is set on 7
