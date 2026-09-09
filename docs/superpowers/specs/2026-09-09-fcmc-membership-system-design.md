@@ -163,9 +163,13 @@ The 415 is an announcement list, useful for subsystem D outreach only.
 2. ✅ **RESOLVED 2026-09-09 — club email is not at risk.** `info@` and
    `membership@firstcoastmiataclub.org` are hosted on **Proton**, independent of GoDaddy, so the
    2026-09-25 cancellation cannot affect them. Remaining nuance: that covers *receiving*. For the
-   site to **send** as `membership@`, Proton SMTP submission is a paid-tier feature — verify
-   against the club's actual plan. If unavailable, the transactional sender becomes Brevo/SES and
-   the domain's SPF record must cover both that service and Proton, with DKIM for each.
+   site to **send** as `membership@`, WordPress needs **server-side SMTP submission**, which on
+   Proton means the Business-tier **SMTP token** — a different capability from sending via the
+   Proton app or webmail (mailbox send/receive already verified working 2026-09-09; Proton is
+   also used for cornercad.com and uniquecreationsbylisac.com). Proton Bridge does not apply — it
+   runs locally, not on a web host. If no SMTP token is available, the sender becomes Brevo/SES
+   sending as `membership@`, and the domain's SPF must list that service alongside Proton, each
+   with its own DKIM key.
 3. **Road Runner overlap** — a weekly digest overlaps Colin Busch's monthly newsletter.
    Organisational, not technical. Talk to him before the first send.
 4. **Events are not objects** — the Event Calendar is hand-written prose. §3's digest cannot
