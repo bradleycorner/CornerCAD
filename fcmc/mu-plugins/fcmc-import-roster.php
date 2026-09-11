@@ -26,6 +26,14 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 		$rows = array();
 		$fh   = fopen( $path, 'r' );
 		$head = fgetcsv( $fh );
+		if ( is_array( $head ) && isset( $head[0] ) ) {
+			// Excel's "CSV UTF-8" export prepends a BOM to the first header cell,
+			// turning e.g. "paid_date" into "\xEF\xBB\xBFpaid_date" — every lookup
+			// against that key then misses, every date reads null and gets
+			// rejected, and the run silently imports as form-only. Strip it here,
+			// once, rather than at every read site downstream.
+			$head[0] = preg_replace( '/^\xEF\xBB\xBF/', '', $head[0] );
+		}
 		while ( ( $r = fgetcsv( $fh ) ) !== false ) {
 			$rows[] = array_combine( $head, array_pad( $r, count( $head ), '' ) );
 		}
@@ -53,12 +61,25 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 	// Payment index: normalised email => earliest and latest paid dates. Every date in here
 	// is already canonical Y-m-d (validated above), so plain string min()/max() below is a
 	// safe stand-in for chronological comparison — ISO 8601 dates sort lexicographically.
-	$pay      = array();
-	$noMail   = 0;
-	$badDates = 0;
+	$pay            = array();
+	$noMail         = 0;
+	$badDates       = 0;
+	$unattributable = array();
 	foreach ( $orders as $o ) {
-		$e = fcmc_normalise_email( $o['email'] ?? '' );
-		if ( '' === $e ) { $noMail++; continue; }
+		$e = fcmc_normalize_email( $o['email'] ?? '' );
+		if ( '' === $e ) {
+			$noMail++;
+			// No PII here by definition — a row with no email carries only a
+			// date/order-number/amount, which is exactly what an officer needs
+			// to reconcile it against Square by hand (see IMPORTANT 3, 2026-09-11
+			// review). Persisted below, replacing the option each run.
+			$unattributable[] = array(
+				'date'         => trim( (string) ( $o['paid_date'] ?? '' ) ),
+				'order_number' => trim( (string) ( $o['order_number'] ?? '' ) ),
+				'amount'       => trim( (string) ( $o['amount'] ?? '' ) ),
+			);
+			continue;
+		}
 		$d = $validate_ymd( $o['paid_date'] ?? '' );
 		if ( null === $d ) { $badDates++; continue; }
 		if ( ! isset( $pay[ $e ] ) ) {
@@ -68,12 +89,13 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 		$pay[ $e ]['last']  = max( $pay[ $e ]['last'], $d );
 	}
 
-	$created     = $updated = $merged = 0;
-	$conflicts   = 0;
-	$backfilled  = 0;
-	$noFormEmail = 0;
-	$rowErrors   = 0;
-	$seen        = array();
+	$created      = $updated = $merged = 0;
+	$conflicts    = 0;
+	$skippedEmpty = 0;
+	$backfilled   = 0;
+	$noFormEmail  = 0;
+	$rowErrors    = 0;
+	$seen         = array();
 
 	// Households with no import_values snapshot get backfilled at most once per run, even
 	// if a merge touches the same post twice, so a --dry-run (which never writes the
@@ -116,18 +138,31 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 			}
 		}
 
-		$clean      = array();
-		$conflicted = array();
+		$clean         = array();
+		$conflicted    = array();
+		$skipped_empty = array();
 		foreach ( $data as $k => $v ) {
 			$current        = get_post_meta( $id, $k, true );
 			$baseline_known = array_key_exists( $k, $prev );
-			if ( ! $baseline_known || $current === $prev[ $k ] ) {
-				$clean[ $k ] = $v;
-			} else {
+
+			if ( $baseline_known && $current !== $prev[ $k ] ) {
 				$conflicted[] = $k;
+				continue;
 			}
+
+			// A blank incoming value must never erase populated stored data — a
+			// row with no payment match this run, or a thinner re-export, must
+			// leave existing member1_phone/address/member2_*/paid_through alone
+			// rather than blank it out. See CRITICAL 2, 2026-09-11 review.
+			$current_populated = is_array( $current ) ? ! empty( $current ) : '' !== (string) $current;
+			if ( '' === $v && $current_populated ) {
+				$skipped_empty[] = $k;
+				continue;
+			}
+
+			$clean[ $k ] = $v;
 		}
-		return array( 'clean' => $clean, 'conflicted' => $conflicted, 'prev' => $prev );
+		return array( 'clean' => $clean, 'conflicted' => $conflicted, 'skipped_empty' => $skipped_empty, 'prev' => $prev );
 	};
 
 	// $seen tracks, per normalised email, the household this run has already resolved to
@@ -138,10 +173,10 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 	// in for "this row would create/match a household" — merge/updated-vs-created counting
 	// only needs truthiness, never the actual ID.
 	$upsert = function ( $key_email, $data, $source, $row = null ) use (
-		&$created, &$updated, &$merged, &$seen, &$noFormEmail, &$conflicts,
+		&$created, &$updated, &$merged, &$seen, &$noFormEmail, &$conflicts, &$skippedEmpty,
 		$classify_fields, $batch, $dry
 	) {
-		$key_email = fcmc_normalise_email( $key_email );
+		$key_email = fcmc_normalize_email( $key_email );
 
 		// Reject an unusable key outright rather than let it fall through to the lookup
 		// below. Without this, every row with both emails blank shares the SAME empty-
@@ -187,8 +222,8 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 			// of updating it. This importer must see every household, claimed or not.
 			$id = null;
 			foreach ( fcmc_household_all() as $hid ) {
-				$stored_e1 = fcmc_normalise_email( get_post_meta( $hid, 'member1_email', true ) );
-				$stored_e2 = fcmc_normalise_email( get_post_meta( $hid, 'member2_email', true ) );
+				$stored_e1 = fcmc_normalize_email( get_post_meta( $hid, 'member1_email', true ) );
+				$stored_e2 = fcmc_normalize_email( get_post_meta( $hid, 'member2_email', true ) );
 				if ( $key_email === $stored_e1 || $key_email === $stored_e2 ) {
 					$id = $hid;
 					break;
@@ -216,6 +251,10 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 						$conflicts++;
 						WP_CLI::warning( sprintf( '[DRY RUN] Conflict: field %s on household #%d differs from the import; would be left as-is.', $k, $id ) );
 					}
+					foreach ( $c['skipped_empty'] as $k ) {
+						$skippedEmpty++;
+						WP_CLI::warning( sprintf( '[DRY RUN] Skip-empty: field %s on household #%d has a blank incoming value; existing data would be kept.', $k, $id ) );
+					}
 				}
 			} else {
 				$created++;
@@ -242,6 +281,11 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 				update_post_meta( $id, $k, $v );
 			}
 			update_post_meta( $id, 'import_values', $data );
+			// import_batch is the timestamp of the run that CREATED the record, so a
+			// bad run can be identified and reversed — written ONLY here, never on the
+			// update branch below, or every re-run would overwrite it and destroy that
+			// ability. See IMPORTANT 2, 2026-09-11 review.
+			update_post_meta( $id, 'import_batch', $batch );
 		} else {
 			$updated++;
 			$c = $classify_fields( $id, $data );
@@ -252,15 +296,28 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 				$conflicts++;
 				WP_CLI::warning( sprintf( 'Conflict: field %s on household #%d differs from the import; left as-is.', $k, $id ) );
 			}
+			foreach ( $c['skipped_empty'] as $k ) {
+				$skippedEmpty++;
+				WP_CLI::warning( sprintf( 'Skip-empty: field %s on household #%d has a blank incoming value; existing data kept.', $k, $id ) );
+			}
+			// The snapshot only advances for fields actually written (`clean`).
+			// conflicted and skipped_empty fields keep their PRIOR baseline
+			// unchanged, since neither their stored value nor the reason it was
+			// left alone has changed — otherwise a skipped blank would read back
+			// as a fabricated "conflict" on the very next run.
 			$snapshot = $c['prev'];
 			foreach ( $c['clean'] as $k => $v ) {
 				$snapshot[ $k ] = $v;
 			}
 			update_post_meta( $id, 'import_values', $snapshot );
+
+			// CRITICAL 1: tell the linked user about this update too — a claimed
+			// household's paid_through must never go stale on the roster while
+			// wp-admin shows the freshly imported value.
+			fcmc_household_sync_to_user( $id );
 		}
 
 		update_post_meta( $id, 'fcmc_source', $source );
-		update_post_meta( $id, 'import_batch', $batch );
 		$seen[ $key_email ] = array( 'id' => $id, 'row' => $row, 'real' => true );
 	};
 
@@ -276,8 +333,8 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 	// skipped and counted rather than aborting the run mid-loop with no summary.
 	foreach ( $forms as $i => $f ) {
 		try {
-			$e1  = fcmc_normalise_email( $f['email1'] ?? '' );
-			$e2  = fcmc_normalise_email( $f['email2'] ?? '' );
+			$e1  = fcmc_normalize_email( $f['email1'] ?? '' );
+			$e2  = fcmc_normalize_email( $f['email2'] ?? '' );
 			$hit = $pay[ $e1 ] ?? $pay[ $e2 ] ?? null;
 
 			$carText = trim( (string) ( $f['car'] ?? '' ) );
@@ -312,7 +369,7 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 	$formEmails = array();
 	foreach ( $forms as $f ) {
 		foreach ( array( 'email1', 'email2' ) as $k ) {
-			$n = fcmc_normalise_email( $f[ $k ] ?? '' );
+			$n = fcmc_normalize_email( $f[ $k ] ?? '' );
 			if ( $n ) { $formEmails[ $n ] = true; }
 		}
 	}
@@ -340,13 +397,24 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 	// distinct households this run actually resolves to, in both dry and real runs alike.
 	$final = $created + $updated - $merged;
 	WP_CLI::log( sprintf( '%screated %d, updated %d, merged %d -> %d households after this run', $dry ? '[DRY RUN] ' : '', $created, $updated, $merged, $final ) );
-	WP_CLI::log( sprintf( 'baseline backfilled for %d household(s) with no prior snapshot', $backfilled ) );
+	WP_CLI::log( sprintf( '%sbaseline backfilled for %d household(s) with no prior snapshot', $dry ? '[DRY RUN] ' : '', $backfilled ) );
 	WP_CLI::log( sprintf( 'conflicts (officer edits preserved, not overwritten): %d', $conflicts ) );
+	WP_CLI::log( sprintf( 'blank incoming field(s) that would have overwritten stored data (skipped): %d', $skippedEmpty ) );
 	WP_CLI::log( sprintf( '%d form rows with no email address (cannot be imported, need a human pass)', $noFormEmail ) );
 	WP_CLI::log( sprintf( 'payments with no email (need a human pass against Square): %d', $noMail ) );
 	WP_CLI::log( sprintf( '%d payments with an unparseable date (need a human pass)', $badDates ) );
 	if ( $rowErrors > 0 ) {
 		WP_CLI::log( sprintf( '%d rows failed unexpectedly and were skipped (needs a human pass)', $rowErrors ) );
 	}
+
+	// Replace the reconciliation list wholesale each run — it should always reflect
+	// THIS run's residue, not accumulate across runs. Skipped for --dry-run so the
+	// "nothing written" promise in the success message stays true. No PII: a row
+	// lands here only because it has no email, so it carries just date/order
+	// number/amount. See IMPORTANT 3, 2026-09-11 review.
+	if ( ! $dry ) {
+		update_option( 'fcmc_unattributable_payments', $unattributable );
+	}
+
 	WP_CLI::success( $dry ? 'Dry run complete — nothing written.' : 'Import complete.' );
 } );

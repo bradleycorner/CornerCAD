@@ -9,7 +9,7 @@
  *
  *              Capability type: its OWN ('fcmc_household' / 'fcmc_households'), not the
  *              default `post`, and NOT mapped onto `fcmc_manage_members`. That mapping was
- *              tried and reverted — see docs/superpowers/specs/2026-09-11-fcmc-roster-import/
+ *              tried and reverted — see .superpowers/sdd/2026-09-11-fcmc-roster-import/
  *              task-2-report.md. WordPress's _post_type_meta_capabilities() registers
  *              whatever string a post type maps `edit_post`/`read_post`/`delete_post` to as
  *              a META capability in the global $post_type_meta_caps array. Mapping those to
@@ -49,12 +49,12 @@ add_action( 'init', function () {
 } );
 
 /**
- * Normalise an email for comparison. One rule, used everywhere.
+ * Normalize an email for comparison. One rule, used everywhere.
  *
  * @param string $email Raw email.
  * @return string
  */
-function fcmc_normalise_email( $email ) {
+function fcmc_normalize_email( $email ) {
 	return strtolower( trim( (string) $email ) );
 }
 
@@ -65,7 +65,7 @@ function fcmc_normalise_email( $email ) {
  * @return int|null Post ID, or null.
  */
 function fcmc_household_find_by_email( $email ) {
-	$email = fcmc_normalise_email( $email );
+	$email = fcmc_normalize_email( $email );
 	if ( '' === $email ) {
 		return null;
 	}
@@ -75,7 +75,7 @@ function fcmc_household_find_by_email( $email ) {
 			continue;
 		}
 		foreach ( array( 'member1_email', 'member2_email' ) as $key ) {
-			if ( fcmc_normalise_email( get_post_meta( $id, $key, true ) ) === $email ) {
+			if ( fcmc_normalize_email( get_post_meta( $id, $key, true ) ) === $email ) {
 				return (int) $id;
 			}
 		}
@@ -146,13 +146,66 @@ function fcmc_household_claim( $household_id, $user_id ) {
 	if ( $h['member_since'] ) {
 		update_user_meta( $user_id, 'fcmc_member_since', $h['member_since'] );
 	}
+
+	// member2_* and cars are only ADOPTED when the user has nothing of their own —
+	// never clobbering data a member already entered. This matters most on the
+	// officer's Link control (fcmc-roster.php), which runs this same function
+	// against ESTABLISHED accounts, not just fresh registrations. Overwriting a
+	// real structured car list with the household's thin imported one (which by
+	// design carries only car_model_year + car_description) would both destroy
+	// member-entered data AND under-bill a multi-car household's renewal, since
+	// the car count drives the dues quantity — see CRITICAL 3, 2026-09-11 review.
 	foreach ( array( 'member2_name', 'member2_phone', 'member2_email' ) as $key ) {
-		if ( $h[ $key ] ) {
+		if ( $h[ $key ] && ! get_user_meta( $user_id, 'fcmc_' . $key, true ) ) {
 			update_user_meta( $user_id, 'fcmc_' . $key, $h[ $key ] );
 		}
 	}
-	if ( ! empty( $h['cars'] ) ) {
+	$existing_cars = get_user_meta( $user_id, 'fcmc_car_profiles', true );
+	if ( ! empty( $h['cars'] ) && empty( $existing_cars ) ) {
 		update_user_meta( $user_id, 'fcmc_car_profiles', $h['cars'] );
+	}
+
+	if ( function_exists( 'fcmc_recompute_member' ) ) {
+		fcmc_recompute_member( $user_id );
+	}
+}
+
+/**
+ * Mirror a claimed household's `paid_through` into its linked user's baseline
+ * (`fcmc_paid_through_manual`) and recompute their status. No-op if the
+ * household isn't claimed.
+ *
+ * This is the exact mirror-and-recompute logic fcmc_save_household_meta_box()
+ * has always run on an officer's hand edit, extracted into one shared
+ * function so the importer's update path (fcmc-import-roster.php — which
+ * deliberately targets claimed households too) produces the identical effect
+ * on the linked user. Before this existed, an import that changed a claimed
+ * household's paid_through updated wp-admin but left the user's baseline (and
+ * therefore the roster's status) stale — see CRITICAL 1, 2026-09-11 review.
+ *
+ * An explicit clear (empty paid_through) DELETES the user's baseline instead
+ * of leaving the previous value in place, so a cleared household actually
+ * lapses the member instead of silently surviving the next recompute — see
+ * IMPORTANT 1 in the same review. NEVER writes `fcmc_paid_through` directly:
+ * that key is a derived cache and a recompute with no orders behind it would
+ * just wipe it back out.
+ *
+ * @param int $household_id Household post ID.
+ * @return void
+ */
+function fcmc_household_sync_to_user( $household_id ) {
+	$claimed_by = get_post_meta( $household_id, 'claimed_by', true );
+	if ( ! $claimed_by ) {
+		return;
+	}
+
+	$user_id      = (int) $claimed_by;
+	$paid_through = get_post_meta( $household_id, 'paid_through', true );
+
+	if ( $paid_through ) {
+		update_user_meta( $user_id, 'fcmc_paid_through_manual', $paid_through );
+	} else {
+		delete_user_meta( $user_id, 'fcmc_paid_through_manual' );
 	}
 
 	if ( function_exists( 'fcmc_recompute_member' ) ) {
@@ -353,19 +406,8 @@ function fcmc_save_household_meta_box( $post_id, $post ) {
 	}
 
 	// If claimed, the officer's paid_through is the new BASELINE for the linked
-	// user — mirror it into fcmc_paid_through_manual (the floor). NEVER into
-	// fcmc_paid_through directly: that key is a derived cache, and a recompute
-	// with no WooCommerce orders behind it (every imported member) would wipe it
-	// right back out.
-	$claimed_by = get_post_meta( $post_id, 'claimed_by', true );
-	if ( $claimed_by ) {
-		$paid_through = get_post_meta( $post_id, 'paid_through', true );
-		if ( $paid_through ) {
-			update_user_meta( (int) $claimed_by, 'fcmc_paid_through_manual', $paid_through );
-		}
-		if ( function_exists( 'fcmc_recompute_member' ) ) {
-			fcmc_recompute_member( (int) $claimed_by );
-		}
-	}
+	// user — mirror it and recompute via the shared helper (also used by the
+	// importer's update path) so both write paths behave identically.
+	fcmc_household_sync_to_user( $post_id );
 }
 add_action( 'save_post_fcmc_household', 'fcmc_save_household_meta_box', 10, 2 );
