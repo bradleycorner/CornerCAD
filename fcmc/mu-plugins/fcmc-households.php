@@ -214,8 +214,16 @@ function fcmc_household_sync_to_user( $household_id ) {
 }
 
 /**
- * On registration, attach the new account to its household if the email matches.
- * No match is not an error — an officer links it from the roster instead.
+ * On registration, if the email matches an unclaimed household, do NOT claim it
+ * immediately — that would silently hand the registrant another person's name,
+ * phone and email if they merely typed (or guessed) a member's address. Instead
+ * start an email-verification hold: a pending link the registrant must confirm
+ * from their own inbox before fcmc_household_claim() ever runs.
+ *
+ * No match is not an error and sends no mail — an officer links it from the
+ * roster instead (fcmc-roster.php), which is unaffected by any of this: it
+ * still finds the household unclaimed and the user still has no
+ * fcmc_household_id until something actually claims it.
  *
  * @param int $user_id New user ID.
  */
@@ -223,17 +231,193 @@ function fcmc_maybe_claim_household( $user_id ) {
 	if ( get_user_meta( $user_id, 'fcmc_household_id', true ) ) {
 		return;
 	}
+	if ( get_user_meta( $user_id, 'fcmc_verify_household', true ) ) {
+		return; // Already has a pending verification — don't reissue/re-email.
+	}
 	$user = get_userdata( $user_id );
 	if ( ! $user ) {
 		return;
 	}
 	$household_id = fcmc_household_find_by_email( $user->user_email );
 	if ( $household_id ) {
-		fcmc_household_claim( $household_id, $user_id );
+		fcmc_household_start_verification( $household_id, $user_id );
 	}
 }
 add_action( 'user_register', 'fcmc_maybe_claim_household', 20 );
 add_action( 'woocommerce_created_customer', 'fcmc_maybe_claim_household', 20 );
+
+/* -------------------------------------------------------------------------
+ * Email verification — a household match only turns into a claim after the
+ * registrant proves they control the matched inbox.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Store a pending verification link and email the registrant a confirmation
+ * link. Only the SHA-256 hash of the token is ever stored; the plaintext
+ * exists only in this call stack and in the outgoing email.
+ *
+ * @param int $household_id Household post ID (still unclaimed).
+ * @param int $user_id      Newly registered user ID.
+ */
+function fcmc_household_start_verification( $household_id, $user_id ) {
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return;
+	}
+
+	$token   = bin2hex( random_bytes( 32 ) ); // 64 hex chars, cryptographically random.
+	$expires = ( new DateTimeImmutable( 'now', wp_timezone() ) )->modify( '+30 days' )->format( 'Y-m-d H:i:s' );
+
+	update_user_meta( $user_id, 'fcmc_verify_household', (int) $household_id );
+	update_user_meta( $user_id, 'fcmc_verify_token_hash', hash( 'sha256', $token ) );
+	update_user_meta( $user_id, 'fcmc_verify_expires', $expires );
+
+	fcmc_send_household_verification_email( $user, $token );
+}
+
+/**
+ * Send the confirmation email. Plain text, club-signed, no other member's
+ * details anywhere in the body — only this registrant's own confirmation link.
+ *
+ * @param WP_User $user  The registrant.
+ * @param string  $token Plaintext token (never stored).
+ */
+function fcmc_send_household_verification_email( $user, $token ) {
+	$link = add_query_arg(
+		array(
+			'fcmc_verify' => '1',
+			'uid'         => $user->ID,
+			'token'       => $token,
+		),
+		home_url( '/' )
+	);
+
+	$subject = __( 'Confirm your email — First Coast Miata Club', 'fcmc' );
+	$message = sprintf(
+		/* translators: %s: verification link */
+		__(
+			"Hi,\n\nWe found a First Coast Miata Club membership on file that matches this email address. To link it to your new account, please confirm this email address:\n\n%s\n\nThis link expires in 30 days. If you did not create this account, you can safely ignore this message.\n\n— First Coast Miata Club",
+			'fcmc'
+		),
+		$link
+	);
+
+	wp_mail( $user->user_email, $subject, $message );
+}
+
+/**
+ * Validate a submitted (user_id, token) pair against the pending verification
+ * metas and, if valid, perform the claim. Pure logic, no redirect/exit, so the
+ * init handler below and tests can both call it directly.
+ *
+ * Token comparison uses hash_equals() for constant time. Never distinguishes
+ * "no such user" from "bad token" from "expired" in its return value — callers
+ * must show one generic notice either way, so this can't be used to enumerate
+ * users or households.
+ *
+ * Re-checks the household is still unclaimed (an officer may have hand-linked
+ * it, or this account, in the meantime) and that the user doesn't already have
+ * a household of their own before calling fcmc_household_claim() — either way
+ * the pending metas are cleared on success so the token is single-use.
+ *
+ * @param int    $user_id Candidate user ID from the link.
+ * @param string $token   Plaintext token from the link.
+ * @return bool True if the pending link is resolved (claimed now, already
+ *              claimed, or already linked) and cleared; false if the token
+ *              itself is missing, expired, or does not match.
+ */
+function fcmc_household_verify_token( $user_id, $token ) {
+	$user_id = (int) $user_id;
+	if ( ! $user_id || '' === $token ) {
+		return false;
+	}
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return false;
+	}
+
+	$stored_hash  = get_user_meta( $user_id, 'fcmc_verify_token_hash', true );
+	$household_id = (int) get_user_meta( $user_id, 'fcmc_verify_household', true );
+	$expires      = get_user_meta( $user_id, 'fcmc_verify_expires', true );
+
+	if ( ! $stored_hash || ! $household_id || ! $expires ) {
+		return false;
+	}
+
+	$expires_dt = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $expires, wp_timezone() );
+	$now        = new DateTimeImmutable( 'now', wp_timezone() );
+	if ( ! ( $expires_dt instanceof DateTimeImmutable ) || $now > $expires_dt ) {
+		return false;
+	}
+
+	if ( ! hash_equals( $stored_hash, hash( 'sha256', $token ) ) ) {
+		return false;
+	}
+
+	// Token is genuine and unexpired. Resolve the pending link either way, then
+	// clear it below — single use regardless of which branch ran.
+	$still_unclaimed = 'fcmc_household' === get_post_type( $household_id )
+		&& 'publish' === get_post_status( $household_id )
+		&& ! get_post_meta( $household_id, 'claimed_by', true );
+	$already_has_household = (bool) get_user_meta( $user_id, 'fcmc_household_id', true );
+
+	if ( $still_unclaimed && ! $already_has_household && function_exists( 'fcmc_household_claim' ) ) {
+		fcmc_household_claim( $household_id, $user_id );
+	}
+
+	delete_user_meta( $user_id, 'fcmc_verify_household' );
+	delete_user_meta( $user_id, 'fcmc_verify_token_hash' );
+	delete_user_meta( $user_id, 'fcmc_verify_expires' );
+
+	return true;
+}
+
+/**
+ * Verification link landing point. Deliberately a plain `init` query-arg
+ * handler, NOT a rewrite endpoint — mu-plugins have no activation hook, so a
+ * rewrite that needed a flush would silently 404 forever.
+ *
+ * Always redirects to My Account with a generic success/failure flag; never
+ * renders a detailed reason, so the endpoint can't be used to probe for valid
+ * user IDs or households.
+ */
+function fcmc_handle_household_verification() {
+	if ( ! isset( $_GET['fcmc_verify'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		return;
+	}
+
+	$myaccount_url = function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'myaccount' ) : home_url( '/' );
+
+	$uid   = isset( $_GET['uid'] ) ? absint( $_GET['uid'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$token = isset( $_GET['token'] ) ? sanitize_text_field( wp_unslash( $_GET['token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+	$ok = fcmc_household_verify_token( $uid, $token );
+
+	wp_safe_redirect( add_query_arg( 'fcmc_household_verified', $ok ? '1' : '0', $myaccount_url ) );
+	exit;
+}
+add_action( 'init', 'fcmc_handle_household_verification' );
+
+/**
+ * A short, generic notice on the My Account dashboard reflecting the
+ * verification link result. Never says which user/household — same message
+ * for "bad token", "expired", and "no such user".
+ */
+add_action(
+	'woocommerce_account_dashboard',
+	function () {
+		if ( ! isset( $_GET['fcmc_household_verified'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+		$ok = '1' === sanitize_text_field( wp_unslash( $_GET['fcmc_household_verified'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( $ok ) {
+			echo '<div class="woocommerce-message">' . esc_html__( 'Your email is confirmed and your membership is linked to your account.', 'fcmc' ) . '</div>';
+		} else {
+			echo '<div class="woocommerce-error">' . esc_html__( 'That confirmation link is invalid or has expired. Please contact membership@firstcoastmiataclub.org if you need help.', 'fcmc' ) . '</div>';
+		}
+	},
+	4
+);
 
 /* -------------------------------------------------------------------------
  * Officer edit screen — correct a household's membership date by hand
