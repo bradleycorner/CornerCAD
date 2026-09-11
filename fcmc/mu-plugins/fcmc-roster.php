@@ -10,12 +10,13 @@
  *              fence them in. As a My Account tab they sign in exactly as any member does and
  *              simply see one tab more, themed like the rest of the club site. The cost is
  *              that we hand-roll the table instead of getting WP_List_Table free — fine at
- *              ~48 households.
+ *              ~47 households.
  *
- *              One row per HOUSEHOLD (= one WP user; a household holds up to two members and
- *              any number of cars), never one row per transaction. This is the thing the
- *              WooCommerce Orders screen cannot do: show a LAPSED member, who by definition
- *              has no recent order to sort by.
+ *              One row per HOUSEHOLD (up to two members and any number of cars), whether or
+ *              not a WP user account is attached — plus one row for any WP user who isn't
+ *              linked to a household at all. Never one row per transaction. This is the thing
+ *              the WooCommerce Orders screen cannot do: show a LAPSED member, who by
+ *              definition has no recent order to sort by.
  *
  * @see docs/superpowers/specs/2026-09-09-fcmc-membership-system-design.md
  */
@@ -135,16 +136,97 @@ add_action(
 /**
  * Build the roster rows.
  *
- * Every user is a potential household — including lapsed ones and those who never
- * paid, which is the entire reason this exists rather than reading the Orders screen.
+ * One row per HOUSEHOLD — including lapsed ones and those who never paid, which is
+ * the entire reason this exists rather than reading the Orders screen — PLUS one row
+ * for every WP user who is NOT already represented by a household (no
+ * `fcmc_household_id` meta). A claimed household never doubles up with its user: the
+ * household row is authoritative and the user is skipped in the second pass.
+ *
+ * For a claimed household, status/paid-through/since are read from the LINKED USER,
+ * not the household's own imported fields — a live order must win over the imported
+ * baseline (see fcmc_recompute_member()'s floor rule). An unclaimed household derives
+ * its status from its own `paid_through` via fcmc_status_for(). `user` is null for an
+ * unclaimed household — the renderers never dereference it, only read the flat keys
+ * below.
  *
  * @param array $filters status, joined_since.
- * @return array[] One row per household.
+ * @return array[] One row per household (claimed or not) plus unlinked users.
  */
 function fcmc_roster_rows( $filters = array() ) {
-	$rows = array();
+	$rows           = array();
+	$linked_user_ids = array();
 
+	foreach ( fcmc_household_all() as $household_id ) {
+		$h = fcmc_household_get( $household_id );
+
+		$claimed_user = $h['claimed_by'] ? get_userdata( (int) $h['claimed_by'] ) : false;
+
+		if ( $claimed_user ) {
+			$linked_user_ids[] = $claimed_user->ID;
+
+			$row_user     = $claimed_user;
+			$status       = function_exists( 'fcmc_get_status' ) ? fcmc_get_status( $claimed_user->ID ) : 'none';
+			$primary      = trim( $claimed_user->first_name . ' ' . $claimed_user->last_name ) ?: $claimed_user->display_name;
+			$email        = $claimed_user->user_email;
+			$member2      = get_user_meta( $claimed_user->ID, 'fcmc_member2_name', true );
+			$member2_mail = get_user_meta( $claimed_user->ID, 'fcmc_member2_email', true );
+			$paid_through = get_user_meta( $claimed_user->ID, 'fcmc_paid_through', true );
+			$since        = get_user_meta( $claimed_user->ID, 'fcmc_member_since', true );
+			$cars         = get_user_meta( $claimed_user->ID, 'fcmc_car_profiles', true );
+			$cars         = is_array( $cars ) ? $cars : array();
+		} else {
+			// Unclaimed (or claimed_by points at a deleted user, which we treat the
+			// same way — there is no live account to read from).
+			$row_user     = null;
+			$primary      = trim( (string) $h['member1_name'] );
+			$email        = $h['member1_email'];
+			$member2      = $h['member2_name'];
+			$member2_mail = $h['member2_email'];
+			$paid_through = $h['paid_through'];
+			$since        = $h['member_since'];
+			$cars         = $h['cars'];
+
+			$paid_through_date = $h['paid_through']
+				? DateTimeImmutable::createFromFormat( 'Y-m-d', $h['paid_through'], wp_timezone() )
+				: null;
+			$status = fcmc_status_for( $paid_through_date ?: null );
+		}
+
+		if ( ! empty( $filters['status'] ) && $filters['status'] !== $status ) {
+			continue;
+		}
+		if ( ! empty( $filters['joined_since'] ) ) {
+			// No join date means we cannot claim they joined after the cutoff.
+			if ( ! $since || $since < $filters['joined_since'] ) {
+				continue;
+			}
+		}
+
+		$rows[] = array(
+			'user'         => $row_user,
+			'primary'      => $primary,
+			'email'        => $email,
+			'member2'      => $member2,
+			'member2_mail' => $member2_mail,
+			'status'       => $status,
+			'paid_through' => $paid_through,
+			'since'        => $since,
+			'cars'         => $cars,
+			'household_id' => $household_id,
+			'claimed'      => null !== $row_user,
+		);
+	}
+
+	// Second pass: WP users with no household of their own — an account that
+	// pre-dates the import, or that registered without a matching household email.
 	foreach ( get_users( array( 'orderby' => 'display_name' ) ) as $user ) {
+		if ( get_user_meta( $user->ID, 'fcmc_household_id', true ) ) {
+			continue;
+		}
+		if ( in_array( $user->ID, $linked_user_ids, true ) ) {
+			continue;
+		}
+
 		$status = function_exists( 'fcmc_get_status' ) ? fcmc_get_status( $user->ID ) : 'none';
 
 		if ( ! empty( $filters['status'] ) && $filters['status'] !== $status ) {
@@ -153,7 +235,6 @@ function fcmc_roster_rows( $filters = array() ) {
 
 		$since = get_user_meta( $user->ID, 'fcmc_member_since', true );
 		if ( ! empty( $filters['joined_since'] ) ) {
-			// No join date means we cannot claim they joined after the cutoff.
 			if ( ! $since || $since < $filters['joined_since'] ) {
 				continue;
 			}
@@ -172,6 +253,8 @@ function fcmc_roster_rows( $filters = array() ) {
 			'paid_through' => get_user_meta( $user->ID, 'fcmc_paid_through', true ),
 			'since'        => $since,
 			'cars'         => $cars,
+			'household_id' => null,
+			'claimed'      => true,
 		);
 	}
 
