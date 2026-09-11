@@ -202,23 +202,38 @@ site. Staging is a clone sharing production's token, so disconnecting on staging
 production**. Switching `Environment` to Sandbox is the safe operation — it uses sandbox credentials
 *instead of* the stored production token without revoking it.
 
-### State — **verified 2026-07-30 by direct `wc_square_settings` read on both sites**
+### State — **production re-verified 2026-09-11; staging column still as of 2026-07-30**
 | | production | staging |
 |---|---|---|
 | `enable_sandbox` | `no` | **`yes`** |
 | `sandbox_application_id` | *(empty — deliberate, see below)* | `sandbox-sq0idb-D9tOd3hNREjp6QFaAHIlFQ` |
 | `sandbox_location_id` | *(empty)* | `L4KK3G9JY6RDY` |
 | `production_location_id` | **`LS4SZ98SBX4F6`** (CornerCAD) ✅ | `LV94H6Q7QPB42` ⚠️ stale |
-| `system_of_record` | `disabled` | `disabled` |
-| inventory / fulfillment sync | `no` / `no` | `no` / `no` |
+| `system_of_record` | **`square`** (live since ~2026-09) | `disabled` |
+| inventory / fulfillment sync | **`yes`** / `no` | `no` / `no` |
+| `sync_interval` | **`24`** (hours) | — |
+| `override_product_images` | `yes` | — |
 
 The split is in place and confirmed against the database, not just the admin UI. The live token was
 **not** revoked — `production_location_id` survives on both sites and production's sandbox fields are
 empty, so live checkout is untouched.
 
-Sync remains **off on both** — enable it on **staging only**, and only after products exist to test
-with. Minor known drift: `enable_customer_decline_messages` is `yes` on staging, `no` on production.
-Harmless.
+⚠️ Staging's row has **not** been re-read since 2026-07-30 — the `cornercad-staging` MCP endpoint is
+returning **HTTP 401 `rest_forbidden`** as of 2026-09-11, so its bearer token needs re-minting before
+that column can be trusted again.
+
+🚨 **2026-09-11 — production's sandbox fields had been repopulated, and were stripped.** A read found
+`sandbox_application_id`, `sandbox_location_id` and a 64-char `sandbox_token` present on **production**,
+holding **staging's exact values**; `enable_customer_decline_messages` had also flipped `no` → `yes` to
+match staging. Inference from those three staging-shaped values: the whole `wc_square_settings` array
+was overwritten from staging by a sync or restore, exactly as the standing caution predicts — it just
+went in the **reverse** direction from the one that was being watched for. Bradley had already corrected
+`enable_sandbox` back to `no`; the three credential keys were then removed (15 keys → 12) and
+`sync_interval` set to `24`. Backup of the prior array, **token excluded**, at
+`~/wc_square_settings.backup-20260911-212808.json` on the server.
+
+**Re-check production's `sandbox_*` fields after every clone, restore or sync**, not just staging's
+`enable_sandbox`. The fail-safe below is only a fail-safe while those fields are empty.
 
 **Update 2026-08-02 — products now exist, so sync is being set up.** With the Square catalog built,
 the intended production config (reviewed, not yet saved as of this writing) is: **Environment =
@@ -230,6 +245,18 @@ missing products off, Sync interval 24h, Order fulfillment sync on, Square disco
 below) by seeding the sandbox catalog with **10–20 items, one or two per Square category** (the
 sandbox catalog limit is small), verify the flow, *then* enable on production and run "Import all
 Products from Square." After import, verify the count is ~168 with **zero `UCL-` items**.
+
+**Status 2026-09-11 — that config is now SAVED AND LIVE on production.** `system_of_record = square`,
+inventory sync on, images overridden, 24h interval (it was found at `2` and set back to `24`). Order
+fulfillment sync and Square discount codes are **off**, which differs from the plan above. Square now
+overwrites Woo every 24 hours, so the variable-product stock bug's guard matters on every run — WPCode
+snippet **4796** ("Square: keep untracked variations in stock") is `publish` with
+`_wpcode_auto_insert = 1`, confirmed 2026-09-11.
+
+⚠️ **Configuration is not authentication.** `production_location_id` being set proves only that the
+option is filled in. The token storage key is unknown on this install (see Standing cautions), so the
+live OAuth connection can only be confirmed by the admin screen reading "connected" or by one real
+sync/transaction.
 
 ⚠️ **Two things the Woo↔Square sync will NOT bring over:**
 - **Modifiers.** The filament pickers (Filament Type, Filament Color, Top/Base Color) are Square
