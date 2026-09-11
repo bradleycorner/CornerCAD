@@ -181,3 +181,191 @@ function fcmc_maybe_claim_household( $user_id ) {
 }
 add_action( 'user_register', 'fcmc_maybe_claim_household', 20 );
 add_action( 'woocommerce_created_customer', 'fcmc_maybe_claim_household', 20 );
+
+/* -------------------------------------------------------------------------
+ * Officer edit screen — correct a household's membership date by hand
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Contact + membership fields exposed for hand-editing in wp-admin, and how each
+ * one must be sanitised. Dates use the strict Y-m-d validator below; anything that
+ * doesn't round-trip is rejected outright rather than stored as garbage — mirrors
+ * the importer's $validate_ymd in fcmc-import-roster.php.
+ *
+ * @return array<string,string> field key => sanitiser kind: 'date' | 'email' | 'text'
+ */
+function fcmc_household_editable_fields() {
+	return array(
+		'paid_through'  => 'date',
+		'member_since'  => 'date',
+		'member1_name'  => 'text',
+		'member1_phone' => 'text',
+		'member1_email' => 'email',
+		'member2_name'  => 'text',
+		'member2_phone' => 'text',
+		'member2_email' => 'email',
+		'address'       => 'text',
+		'city'          => 'text',
+		'state'         => 'text',
+		'zip'           => 'text',
+	);
+}
+
+/**
+ * Accept a date only if it round-trips through Y-m-d exactly — the same rule the
+ * importer uses (fcmc-import-roster.php), so a hand-entry is held to the same
+ * standard as the original CSV rather than trusting the browser's date input.
+ *
+ * @param string $raw Raw input.
+ * @return string|null Canonical Y-m-d, or null if unusable.
+ */
+function fcmc_validate_ymd( $raw ) {
+	$s = substr( trim( (string) $raw ), 0, 10 );
+	$d = DateTimeImmutable::createFromFormat( 'Y-m-d', $s );
+	if ( ! ( $d instanceof DateTimeImmutable ) || $d->format( 'Y-m-d' ) !== $s ) {
+		return null;
+	}
+	return $s;
+}
+
+add_action(
+	'add_meta_boxes',
+	function () {
+		add_meta_box(
+			'fcmc_household_membership',
+			__( 'Membership details', 'fcmc' ),
+			'fcmc_render_household_meta_box',
+			'fcmc_household',
+			'normal',
+			'high'
+		);
+	}
+);
+
+/**
+ * The membership/contact fields meta box on the household edit screen.
+ *
+ * Gated on fcmc_manage_members independently of whatever capability got the
+ * officer onto this screen — this is the box that touches the money-adjacent
+ * paid_through field, so it checks for itself rather than trusting the screen.
+ * Every value is member-supplied free text from a web form; escape on the way out
+ * even though it is also sanitised on the way in.
+ *
+ * @param WP_Post $post Current post.
+ */
+function fcmc_render_household_meta_box( $post ) {
+	if ( ! current_user_can( 'fcmc_manage_members' ) ) {
+		echo '<p>' . esc_html__( 'You do not have permission to edit membership details.', 'fcmc' ) . '</p>';
+		return;
+	}
+
+	$h = fcmc_household_get( $post->ID );
+	wp_nonce_field( 'fcmc_household_save_' . $post->ID, 'fcmc_household_nonce' );
+
+	$labels = array(
+		'paid_through'  => __( 'Paid through', 'fcmc' ),
+		'member_since'  => __( 'Member since', 'fcmc' ),
+		'member1_name'  => __( 'Member 1 name', 'fcmc' ),
+		'member1_phone' => __( 'Member 1 phone', 'fcmc' ),
+		'member1_email' => __( 'Member 1 email', 'fcmc' ),
+		'member2_name'  => __( 'Member 2 name', 'fcmc' ),
+		'member2_phone' => __( 'Member 2 phone', 'fcmc' ),
+		'member2_email' => __( 'Member 2 email', 'fcmc' ),
+		'address'       => __( 'Address', 'fcmc' ),
+		'city'          => __( 'City', 'fcmc' ),
+		'state'         => __( 'State', 'fcmc' ),
+		'zip'           => __( 'ZIP', 'fcmc' ),
+	);
+	?>
+	<table class="form-table">
+		<?php foreach ( fcmc_household_editable_fields() as $key => $kind ) : ?>
+			<tr>
+				<th scope="row">
+					<label for="fcmc_<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $labels[ $key ] ); ?></label>
+				</th>
+				<td>
+					<input
+						type="<?php echo 'date' === $kind ? 'date' : ( 'email' === $kind ? 'email' : 'text' ); ?>"
+						id="fcmc_<?php echo esc_attr( $key ); ?>"
+						name="fcmc_<?php echo esc_attr( $key ); ?>"
+						value="<?php echo esc_attr( $h[ $key ] ); ?>"
+						class="regular-text"
+					/>
+				</td>
+			</tr>
+		<?php endforeach; ?>
+	</table>
+	<?php if ( $h['claimed_by'] ) : ?>
+		<p><em><?php esc_html_e( 'This household is claimed by a user account. Saving "Paid through" here sets that account\'s baseline date and recomputes its status immediately.', 'fcmc' ); ?></em></p>
+	<?php endif; ?>
+	<?php
+}
+
+/**
+ * Save the meta box.
+ *
+ * Verifies the nonce AND re-checks the capability here, independently of
+ * whatever gate got the request this far — never trust the screen alone.
+ *
+ * @param int     $post_id Post ID.
+ * @param WP_Post $post    Post object.
+ */
+function fcmc_save_household_meta_box( $post_id, $post ) {
+	if ( ! $post || 'fcmc_household' !== $post->post_type ) {
+		return;
+	}
+	if ( ! isset( $_POST['fcmc_household_nonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['fcmc_household_nonce'] ) ), 'fcmc_household_save_' . $post_id )
+	) {
+		return;
+	}
+	if ( ! current_user_can( 'fcmc_manage_members' ) ) {
+		return;
+	}
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+		return;
+	}
+
+	foreach ( fcmc_household_editable_fields() as $key => $kind ) {
+		$field = 'fcmc_' . $key;
+		if ( ! isset( $_POST[ $field ] ) ) {
+			continue;
+		}
+		$raw = wp_unslash( $_POST[ $field ] );
+
+		if ( 'date' === $kind ) {
+			$trimmed = trim( (string) $raw );
+			if ( '' === $trimmed ) {
+				update_post_meta( $post_id, $key, '' );
+				continue;
+			}
+			$clean = fcmc_validate_ymd( $trimmed );
+			if ( null === $clean ) {
+				// Reject rather than store garbage — leave the existing value alone.
+				continue;
+			}
+			update_post_meta( $post_id, $key, $clean );
+		} elseif ( 'email' === $kind ) {
+			update_post_meta( $post_id, $key, sanitize_email( $raw ) );
+		} else {
+			update_post_meta( $post_id, $key, sanitize_text_field( $raw ) );
+		}
+	}
+
+	// If claimed, the officer's paid_through is the new BASELINE for the linked
+	// user — mirror it into fcmc_paid_through_manual (the floor). NEVER into
+	// fcmc_paid_through directly: that key is a derived cache, and a recompute
+	// with no WooCommerce orders behind it (every imported member) would wipe it
+	// right back out.
+	$claimed_by = get_post_meta( $post_id, 'claimed_by', true );
+	if ( $claimed_by ) {
+		$paid_through = get_post_meta( $post_id, 'paid_through', true );
+		if ( $paid_through ) {
+			update_user_meta( (int) $claimed_by, 'fcmc_paid_through_manual', $paid_through );
+		}
+		if ( function_exists( 'fcmc_recompute_member' ) ) {
+			fcmc_recompute_member( (int) $claimed_by );
+		}
+	}
+}
+add_action( 'save_post_fcmc_household', 'fcmc_save_household_meta_box', 10, 2 );
