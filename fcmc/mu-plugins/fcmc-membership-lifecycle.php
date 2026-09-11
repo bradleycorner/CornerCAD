@@ -148,6 +148,26 @@ function fcmc_get_paid_through( $user_id ) {
 }
 
 /**
+ * The baseline paid-through date for a user: a membership asserted without a
+ * WooCommerce order behind it — set by the roster import, or by an officer
+ * correcting a record by hand. Treated as a FLOOR, never a cache: orders can
+ * extend it, nothing erases it. See the roster-import design, §5 and §5a.
+ *
+ * @param int $user_id User ID.
+ * @return DateTimeImmutable|null
+ */
+function fcmc_get_baseline_paid_through( $user_id ) {
+	$raw = get_user_meta( $user_id, 'fcmc_paid_through_manual', true );
+	if ( ! $raw ) {
+		return null;
+	}
+
+	$date = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $raw . ' 00:00:00', wp_timezone() );
+
+	return $date ?: null;
+}
+
+/**
  * Cached status for a user. Recomputed nightly; safe to read on every row.
  *
  * @param int $user_id User ID.
@@ -211,9 +231,23 @@ function fcmc_member_paid_orders( $user_id ) {
  * @return array{paid_through:?string,status:string,member_since:?string} What was written.
  */
 function fcmc_recompute_member( $user_id ) {
-	$orders = fcmc_member_paid_orders( $user_id );
+	$orders   = fcmc_member_paid_orders( $user_id );
+	$baseline = fcmc_get_baseline_paid_through( $user_id );
 
-	if ( empty( $orders ) ) {
+	$from_orders = null;
+	$first_paid  = null;
+	if ( ! empty( $orders ) ) {
+		$from_orders = fcmc_paid_through( end( $orders )->get_date_created() );
+		$first_paid  = $orders[0]->get_date_created()->format( 'Y-m-d' );
+	}
+
+	// The floor rule: an order can extend the baseline, never erase it.
+	$effective = $from_orders;
+	if ( $baseline && ( ! $effective || $baseline > $effective ) ) {
+		$effective = $baseline;
+	}
+
+	if ( ! $effective ) {
 		delete_user_meta( $user_id, 'fcmc_paid_through' );
 		update_user_meta( $user_id, 'fcmc_status', 'none' );
 
@@ -224,28 +258,22 @@ function fcmc_recompute_member( $user_id ) {
 		);
 	}
 
-	$first = $orders[0]->get_date_created();
-	$last  = end( $orders )->get_date_created();
-
-	$paid_through = fcmc_paid_through( $last );
-	$status       = fcmc_status_for( $paid_through );
-
-	update_user_meta( $user_id, 'fcmc_paid_through', $paid_through->format( 'Y-m-d' ) );
+	$status = fcmc_status_for( $effective );
+	update_user_meta( $user_id, 'fcmc_paid_through', $effective->format( 'Y-m-d' ) );
 	update_user_meta( $user_id, 'fcmc_status', $status );
 
 	// member_since is the first payment ever and must never move backwards on
 	// recompute — an officer may have set it by hand when importing the old roster.
 	$existing_since = get_user_meta( $user_id, 'fcmc_member_since', true );
-	$first_paid     = $first->format( 'Y-m-d' );
-	if ( ! $existing_since || $first_paid < $existing_since ) {
+	if ( $first_paid && ( ! $existing_since || $first_paid < $existing_since ) ) {
 		update_user_meta( $user_id, 'fcmc_member_since', $first_paid );
 		$existing_since = $first_paid;
 	}
 
 	return array(
-		'paid_through' => $paid_through->format( 'Y-m-d' ),
+		'paid_through' => $effective->format( 'Y-m-d' ),
 		'status'       => $status,
-		'member_since' => $existing_since,
+		'member_since' => $existing_since ?: null,
 	);
 }
 
