@@ -71,7 +71,15 @@ running server.
 - **Mixed cases:** create the product via `woocommerce`, then use `cornercad-com` for anything Woo's
   REST shape doesn't expose (arbitrary meta, featured-image wiring, block content on the product page).
 
-## 0.5 AI Engine **Pro** — 93 tools (staging 2026-07-27; **production too, as of 2026-07-30**)
+## 0.5 AI Engine **Pro** — 94 tools (staging 2026-07-27; **production too, as of 2026-07-30**)
+
+> **Count corrected 2026-09-11.** A direct `tools/list` handshake against all three Pro endpoints
+> (`fcmc-dev`, `cornercad-com`, `uclc`) returns **94**, not 93: 42 Core + 25 WooCommerce +
+> **14 Plugins** + 13 Themes. The plugin group has 14 members —
+> `wp_activate_plugin`, `wp_deactivate_plugin`, `wp_delete_plugin`, `wp_rename_plugin`,
+> `wp_copy_plugin`, `wp_create_plugin`, `wp_list_plugins`, `wp_list_plugins_detailed`, plus the six
+> `wp_plugin_*` file tools. The older "13 Plugins" figure was an undercount; the live server is
+> authoritative. The `93` figures left below are historical.
 
 AI Engine Pro 3.6.2 is now installed on **both** staging and production — `wp_list_plugins` on
 production reports "AI Engine (Pro) 3.6.2" (verified 2026-07-30). The earlier note that production
@@ -79,8 +87,8 @@ still ran the free plugin is **obsolete**.
 
 | Server | Tools registered on the site | Tools a session sees |
 |---|---|---|
-| `cornercad-staging` | **93** — 42 Core + 25 WooCommerce + 13 Plugins + 13 Themes | 93 |
-| `cornercad-com` (production) | **93** (Pro installed) | **93** ✅ |
+| `cornercad-staging` | **94** — 42 Core + 25 WooCommerce + 14 Plugins + 13 Themes | 94 |
+| `cornercad-com` (production) | **94** (Pro installed) | **94** ✅ |
 
 ✅ **Resolved 2026-07-30 (post-restart).** Production now serves the full Pro set. Verified live, not
 just by schema load: `mcp_ping` → `cornercad.com` @ 05:38 GMT, and `wc_list_products {status: any}`
@@ -116,7 +124,7 @@ This supersedes the raw `wp_create_post` + `wp_update_post_meta` product path in
 supersedes the separate `woocommerce` proxy server's 9 tools. `wc_create_product` takes attributes,
 variations and pricing in one call.
 
-### Plugins (13) and Themes (13)
+### Plugins (14) and Themes (13)
 Lifecycle works: `wp_list_plugins_detailed`, `wp_list_themes`, `wp_activate_plugin`,
 `wp_deactivate_plugin`, `wp_switch_theme`, `wp_delete_plugin`, `wp_rename_theme`, etc.
 
@@ -127,6 +135,29 @@ Tested: `wp_theme_list_dir {slug: "sellany"}` → **`Dir not found`**. The `wp_t
 `wp_plugin_*` file tools (`get_file`, `put_file`, `alter_file`, `mkdir`, `delete_path`, `list_dir`)
 address only themes/plugins that AI Engine itself created. Their descriptions say "of an AI Engine
 theme" — read that literally.
+
+✅ **CORRECTION 2026-09-11 — there IS an opt-in, and this doc previously missed it.** The refusal
+message (surfaced by calling `wp_plugin_list_dir {slug: "social-engine"}` on fcmc-dev) spells it out:
+
+> *"The plugin "social-engine" is not managed by AI Engine, so its files cannot be listed, read or
+> written over MCP. Only plugins created through AI Engine can be, which is a deliberate safety
+> boundary. To opt this one in, create an empty mwai.log file at the root of its folder
+> (wp-content/plugins/social-engine/mwai.log). AI Engine treats that file as the marker and will
+> append a record of its own edits to it."*
+
+`wp_list_plugins_detailed`'s own schema says the same. So "AI Engine themes/plugins only" is a
+**default, not a hard limit** — an admin opts a plugin in with one empty marker file.
+
+⚠️ **Recommended: do NOT use this for hand-written PHP.** We have a logged incident of MCP
+Markdown-mangling PHP — `<p>` tags and HTML entities injected into WPCode snippet 4796, **reported
+as success**. Routing PHP through a write path that converts Markdown is the exact failure already
+paid for. Use SSH for PHP files. (See the `mcp-create-post-mangles-php` memory.)
+
+🚫 **mu-plugins are invisible to MCP entirely, and the marker does not apply.** `mwai.log` is a
+`wp-content/plugins/<slug>/` mechanism; `mu-plugins` are loaded as bare files with no slug folder.
+Verified on fcmc-dev 2026-09-11: `wp_list_plugins_detailed` returned 18 plugins and listed **none**
+of the 7 custom mu-plugins (~125 KB) that implement the FCMC membership system. Anything touching
+those is SSH-only.
 
 | Tool group | Operates on |
 |---|---|
@@ -143,10 +174,82 @@ and 9 themes is consistent with this, but is not the mechanism — do not cite i
 
 SSH remains the right tool for arbitrary file work; Bradley has it.
 
+### 🐛 `wp_count_media` is BROKEN — do not trust it (confirmed on two sites)
+It returns **`5`** regardless of the real attachment count:
+
+| Site | `wp_count_media` | Actual (`SELECT COUNT(*) ... WHERE post_type='attachment'`) |
+|---|---|---|
+| cornercad.com | 5 | **346** |
+| fcmc-dev | 5 | **70** |
+
+The identical `5` on two sites with wildly different media libraries means it is not an off-by-some
+— it looks like it counts a default page rather than the table. **Always verify a media count
+against the database.** This is the clearest instance of the broader pattern: these tools sometimes
+return plausible-but-wrong values without erroring (see also `show_on_front` needing `raw: true`,
+and `wp_create_post` mangling PHP while reporting success).
+
+### Database module — `wp_db_query` (fcmc-dev ONLY, enabled 2026-09-11)
+
+AI Engine Pro ships an optional **Database** MCP module (Settings → MCP → Database, "Execute SQL
+queries on the WordPress database"). Enabled on **fcmc-dev only**; `cornercad-com` and `uclc` remain
+at 94 tools deliberately — they handle real money.
+
+| Endpoint | Tools |
+|---|---|
+| `fcmc-dev` | **95** (Database on) |
+| `cornercad-com` | 94 |
+| `uclc` | 94 |
+
+It registers exactly **one** tool, `wp_db_query`, implemented in
+`ai-engine-pro/premium/mcp-database.php` (124 lines). Read before enabling, not assumed:
+
+- **Read-only by default.** `SELECT / SHOW / DESCRIBE / DESC / EXPLAIN / WITH` run freely.
+- **All other SQL is blocked** — DML *and* DDL — unless `confirm_write: true` is passed. It throws
+  rather than silently no-op'ing, and the source says why: *"Silently no-op'ing writes is the worst
+  outcome (the caller assumes success and the data is unchanged), so be loud."* Same fail-loudly
+  principle as keeping production's Square sandbox fields empty.
+- It strips a leading SQL comment before classifying, so `/* x */ UPDATE ...` is still a write.
+- Annotations: `readOnlyHint: false`, `destructiveHint: true`, `accessLevel: admin`.
+- **fcmc-dev's table prefix is `fcmc_`** — not cornercad's `awF_`.
+
+⚠️ **Two soft spots in the gate** — know them, don't lean on the gate alone:
+1. `WITH` is classified as read, but MySQL 8 allows `WITH cte AS (...) UPDATE ...`. A CTE-led write
+   bypasses `confirm_write`.
+2. The handler **escalates rather than denies**:
+   `if ( !current_user_can( 'administrator' ) ) { wp_set_current_user( 1 ); }`
+   Benign given bearer-token auth already implies site owner, but it is not a check.
+
+**Gated before first use** (the §0.5 lesson applied rather than repeated):
+`mcp__fcmc-dev__wp_db_query` was added to `permissions.ask` *before* the restart that made the tool
+visible. Rules now total **118**.
+
+**Use it for verification, not mutation.** Its value is ground-truthing MCP reads that silently lie
+(`wp_count_media` above). For post/meta changes use the typed tools, which validate input and bust
+caches — the module's own description says so.
+
+**It does not replace SSH.** SQL cannot touch mu-plugins or plugin/theme PHP, which is where FCMC
+work actually lives.
+
 ### Standing rule
-Prefer typed tools. **Treat direct database/SQL access as a last resort** — it bypasses draft →
-verify → publish, post revisions, and the git-mirrored block markup in `content/blocks/`, on a live
-store. Same principle as global `CLAUDE.md` rule #7 (typed FreeCAD tools before `execute_python`).
+Prefer typed tools. **Treat direct database/SQL access as a last resort for WRITES** — raw SQL
+bypasses draft → verify → publish, post revisions, and the git-mirrored block markup in
+`content/blocks/`, on a live store. Same principle as global `CLAUDE.md` rule #7 (typed FreeCAD
+tools before `execute_python`).
+
+*Read-only* SQL via `wp_db_query` is the exception and is **encouraged** as a verification channel,
+given how often these tools return plausible-but-wrong values. Two disciplines apply, because the
+2026-07-28 account-wide outage was caused by request/process volume on the shared CloudLinux cage
+and this module makes issuing queries frictionless:
+- **Batch.** Fold multiple checks into one statement (`UNION ALL`) rather than looping.
+- **Always bound.** Use `LIMIT`; never `SELECT *` on `*_posts` / `*_postmeta` — it also dumps
+  enormous payloads into context.
+
+### SSH connection reuse (fixed 2026-09-11)
+`~/.ssh/config` for `Host cornerfa` now sets `ControlMaster auto` / `ControlPath ~/.ssh/cm-%r@%h:%p`
+/ `ControlPersist 10m`, after Bluehost rate-limited short-lived connections to "Connection refused"
+(~50 sites share this UID in one cage). Every `ssh cornerfa` now rides one authenticated channel —
+verified with `ssh -O check cornerfa` → `Master running`. Note `ControlPersist 10m` closes the
+master after 10 min idle; an occasional reconnect is normal, not the rate limit returning.
 
 ## 1. Tool inventory — free tier (43 tools, recorded 2026-07-25)
 
