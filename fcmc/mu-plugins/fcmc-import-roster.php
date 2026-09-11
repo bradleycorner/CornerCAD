@@ -68,22 +68,53 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 		$pay[ $e ]['last']  = max( $pay[ $e ]['last'], $d );
 	}
 
-	$created   = $updated = $merged = 0;
-	$conflicts = 0;
+	$created     = $updated = $merged = 0;
+	$conflicts   = 0;
+	$backfilled  = 0;
 	$noFormEmail = 0;
 	$rowErrors   = 0;
 	$seen        = array();
 
+	// Households with no import_values snapshot get backfilled at most once per run, even
+	// if a merge touches the same post twice, so a --dry-run (which never writes the
+	// backfilled snapshot back to the DB) can't double-count the same household.
+	$backfilled_ids = array();
+
 	// Compares a household's CURRENT stored values against `import_values` — the snapshot
 	// of what THIS importer last wrote — so a field an officer has hand-edited since (e.g.
 	// correcting a merged household's car description, which the design doc expects) is
-	// never silently clobbered by a re-run. A field with no recorded baseline (a household
-	// from before this snapshot existed) is treated as untouched, since there's no evidence
-	// either way. Used by both the dry-run prediction and the real write, so what --dry-run
-	// reports is exactly what a real run will do.
-	$classify_fields = function ( $id, $data ) {
+	// never silently clobbered by a re-run.
+	//
+	// A household with NO recorded baseline (every one of the 42 live records predates this
+	// snapshot, though they were all demonstrably written by this importer — they carry
+	// fcmc_source/import_batch) is backfilled HERE, in the same pass, before any comparison:
+	// the baseline is set to THIS run's freshly computed incoming values, never to whatever
+	// happens to be currently stored. That distinction matters — backfilling from "current"
+	// verbatim would always trivially equal "current" and could never detect a conflict on
+	// this very first run, which would mean the 42 existing households stay unprotected for
+	// one more run (exactly the gap this fix exists to close). Backfilling from the incoming
+	// values instead means: a field that already matches the incoming value is indistinguishable
+	// either way (safe, overwritten as before); a field that does NOT match is flagged as a
+	// conflict immediately and the presumed-correct incoming value is what's pinned as the
+	// baseline going forward, so the conflict keeps being reported on every future run for as
+	// long as the officer's value differs from the CSV, rather than silently resolving itself
+	// one run later. (Trade-off: on this one bootstrap run only, a field that legitimately
+	// changed in the source data since the original import — not hand-edited by anyone — would
+	// also read as a "conflict" and be left alone rather than updated. That is a conservative
+	// false positive surfaced to a human, not a silent wrong overwrite, which is the right side
+	// to err on for a household nobody has looked at since the day it was created.)
+	//
+	// Used by both the dry-run prediction and the real write, so what --dry-run reports is
+	// exactly what a real run will do.
+	$classify_fields = function ( $id, $data ) use ( &$backfilled, &$backfilled_ids ) {
 		$prev = get_post_meta( $id, 'import_values', true );
-		$prev = is_array( $prev ) ? $prev : array();
+		if ( ! is_array( $prev ) ) {
+			$prev = $data;
+			if ( ! isset( $backfilled_ids[ $id ] ) ) {
+				$backfilled_ids[ $id ] = true;
+				$backfilled++;
+			}
+		}
 
 		$clean      = array();
 		$conflicted = array();
@@ -123,7 +154,9 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 			return;
 		}
 
-		if ( isset( $seen[ $key_email ] ) ) {
+		$merged_this_call = isset( $seen[ $key_email ] );
+
+		if ( $merged_this_call ) {
 			$merged++;
 			$first_row = $seen[ $key_email ]['row'];
 			if ( $first_row && $row ) {
@@ -131,7 +164,16 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 			} else {
 				WP_CLI::warning( 'Merged duplicate row for a household (email repeated across rows).' );
 			}
-			$id = $seen[ $key_email ]['id'];
+			// Reuse the FIRST occurrence's post ID and whether it's a REAL, already-existing
+			// database post — never inferred from the type of $id. In a dry run, a
+			// household not yet in the database gets a truthy non-integer placeholder for
+			// $id; is_int() on that placeholder reads as "new" even on the household's
+			// SECOND (merge) occurrence within the same run, undercounting it as created++
+			// again instead of updated++ — a real run's second occurrence always finds the
+			// post the first occurrence just inserted, so a dry run must count it the same
+			// way to agree with what the real run will actually produce.
+			$id      = $seen[ $key_email ]['id'];
+			$real_id = $seen[ $key_email ]['real'];
 		} else {
 			// Matches on EITHER stored member1_email OR member2_email, normalised — never
 			// member1_email alone. The upsert key is `$e1 ?: $e2` (a household with a blank
@@ -152,26 +194,37 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 					break;
 				}
 			}
+			$real_id = ( null !== $id );
 		}
 
-		$is_existing = is_int( $id );
-
 		if ( $dry ) {
-			if ( $is_existing ) {
+			// Counting is deliberately separate from whether $id is a REAL post:
+			// - a merge (this key already resolved once this run) always counts as an
+			//   update, whether or not that first resolution was itself a real database
+			//   post yet — exactly what the real run's second occurrence would see, since
+			//   by then the first occurrence has already inserted it.
+			// - the conflict check, however, only ever runs against a genuine post ID:
+			//   there is nothing in the database yet to compare a same-run placeholder
+			//   against, and calling get_post_meta() on the placeholder value would silently
+			//   read whichever unrelated post happens to have that coerced integer ID.
+			$count_as_update = $merged_this_call || $real_id;
+			if ( $count_as_update ) {
 				$updated++;
-				$c = $classify_fields( $id, $data );
-				foreach ( $c['conflicted'] as $k ) {
-					$conflicts++;
-					WP_CLI::warning( sprintf( '[DRY RUN] Conflict: field %s on household #%d differs from the import; would be left as-is.', $k, $id ) );
+				if ( $real_id ) {
+					$c = $classify_fields( $id, $data );
+					foreach ( $c['conflicted'] as $k ) {
+						$conflicts++;
+						WP_CLI::warning( sprintf( '[DRY RUN] Conflict: field %s on household #%d differs from the import; would be left as-is.', $k, $id ) );
+					}
 				}
 			} else {
 				$created++;
 			}
-			$seen[ $key_email ] = array( 'id' => $id ?: true, 'row' => $row );
+			$seen[ $key_email ] = array( 'id' => $id ?: true, 'row' => $row, 'real' => $real_id );
 			return;
 		}
 
-		if ( ! $is_existing ) {
+		if ( ! $real_id ) {
 			// post_author is set explicitly (never left to default) so that WordPress's
 			// map_meta_cap() "current user is the post author" branch can never grant
 			// edit rights to a member record independently of the fcmc_household
@@ -208,7 +261,7 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 
 		update_post_meta( $id, 'fcmc_source', $source );
 		update_post_meta( $id, 'import_batch', $batch );
-		$seen[ $key_email ] = array( 'id' => $id, 'row' => $row );
+		$seen[ $key_email ] = array( 'id' => $id, 'row' => $row, 'real' => true );
 	};
 
 	// 1. Form-based households. $i + 2 = 1-based CSV row number counting the header as
@@ -287,6 +340,7 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 	// distinct households this run actually resolves to, in both dry and real runs alike.
 	$final = $created + $updated - $merged;
 	WP_CLI::log( sprintf( '%screated %d, updated %d, merged %d -> %d households after this run', $dry ? '[DRY RUN] ' : '', $created, $updated, $merged, $final ) );
+	WP_CLI::log( sprintf( 'baseline backfilled for %d household(s) with no prior snapshot', $backfilled ) );
 	WP_CLI::log( sprintf( 'conflicts (officer edits preserved, not overwritten): %d', $conflicts ) );
 	WP_CLI::log( sprintf( '%d form rows with no email address (cannot be imported, need a human pass)', $noFormEmail ) );
 	WP_CLI::log( sprintf( 'payments with no email (need a human pass against Square): %d', $noMail ) );
