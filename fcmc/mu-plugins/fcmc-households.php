@@ -272,17 +272,53 @@ function fcmc_household_start_verification( $household_id, $user_id ) {
 	update_user_meta( $user_id, 'fcmc_verify_token_hash', hash( 'sha256', $token ) );
 	update_user_meta( $user_id, 'fcmc_verify_expires', $expires );
 
-	fcmc_send_household_verification_email( $user, $token );
+	fcmc_send_household_verification_email( $user, $token, $household_id );
 }
 
 /**
- * Send the confirmation email. Plain text, club-signed, no other member's
- * details anywhere in the body — only this registrant's own confirmation link.
+ * The name to greet the registrant with: whichever household member's email
+ * matches theirs. Returns '' (never null) when neither matches, or that
+ * member's name field is blank on file — callers must fall back to a
+ * generic greeting rather than ever rendering "Hi ,".
  *
- * @param WP_User $user  The registrant.
- * @param string  $token Plaintext token (never stored).
+ * @param int    $household_id Household post ID.
+ * @param string $email        Registrant's email (their WP user_email).
+ * @return string
  */
-function fcmc_send_household_verification_email( $user, $token ) {
+function fcmc_household_verification_greeting_name( $household_id, $email ) {
+	$email = fcmc_normalize_email( $email );
+	if ( '' === $email || ! $household_id ) {
+		return '';
+	}
+
+	$h = fcmc_household_get( $household_id );
+	if ( fcmc_normalize_email( $h['member1_email'] ) === $email ) {
+		return trim( (string) $h['member1_name'] );
+	}
+	if ( fcmc_normalize_email( $h['member2_email'] ) === $email ) {
+		return trim( (string) $h['member2_name'] );
+	}
+
+	return '';
+}
+
+/**
+ * Send the confirmation email. Written for a membership that skews older and
+ * less technically confident: plain language, a real button, and the same
+ * link ALSO printed as plain visible text for anyone who doesn't trust a
+ * button. No other member's details anywhere in the body — only this
+ * registrant's own confirmation link and (if it matches) their own name.
+ *
+ * Sent multipart (text/plain + text/html) via PHPMailer's own AltBody, set
+ * through a `phpmailer_init` hook that is added and removed around this one
+ * `wp_mail()` call only — never a global content-type filter, which would
+ * change every other WooCommerce email on the site.
+ *
+ * @param WP_User $user         The registrant.
+ * @param string  $token        Plaintext token (never stored).
+ * @param int     $household_id Matched household post ID (for the greeting name only).
+ */
+function fcmc_send_household_verification_email( $user, $token, $household_id ) {
 	$link = add_query_arg(
 		array(
 			'fcmc_verify' => '1',
@@ -292,17 +328,69 @@ function fcmc_send_household_verification_email( $user, $token ) {
 		home_url( '/' )
 	);
 
-	$subject = __( 'Confirm your email — First Coast Miata Club', 'fcmc' );
-	$message = sprintf(
-		/* translators: %s: verification link */
-		__(
-			"Hi,\n\nWe found a First Coast Miata Club membership on file that matches this email address. To link it to your new account, please confirm this email address:\n\n%s\n\nThis link expires in 30 days. If you did not create this account, you can safely ignore this message.\n\n— First Coast Miata Club",
-			'fcmc'
-		),
-		$link
+	$name          = fcmc_household_verification_greeting_name( $household_id, $user->user_email );
+	$greeting_text = '' !== $name ? sprintf( 'Hi %s,', $name ) : 'Hi there,';
+	$greeting_html = '' !== $name ? 'Hi ' . esc_html( $name ) . ',' : 'Hi there,';
+
+	$subject = __( 'Please confirm your email address — First Coast Miata Club', 'fcmc' );
+
+	$text_body = implode(
+		"\n",
+		array(
+			$greeting_text,
+			'',
+			__( "You just created an account on the First Coast Miata Club's new website. Welcome!", 'fcmc' ),
+			'',
+			__( 'We already have your membership on file. To connect it to your new account, click the link below.', 'fcmc' ),
+			'',
+			$link,
+			'',
+			__( "What happens next: you'll go straight to your membership page, where you'll see your details and the car we have listed for you.", 'fcmc' ),
+			'',
+			__( "Need a hand? Just reply to this email, or write to membership@firstcoastmiataclub.org and we'll sort it out for you.", 'fcmc' ),
+			'',
+			__( 'If you ignore this email, nothing is lost — a club officer can connect your membership for you at any time.', 'fcmc' ),
+			'',
+			__( "If you didn't sign up on our website, you can simply delete this message.", 'fcmc' ),
+			'',
+			__( '— First Coast Miata Club of Jacksonville', 'fcmc' ),
+		)
 	);
 
-	wp_mail( $user->user_email, $subject, $message );
+	$safe_link = esc_url( $link );
+
+	$html_body  = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f2f2f2;padding:24px 0;"><tr><td align="center">';
+	$html_body .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background-color:#ffffff;"><tr><td style="padding:32px 24px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#222222;">';
+	$html_body .= '<p style="margin:0 0 16px;">' . $greeting_html . '</p>';
+	$html_body .= '<p style="margin:0 0 16px;">' . esc_html__( "You just created an account on the First Coast Miata Club's new website. Welcome!", 'fcmc' ) . '</p>';
+	$html_body .= '<p style="margin:0 0 24px;">' . esc_html__( 'We already have your membership on file. To connect it to your new account, click the button below.', 'fcmc' ) . '</p>';
+	$html_body .= '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;"><tr><td align="center" bgcolor="#0F3D3E" style="background-color:#0F3D3E;border-radius:4px;">';
+	$html_body .= '<a href="' . $safe_link . '" style="display:inline-block;padding:16px 32px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;">' . esc_html__( 'Yes — this is my email address', 'fcmc' ) . '</a>';
+	$html_body .= '</td></tr></table>';
+	$html_body .= '<p style="margin:0 0 16px;">' . esc_html__( "What happens next: you'll go straight to your membership page, where you'll see your details and the car we have listed for you.", 'fcmc' ) . '</p>';
+	$html_body .= '<p style="margin:0 0 8px;">' . esc_html__( "If the button doesn't work, copy and paste this address into your web browser:", 'fcmc' ) . '</p>';
+	$html_body .= '<p style="margin:0 0 24px;word-break:break-all;font-size:15px;color:#0F3D3E;">' . $safe_link . '</p>';
+	$html_body .= '<p style="margin:0 0 16px;">' . sprintf(
+		/* translators: %s: support mailto link, already escaped HTML */
+		esc_html__( "Need a hand? Just reply to this email, or write to %s and we'll sort it out for you.", 'fcmc' ),
+		'<a href="mailto:membership@firstcoastmiataclub.org" style="color:#0F3D3E;">membership@firstcoastmiataclub.org</a>'
+	) . '</p>';
+	$html_body .= '<p style="margin:0 0 16px;">' . esc_html__( 'If you ignore this email, nothing is lost — a club officer can connect your membership for you at any time.', 'fcmc' ) . '</p>';
+	$html_body .= '<p style="margin:0 0 16px;">' . esc_html__( "If you didn't sign up on our website, you can simply delete this message.", 'fcmc' ) . '</p>';
+	$html_body .= '<p style="margin:24px 0 0;">' . esc_html__( '— First Coast Miata Club of Jacksonville', 'fcmc' ) . '</p>';
+	$html_body .= '</td></tr></table>';
+	$html_body .= '</td></tr></table>';
+
+	$set_alt_body = function ( $phpmailer ) use ( $text_body ) {
+		$phpmailer->AltBody = $text_body;
+	};
+
+	// Scoped to this one send only: added immediately before wp_mail(), removed
+	// immediately after. Never a global 'wp_mail_content_type' filter — that
+	// would make every other WooCommerce email on the site HTML too.
+	add_action( 'phpmailer_init', $set_alt_body );
+	wp_mail( $user->user_email, $subject, $html_body, array( 'Content-Type: text/html; charset=UTF-8' ) );
+	remove_action( 'phpmailer_init', $set_alt_body );
 }
 
 /**
