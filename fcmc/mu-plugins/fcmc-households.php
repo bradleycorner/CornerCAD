@@ -124,3 +124,60 @@ function fcmc_household_get( $id ) {
 
 	return $out;
 }
+
+/**
+ * Attach a user account to a household and adopt its membership facts.
+ *
+ * The imported date lands in fcmc_paid_through_manual — the BASELINE, not the
+ * effective date — so recompute treats it as a floor and can never wipe it.
+ *
+ * @param int $household_id Household post ID.
+ * @param int $user_id      User ID.
+ */
+function fcmc_household_claim( $household_id, $user_id ) {
+	$h = fcmc_household_get( $household_id );
+
+	update_post_meta( $household_id, 'claimed_by', (int) $user_id );
+	update_user_meta( $user_id, 'fcmc_household_id', (int) $household_id );
+
+	if ( $h['paid_through'] ) {
+		update_user_meta( $user_id, 'fcmc_paid_through_manual', $h['paid_through'] );
+	}
+	if ( $h['member_since'] ) {
+		update_user_meta( $user_id, 'fcmc_member_since', $h['member_since'] );
+	}
+	foreach ( array( 'member2_name', 'member2_phone', 'member2_email' ) as $key ) {
+		if ( $h[ $key ] ) {
+			update_user_meta( $user_id, 'fcmc_' . $key, $h[ $key ] );
+		}
+	}
+	if ( ! empty( $h['cars'] ) ) {
+		update_user_meta( $user_id, 'fcmc_car_profiles', $h['cars'] );
+	}
+
+	if ( function_exists( 'fcmc_recompute_member' ) ) {
+		fcmc_recompute_member( $user_id );
+	}
+}
+
+/**
+ * On registration, attach the new account to its household if the email matches.
+ * No match is not an error — an officer links it from the roster instead.
+ *
+ * @param int $user_id New user ID.
+ */
+function fcmc_maybe_claim_household( $user_id ) {
+	if ( get_user_meta( $user_id, 'fcmc_household_id', true ) ) {
+		return;
+	}
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return;
+	}
+	$household_id = fcmc_household_find_by_email( $user->user_email );
+	if ( $household_id ) {
+		fcmc_household_claim( $household_id, $user_id );
+	}
+}
+add_action( 'user_register', 'fcmc_maybe_claim_household', 20 );
+add_action( 'woocommerce_created_customer', 'fcmc_maybe_claim_household', 20 );
