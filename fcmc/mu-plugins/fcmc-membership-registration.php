@@ -317,13 +317,50 @@ add_shortcode( 'fcmc_membership_signup', function () {
 	}
 
 	$car_fields = fcmc_car_fields();
+
+	// Cars already on file. The signup list is seeded from these, and whatever the
+	// member submits replaces them — the list on this page IS what they're paying
+	// for, so removing a car here means not paying for it this year.
 	$saved_cars = get_user_meta( get_current_user_id(), 'fcmc_car_profiles', true );
-	$saved_cars = is_array( $saved_cars ) && ! empty( $saved_cars ) ? $saved_cars : array( array() );
+	$saved_cars = is_array( $saved_cars ) ? array_values( $saved_cars ) : array();
+
+	// Read the dues figure from the product rather than hard-coding it, so the page
+	// can't quietly disagree with what the cart will actually charge.
+	$product    = wc_get_product( FCMC_MEMBERSHIP_PRODUCT_ID );
+	$car_price  = $product ? (float) $product->get_price() : 0.0;
+
+	$is_renewal = ! empty( $saved_cars );
 
 	ob_start();
 	?>
 	<div id="fcmc-signup">
-		<p><?php esc_html_e( 'How many car-memberships are you paying for this year? Add a car for each $30 membership — most members have one.', 'fcmc' ); ?></p>
+		<?php if ( ! empty( $_GET['fcmc_error'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification ?>
+			<div class="woocommerce-error" role="alert">
+				<?php esc_html_e( 'Please fill in the required details for at least one car before continuing.', 'fcmc' ); ?>
+			</div>
+		<?php endif; ?>
+
+		<?php if ( $is_renewal ) : ?>
+			<p>
+				<?php
+				printf(
+					/* translators: %s: formatted price of one car-membership. */
+					esc_html__( 'These are the cars on your membership — %s each. Add a car to buy another membership, or remove one you are not renewing this year.', 'fcmc' ),
+					wp_kses_post( wc_price( $car_price ) )
+				);
+				?>
+			</p>
+		<?php else : ?>
+			<p>
+				<?php
+				printf(
+					/* translators: %s: formatted price of one car-membership. */
+					esc_html__( 'Add a car for each %s membership — most members have one.', 'fcmc' ),
+					wp_kses_post( wc_price( $car_price ) )
+				);
+				?>
+			</p>
+		<?php endif; ?>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="fcmc_add_memberships_to_cart" />
@@ -331,20 +368,35 @@ add_shortcode( 'fcmc_membership_signup', function () {
 
 			<div id="fcmc-car-list"></div>
 
+			<p id="fcmc-empty-note" hidden>
+				<em><?php esc_html_e( 'You have removed every car. Add at least one to continue.', 'fcmc' ); ?></em>
+			</p>
+
 			<p>
 				<button type="button" id="fcmc-add-car" class="button"><?php esc_html_e( '+ Add Another Car', 'fcmc' ); ?></button>
 			</p>
 
+			<p id="fcmc-total"><strong><?php esc_html_e( 'Total:', 'fcmc' ); ?></strong> <span id="fcmc-total-amount"></span></p>
+
 			<p>
-				<button type="submit" class="button alt"><?php esc_html_e( 'Add to Cart & Continue to Payment', 'fcmc' ); ?></button>
+				<button type="submit" id="fcmc-submit" class="button alt"><?php esc_html_e( 'Add to Cart', 'fcmc' ); ?></button>
 			</p>
 		</form>
 
 		<template id="fcmc-car-template">
 			<fieldset class="fcmc-car-block" style="border:1px solid #ccc;padding:1em;margin-bottom:1em;">
-				<legend><?php esc_html_e( 'Car', 'fcmc' ); ?> <span class="fcmc-car-number"></span>
+				<div class="fcmc-car-summary" hidden style="display:flex;flex-wrap:wrap;align-items:baseline;gap:.75em;">
+					<strong class="fcmc-summary-title"></strong>
+					<span class="fcmc-summary-detail" style="opacity:.75;"></span>
+					<span class="fcmc-summary-price" style="margin-left:auto;"></span>
+					<button type="button" class="fcmc-edit-car button"><?php esc_html_e( 'Edit', 'fcmc' ); ?></button>
+					<button type="button" class="fcmc-remove-car button"><?php esc_html_e( 'Remove', 'fcmc' ); ?></button>
+				</div>
+
+				<div class="fcmc-car-detail">
+				<p class="fcmc-car-heading"><strong><?php esc_html_e( 'Car', 'fcmc' ); ?> <span class="fcmc-car-number"></span></strong>
 					<button type="button" class="fcmc-remove-car" style="margin-left:1em;">&times; <?php esc_html_e( 'Remove', 'fcmc' ); ?></button>
-				</legend>
+				</p>
 				<?php foreach ( $car_fields as $key => $field ) : ?>
 					<p class="form-row form-row-wide">
 						<label><?php echo esc_html( $field['label'] ); ?><?php echo ! empty( $field['required'] ) ? ' <span class="required">*</span>' : ''; ?></label>
@@ -364,40 +416,116 @@ add_shortcode( 'fcmc_membership_signup', function () {
 						<?php endif; ?>
 					</p>
 				<?php endforeach; ?>
+				</div>
 			</fieldset>
 		</template>
 	</div>
 
 	<script>
 	(function(){
-		var list = document.getElementById('fcmc-car-list');
-		var tpl = document.getElementById('fcmc-car-template');
-		var maxCars = <?php echo (int) FCMC_MAX_CARS; ?>;
-		var count = 0;
+		var list      = document.getElementById('fcmc-car-list');
+		var tpl       = document.getElementById('fcmc-car-template');
+		var addBtn    = document.getElementById('fcmc-add-car');
+		var submitBtn = document.getElementById('fcmc-submit');
+		var emptyNote = document.getElementById('fcmc-empty-note');
+		var totalEl   = document.getElementById('fcmc-total-amount');
+		var maxCars   = <?php echo (int) FCMC_MAX_CARS; ?>;
+		var carPrice  = <?php echo wp_json_encode( $car_price ); ?>;
+		var savedCars = <?php echo wp_json_encode( $saved_cars ); ?>;
+		var currency  = <?php echo wp_json_encode( html_entity_decode( get_woocommerce_currency_symbol() ) ); ?>;
 
-		function addCar() {
-			if (count >= maxCars) { return; }
-			count++;
-			var frag = tpl.content.cloneNode(true);
-			var block = frag.querySelector('.fcmc-car-block');
-			block.innerHTML = block.innerHTML.split('__INDEX__').join(count - 1);
-			block.querySelector('.fcmc-car-number').textContent = count;
-			block.querySelector('.fcmc-remove-car').addEventListener('click', function(){
-				block.remove();
-				renumber();
-			});
-			list.appendChild(block);
+		// Monotonic — never reused, so removing a middle car can't collide two blocks
+		// onto the same cars[N] key. The PHP handler foreaches the array, so gaps are fine.
+		var nextIndex = 0;
+
+		function money(amount) {
+			return currency + amount.toFixed(2);
 		}
 
-		function renumber() {
+		function summarise(block) {
+			function val(name) {
+				var el = block.querySelector('[name$="[' + name + ']"]');
+				return el && el.value ? String(el.value).trim() : '';
+			}
+			var year = val('car_model_year');
+			var gen  = val('car_generation');
+			var name = val('car_name');
+			var title = [year, gen].filter(Boolean).join(' ');
+			if (name) { title += (title ? ' · ' : '') + '“' + name + '”'; }
+			if (!title) { title = <?php echo wp_json_encode( __( 'Car', 'fcmc' ) ); ?>; }
+
+			var detail = [val('car_color_body'), val('car_color_top')].filter(Boolean).join(' / ');
+			var pkg = val('car_package');
+			if (pkg) { detail = detail ? detail + ' · ' + pkg : pkg; }
+
+			block.querySelector('.fcmc-summary-title').textContent  = title;
+			block.querySelector('.fcmc-summary-detail').textContent = detail;
+			block.querySelector('.fcmc-summary-price').textContent  = money(carPrice);
+		}
+
+		function collapse(block) {
+			summarise(block);
+			block.querySelector('.fcmc-car-summary').hidden = false;
+			block.querySelector('.fcmc-car-detail').hidden  = true;
+		}
+
+		function expand(block) {
+			block.querySelector('.fcmc-car-summary').hidden = true;
+			block.querySelector('.fcmc-car-detail').hidden  = false;
+		}
+
+		function refresh() {
 			var blocks = list.querySelectorAll('.fcmc-car-block');
 			blocks.forEach(function(b, i){
 				b.querySelector('.fcmc-car-number').textContent = i + 1;
 			});
+			totalEl.textContent = money(blocks.length * carPrice);
+			submitBtn.disabled  = blocks.length === 0;
+			emptyNote.hidden    = blocks.length !== 0;
+			addBtn.disabled     = blocks.length >= maxCars;
 		}
 
-		document.getElementById('fcmc-add-car').addEventListener('click', addCar);
-		addCar(); // always start with one car block visible
+		function addCar(data) {
+			var blocks = list.querySelectorAll('.fcmc-car-block');
+			if (blocks.length >= maxCars) { return; }
+
+			var frag  = tpl.content.cloneNode(true);
+			var block = frag.querySelector('.fcmc-car-block');
+			block.innerHTML = block.innerHTML.split('__INDEX__').join(nextIndex);
+			nextIndex++;
+
+			// Populate before wiring, so the summary can read real values.
+			if (data) {
+				Object.keys(data).forEach(function(key){
+					var el = block.querySelector('[name$="[' + key + ']"]');
+					if (el) { el.value = data[key]; }
+				});
+			}
+
+			block.querySelectorAll('.fcmc-remove-car').forEach(function(btn){
+				btn.addEventListener('click', function(){
+					block.remove();
+					refresh();
+				});
+			});
+			block.querySelector('.fcmc-edit-car').addEventListener('click', function(){
+				expand(block);
+			});
+
+			list.appendChild(block);
+
+			// A saved car collapses to a summary; a brand-new one opens ready to type in.
+			if (data) { collapse(block); } else { expand(block); }
+			refresh();
+		}
+
+		addBtn.addEventListener('click', function(){ addCar(null); });
+
+		if (savedCars.length) {
+			savedCars.forEach(function(car){ addCar(car); });
+		} else {
+			addCar(null); // new member — one empty block, as before
+		}
 	})();
 	</script>
 	<?php
@@ -415,6 +543,15 @@ add_action( 'admin_post_fcmc_add_memberships_to_cart', function () {
 	}
 
 	check_admin_referer( 'fcmc_add_memberships', 'fcmc_nonce' );
+
+	// This handler runs through wp-admin/admin-post.php, which is an admin-context
+	// request. WooCommerce only builds the session, customer and cart objects for
+	// *frontend* requests (WooCommerce::is_request('frontend') is
+	// `! is_admin() || DOING_AJAX`), so WC()->cart is null here unless we ask for it.
+	// Without this, empty_cart() below fatals on null.
+	if ( ! WC()->cart ) {
+		wc_load_cart();
+	}
 
 	$posted_cars = isset( $_POST['cars'] ) && is_array( $_POST['cars'] ) ? wp_unslash( $_POST['cars'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification
 	$car_fields  = fcmc_car_fields();
@@ -440,8 +577,15 @@ add_action( 'admin_post_fcmc_add_memberships_to_cart', function () {
 		exit;
 	}
 
-	// Start clean so re-submitting doesn't stack duplicate memberships.
-	WC()->cart->empty_cart();
+	// Remove any existing membership lines so re-submitting the form replaces them
+	// rather than stacking duplicates. Deliberately NOT empty_cart() — that would
+	// also discard anything else the member had in their cart (Club Store items,
+	// say), silently and with no way to get it back.
+	foreach ( WC()->cart->get_cart() as $existing_key => $existing_line ) {
+		if ( (int) $existing_line['product_id'] === FCMC_MEMBERSHIP_PRODUCT_ID ) {
+			WC()->cart->remove_cart_item( $existing_key );
+		}
+	}
 
 	// One line item, quantity = number of cars. Cart/checkout only needs to show
 	// "N x FCMC Annual Membership" — the per-car detail rides along as hidden data
@@ -457,7 +601,10 @@ add_action( 'admin_post_fcmc_add_memberships_to_cart', function () {
 	// Mirror submitted cars as the member's "current" profile, for prefill next time.
 	update_user_meta( get_current_user_id(), 'fcmc_car_profiles', $clean_cars );
 
-	wp_safe_redirect( wc_get_checkout_url() );
+	// Land on the cart, not straight on checkout: the member sees the line they just
+	// created ("2 x FCMC Annual Membership, $60") and chooses to proceed. Jumping
+	// past the cart made the button's promise and its behaviour disagree.
+	wp_safe_redirect( wc_get_cart_url() );
 	exit;
 } );
 

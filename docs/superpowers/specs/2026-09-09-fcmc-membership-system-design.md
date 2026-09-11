@@ -2,7 +2,9 @@
 
 **Site:** fcmc-dev.cornerfamily.com → firstcoastmiataclub.org
 **Date:** 2026-09-09
-**Status:** Design agreed. Not yet implemented.
+**Status:** §1 and §2 **built and verified 2026-09-10** (`fcmc-membership-lifecycle.php`,
+`fcmc-roster.php`). §3 not started. One deliberate departure from this design is recorded in §2 —
+the roster is a My Account tab, not a wp-admin screen.
 
 ## Scope
 
@@ -31,6 +33,22 @@ agreed 2026-09-09 to defer rather than build now.
 | Membership record | **Stored on the WP user** (approach 2) | Absorbs the spreadsheet import without fabricating orders; supports manual officer corrections; makes the roster a fast user query. Orders remain the payment ledger. |
 
 ## § 1 — Term calculation and status
+
+**BUILT 2026-09-10** as `fcmc-membership-lifecycle.php`, and verified against every worked example
+below. Two things the original design did not mention, added because without them the cached
+fields would misstate the ledger:
+
+- **`on-hold` is not a paid status.** The offline/cheque gateway parks orders there and an
+  uncleared cheque is not a paid membership, so only `processing` and `completed` count
+  (filterable via `fcmc_paid_order_statuses`).
+- **Order hooks run in both directions.** Reaching a paid status recomputes the member; *leaving*
+  one (refund, cancellation) clears the cached date. Otherwise the cache would keep asserting a
+  membership the ledger no longer supports.
+- `fcmc_member_since` never moves backwards on recompute, so an officer's hand-entered join date
+  survives the roster import.
+
+The cutoff constant ships as `4` behind `apply_filters( 'fcmc_early_renewal_cutoff_month', 4 )`, so
+the board's answer is a one-line change plus `wp fcmc recompute`.
 
 Club year runs **June 1 → May 31**. No proration: paying late still expires the following
 June 1.
@@ -77,16 +95,47 @@ A lapsed member who pays later needs no special handling — the new payment rec
 
 ## § 2 — Roster and officer view
 
-A **Members** screen in wp-admin, visible to a new `membership_officer` role and to
-administrators. One row per **household**, not per transaction:
+**BUILT 2026-09-10** as `fcmc-roster.php`.
 
-- primary member, second member
-- `paid_through`, status chip (active / grace / lapsed)
-- cars, joined date
+### ⚠️ Departure from the original design: My Account tab, not a wp-admin screen
 
-Filter by status; filter by joined-date — that filter *is* Mike's "new members since X" for the
-Road Runner, rather than a separate report. CSV export honours each household's per-field
-directory-consent flags.
+This section originally specified a **Members screen in wp-admin**. It was built instead as a
+**Club Roster tab inside My Account**, on Bradley's call 2026-09-10.
+
+The reason: club officers are volunteers, not WordPress administrators. A wp-admin screen means
+handing an officer a backend login and trusting a role to fence them in. As a My Account tab they
+sign in exactly as any member does and simply see one tab more, themed like the rest of the club
+site, with no backend surface to scope.
+
+The cost, accepted knowingly: wp-admin would have supplied `WP_List_Table` free — sorting,
+pagination, search, bulk actions, CSV plumbing. On a front-end endpoint the table is hand-rolled.
+At ~48 households that is a fair trade; pagination barely matters at this size. Revisit only if the
+roster grows enough that hand-rolled paging becomes the limiting factor.
+
+### As built
+
+One row per **household** (= one WP user; a household holds up to two members and any number of
+cars), never one row per transaction. Columns:
+
+- primary member (name + email), second member (name + email)
+- status chip (active / grace / lapsed / never paid), `paid_through`, joined date
+- the cars, broken out per field — year, generation, trim, colours, name — with one line per car
+  so a two-car household reads across cleanly
+
+Filter by status; filter by joined-on-or-after — that filter *is* Mike's "new members since X" for
+the Road Runner, rather than a separate report, and the page says so when the filter is active.
+Summary counts are always computed across the whole roster, never the filtered view, so narrowing
+to "lapsed" cannot make the club look like it has shrunk.
+
+Access is the `fcmc_manage_members` capability, carried by a new `membership_officer` role (which
+inherits everything `customer` can do, since an officer is a member first) and granted to
+administrators. Assign the role per user in wp-admin.
+
+**Implementation note.** mu-plugins have no activation hook, so role creation and the rewrite flush
+run behind an `fcmc_roster_version` option. Without that flush the tab 404s until someone re-saves
+permalinks by hand.
+
+**Still outstanding:** CSV export honouring each household's per-field directory-consent flags.
 
 Two things the WooCommerce Orders screen cannot do, which is why this exists: show **lapsed**
 members (who have no recent order to sort by), and show a **household** rather than an order.
