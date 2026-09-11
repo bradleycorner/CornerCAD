@@ -227,6 +227,10 @@ function fcmc_member_paid_orders( $user_id ) {
  * A lapsed member who pays again needs no special handling — the new payment simply
  * produces a later paid-through date.
  *
+ * paid_through is max(fcmc_paid_through_manual, computed-from-orders) — the baseline
+ * is a FLOOR, never a cache. Do not revert this to unconditionally deleting
+ * fcmc_paid_through when a user has no orders: every imported member has none.
+ *
  * @param int $user_id User ID.
  * @return array{paid_through:?string,status:string,member_since:?string} What was written.
  */
