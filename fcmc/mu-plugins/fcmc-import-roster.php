@@ -54,12 +54,24 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 	$created = $updated = $merged = 0;
 	$seen    = array();
 
-	$upsert = function ( $key_email, $data, $source ) use ( &$created, &$updated, &$merged, &$seen, $batch, $dry ) {
+	// $seen tracks, per normalised email, the household this run has already resolved to
+	// PLUS the source row it first appeared on — populated on BOTH the dry and real paths
+	// so a --dry-run predicts merges exactly as a real run would produce them, rather than
+	// treating every occurrence of a within-run duplicate email as a fresh "created" row.
+	// In dry-run mode there is no real post ID yet, so a truthy placeholder (`true`) stands
+	// in for "this row would create/match a household" — merge/updated-vs-created counting
+	// only needs truthiness, never the actual ID.
+	$upsert = function ( $key_email, $data, $source, $row = null ) use ( &$created, &$updated, &$merged, &$seen, $batch, $dry ) {
 		$key_email = fcmc_normalise_email( $key_email );
 		if ( isset( $seen[ $key_email ] ) ) {
 			$merged++;
-			WP_CLI::warning( "Merged duplicate row for a household (email repeated across rows)." );
-			$id = $seen[ $key_email ];
+			$first_row = $seen[ $key_email ]['row'];
+			if ( $first_row && $row ) {
+				WP_CLI::warning( sprintf( 'Merge: rows %d and %d share an email (household merged).', $first_row, $row ) );
+			} else {
+				WP_CLI::warning( 'Merged duplicate row for a household (email repeated across rows).' );
+			}
+			$id = $seen[ $key_email ]['id'];
 		} else {
 			$id = null;
 			foreach ( fcmc_household_all() as $hid ) {
@@ -72,6 +84,7 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 
 		if ( $dry ) {
 			$id ? $updated++ : $created++;
+			$seen[ $key_email ] = array( 'id' => $id ?: true, 'row' => $row );
 			return;
 		}
 
@@ -98,11 +111,16 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 		}
 		update_post_meta( $id, 'fcmc_source', $source );
 		update_post_meta( $id, 'import_batch', $batch );
-		$seen[ $key_email ] = $id;
+		$seen[ $key_email ] = array( 'id' => $id, 'row' => $row );
 	};
 
-	// 1. Form-based households.
-	foreach ( $forms as $f ) {
+	// 1. Form-based households. $i + 2 = 1-based CSV row number counting the header as
+	// row 1, so it matches what a human sees opening the file in a spreadsheet — used only
+	// to report which rows merged, never the data itself. Merges can only happen within
+	// this loop: the payment-only loop below skips any email already seen here, so no
+	// email can appear in both loops, and $pay is keyed by email so it holds no duplicates
+	// of its own.
+	foreach ( $forms as $i => $f ) {
 		$e1  = fcmc_normalise_email( $f['email1'] ?? '' );
 		$e2  = fcmc_normalise_email( $f['email2'] ?? '' );
 		$hit = $pay[ $e1 ] ?? $pay[ $e2 ] ?? null;
@@ -128,7 +146,7 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 			'member_since'  => $hit['first'] ?? '',
 		);
 
-		$upsert( $e1 ?: $e2, $data, $hit ? 'form+payment' : 'form-only' );
+		$upsert( $e1 ?: $e2, $data, $hit ? 'form+payment' : 'form-only', $i + 2 );
 	}
 
 	// 2. Payment-only households.
@@ -152,7 +170,12 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 		), 'payment-only' );
 	}
 
-	WP_CLI::log( sprintf( '%screated %d, updated %d, merged %d', $dry ? '[DRY RUN] ' : '', $created, $updated, $merged ) );
+	// Each merge is counted once as created/updated (the first occurrence of the email) and
+	// once again as updated (the duplicate occurrence, via $seen) — so it inflates
+	// created+updated by exactly 1 per merge. Subtracting $merged gives the number of
+	// distinct households this run actually resolves to, in both dry and real runs alike.
+	$final = $created + $updated - $merged;
+	WP_CLI::log( sprintf( '%screated %d, updated %d, merged %d -> %d households after this run', $dry ? '[DRY RUN] ' : '', $created, $updated, $merged, $final ) );
 	WP_CLI::log( sprintf( 'payments with no email (need a human pass against Square): %d', $noMail ) );
 	WP_CLI::success( $dry ? 'Dry run complete — nothing written.' : 'Import complete.' );
 } );
