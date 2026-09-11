@@ -33,17 +33,34 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 		return $rows;
 	};
 
+	// Accept a paid_date only if it round-trips through Y-m-d exactly — this rejects both
+	// unparseable strings AND out-of-range values that createFromFormat() would otherwise
+	// silently roll over (e.g. a nonexistent day). A row that fails this is skipped, never
+	// allowed to reach `new DateTimeImmutable()` uncaught and abort the run mid-loop.
+	$validate_ymd = function ( $raw ) {
+		$s = substr( trim( (string) $raw ), 0, 10 );
+		$d = DateTimeImmutable::createFromFormat( 'Y-m-d', $s );
+		if ( ! ( $d instanceof DateTimeImmutable ) || $d->format( 'Y-m-d' ) !== $s ) {
+			return null;
+		}
+		return $s;
+	};
+
 	$forms  = $read( $forms_path );
 	$orders = $read( $orders_path );
 	$batch  = gmdate( 'c' );
 
-	// Payment index: normalised email => earliest and latest paid dates.
-	$pay    = array();
-	$noMail = 0;
+	// Payment index: normalised email => earliest and latest paid dates. Every date in here
+	// is already canonical Y-m-d (validated above), so plain string min()/max() below is a
+	// safe stand-in for chronological comparison — ISO 8601 dates sort lexicographically.
+	$pay      = array();
+	$noMail   = 0;
+	$badDates = 0;
 	foreach ( $orders as $o ) {
 		$e = fcmc_normalise_email( $o['email'] ?? '' );
 		if ( '' === $e ) { $noMail++; continue; }
-		$d = substr( trim( $o['paid_date'] ), 0, 10 );
+		$d = $validate_ymd( $o['paid_date'] ?? '' );
+		if ( null === $d ) { $badDates++; continue; }
 		if ( ! isset( $pay[ $e ] ) ) {
 			$pay[ $e ] = array( 'first' => $d, 'last' => $d );
 		}
@@ -51,8 +68,36 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 		$pay[ $e ]['last']  = max( $pay[ $e ]['last'], $d );
 	}
 
-	$created = $updated = $merged = 0;
-	$seen    = array();
+	$created   = $updated = $merged = 0;
+	$conflicts = 0;
+	$noFormEmail = 0;
+	$rowErrors   = 0;
+	$seen        = array();
+
+	// Compares a household's CURRENT stored values against `import_values` — the snapshot
+	// of what THIS importer last wrote — so a field an officer has hand-edited since (e.g.
+	// correcting a merged household's car description, which the design doc expects) is
+	// never silently clobbered by a re-run. A field with no recorded baseline (a household
+	// from before this snapshot existed) is treated as untouched, since there's no evidence
+	// either way. Used by both the dry-run prediction and the real write, so what --dry-run
+	// reports is exactly what a real run will do.
+	$classify_fields = function ( $id, $data ) {
+		$prev = get_post_meta( $id, 'import_values', true );
+		$prev = is_array( $prev ) ? $prev : array();
+
+		$clean      = array();
+		$conflicted = array();
+		foreach ( $data as $k => $v ) {
+			$current        = get_post_meta( $id, $k, true );
+			$baseline_known = array_key_exists( $k, $prev );
+			if ( ! $baseline_known || $current === $prev[ $k ] ) {
+				$clean[ $k ] = $v;
+			} else {
+				$conflicted[] = $k;
+			}
+		}
+		return array( 'clean' => $clean, 'conflicted' => $conflicted, 'prev' => $prev );
+	};
 
 	// $seen tracks, per normalised email, the household this run has already resolved to
 	// PLUS the source row it first appeared on — populated on BOTH the dry and real paths
@@ -61,8 +106,23 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 	// In dry-run mode there is no real post ID yet, so a truthy placeholder (`true`) stands
 	// in for "this row would create/match a household" — merge/updated-vs-created counting
 	// only needs truthiness, never the actual ID.
-	$upsert = function ( $key_email, $data, $source, $row = null ) use ( &$created, &$updated, &$merged, &$seen, $batch, $dry ) {
+	$upsert = function ( $key_email, $data, $source, $row = null ) use (
+		&$created, &$updated, &$merged, &$seen, &$noFormEmail, &$conflicts,
+		$classify_fields, $batch, $dry
+	) {
 		$key_email = fcmc_normalise_email( $key_email );
+
+		// Reject an unusable key outright rather than let it fall through to the lookup
+		// below. Without this, every row with both emails blank shares the SAME empty-
+		// string key: the first creates a household with member1_email = '', and every
+		// later blank-email row then matches it via $seen[''] and gets "merged" into it —
+		// splicing unrelated households' names, phones and addresses together.
+		if ( '' === $key_email ) {
+			$noFormEmail++;
+			WP_CLI::warning( sprintf( 'Row %s has no usable email address — skipped (needs a human pass).', $row ?? '?' ) );
+			return;
+		}
+
 		if ( isset( $seen[ $key_email ] ) ) {
 			$merged++;
 			$first_row = $seen[ $key_email ]['row'];
@@ -73,22 +133,45 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 			}
 			$id = $seen[ $key_email ]['id'];
 		} else {
+			// Matches on EITHER stored member1_email OR member2_email, normalised — never
+			// member1_email alone. The upsert key is `$e1 ?: $e2` (a household with a blank
+			// email1 but a populated email2 is keyed on $e2), but $data always writes $e1
+			// into member1_email. A member1-only lookup would never find that household
+			// again on a re-run and would silently create a duplicate every time.
+			//
+			// Deliberately NOT fcmc_household_find_by_email(): that helper skips CLAIMED
+			// households by design (it exists for signup-matching), which here would
+			// create a duplicate for any household a member has already claimed instead
+			// of updating it. This importer must see every household, claimed or not.
 			$id = null;
 			foreach ( fcmc_household_all() as $hid ) {
-				if ( fcmc_normalise_email( get_post_meta( $hid, 'member1_email', true ) ) === $key_email ) {
+				$stored_e1 = fcmc_normalise_email( get_post_meta( $hid, 'member1_email', true ) );
+				$stored_e2 = fcmc_normalise_email( get_post_meta( $hid, 'member2_email', true ) );
+				if ( $key_email === $stored_e1 || $key_email === $stored_e2 ) {
 					$id = $hid;
 					break;
 				}
 			}
 		}
 
+		$is_existing = is_int( $id );
+
 		if ( $dry ) {
-			$id ? $updated++ : $created++;
+			if ( $is_existing ) {
+				$updated++;
+				$c = $classify_fields( $id, $data );
+				foreach ( $c['conflicted'] as $k ) {
+					$conflicts++;
+					WP_CLI::warning( sprintf( '[DRY RUN] Conflict: field %s on household #%d differs from the import; would be left as-is.', $k, $id ) );
+				}
+			} else {
+				$created++;
+			}
 			$seen[ $key_email ] = array( 'id' => $id ?: true, 'row' => $row );
 			return;
 		}
 
-		if ( ! $id ) {
+		if ( ! $is_existing ) {
 			// post_author is set explicitly (never left to default) so that WordPress's
 			// map_meta_cap() "current user is the post author" branch can never grant
 			// edit rights to a member record independently of the fcmc_household
@@ -102,13 +185,27 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 				'post_author' => 0,
 			) );
 			$created++;
+			foreach ( $data as $k => $v ) {
+				update_post_meta( $id, $k, $v );
+			}
+			update_post_meta( $id, 'import_values', $data );
 		} else {
 			$updated++;
+			$c = $classify_fields( $id, $data );
+			foreach ( $c['clean'] as $k => $v ) {
+				update_post_meta( $id, $k, $v );
+			}
+			foreach ( $c['conflicted'] as $k ) {
+				$conflicts++;
+				WP_CLI::warning( sprintf( 'Conflict: field %s on household #%d differs from the import; left as-is.', $k, $id ) );
+			}
+			$snapshot = $c['prev'];
+			foreach ( $c['clean'] as $k => $v ) {
+				$snapshot[ $k ] = $v;
+			}
+			update_post_meta( $id, 'import_values', $snapshot );
 		}
 
-		foreach ( $data as $k => $v ) {
-			update_post_meta( $id, $k, $v );
-		}
 		update_post_meta( $id, 'fcmc_source', $source );
 		update_post_meta( $id, 'import_batch', $batch );
 		$seen[ $key_email ] = array( 'id' => $id, 'row' => $row );
@@ -120,33 +217,42 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 	// this loop: the payment-only loop below skips any email already seen here, so no
 	// email can appear in both loops, and $pay is keyed by email so it holds no duplicates
 	// of its own.
+	//
+	// Each row is isolated in a try/catch so one bad row (an unexpected exception building
+	// its data, not merely a malformed date — those are already filtered out above) is
+	// skipped and counted rather than aborting the run mid-loop with no summary.
 	foreach ( $forms as $i => $f ) {
-		$e1  = fcmc_normalise_email( $f['email1'] ?? '' );
-		$e2  = fcmc_normalise_email( $f['email2'] ?? '' );
-		$hit = $pay[ $e1 ] ?? $pay[ $e2 ] ?? null;
+		try {
+			$e1  = fcmc_normalise_email( $f['email1'] ?? '' );
+			$e2  = fcmc_normalise_email( $f['email2'] ?? '' );
+			$hit = $pay[ $e1 ] ?? $pay[ $e2 ] ?? null;
 
-		$carText = trim( (string) ( $f['car'] ?? '' ) );
-		$year    = preg_match( '/^\s*((?:19|20)\d{2})/', $carText, $m ) ? $m[1] : '';
+			$carText = trim( (string) ( $f['car'] ?? '' ) );
+			$year    = preg_match( '/^\s*((?:19|20)\d{2})/', $carText, $m ) ? $m[1] : '';
 
-		$data = array(
-			'member1_name'  => trim( $f['member1'] ?? '' ),
-			'member1_phone' => trim( $f['phone1'] ?? '' ),
-			'member1_email' => $e1,
-			'member2_name'  => trim( $f['member2'] ?? '' ),
-			'member2_phone' => trim( $f['phone2'] ?? '' ),
-			'member2_email' => $e2,
-			'address'       => trim( $f['address'] ?? '' ),
-			'city'          => trim( $f['city'] ?? '' ),
-			'state'         => trim( $f['state'] ?? '' ),
-			'zip'           => trim( $f['zip'] ?? '' ),
-			// One car per household. The $60 payer is corrected by hand — the car field
-			// is free text and splitting it on punctuation produces nonsense.
-			'cars'          => array( array( 'car_model_year' => $year, 'car_description' => $carText ) ),
-			'paid_through'  => $hit ? fcmc_paid_through( new DateTimeImmutable( $hit['last'], wp_timezone() ) )->format( 'Y-m-d' ) : '',
-			'member_since'  => $hit['first'] ?? '',
-		);
+			$data = array(
+				'member1_name'  => trim( $f['member1'] ?? '' ),
+				'member1_phone' => trim( $f['phone1'] ?? '' ),
+				'member1_email' => $e1,
+				'member2_name'  => trim( $f['member2'] ?? '' ),
+				'member2_phone' => trim( $f['phone2'] ?? '' ),
+				'member2_email' => $e2,
+				'address'       => trim( $f['address'] ?? '' ),
+				'city'          => trim( $f['city'] ?? '' ),
+				'state'         => trim( $f['state'] ?? '' ),
+				'zip'           => trim( $f['zip'] ?? '' ),
+				// One car per household. The $60 payer is corrected by hand — the car field
+				// is free text and splitting it on punctuation produces nonsense.
+				'cars'          => array( array( 'car_model_year' => $year, 'car_description' => $carText ) ),
+				'paid_through'  => $hit ? fcmc_paid_through( new DateTimeImmutable( $hit['last'], wp_timezone() ) )->format( 'Y-m-d' ) : '',
+				'member_since'  => $hit['first'] ?? '',
+			);
 
-		$upsert( $e1 ?: $e2, $data, $hit ? 'form+payment' : 'form-only', $i + 2 );
+			$upsert( $e1 ?: $e2, $data, $hit ? 'form+payment' : 'form-only', $i + 2 );
+		} catch ( \Throwable $ex ) {
+			$rowErrors++;
+			WP_CLI::warning( sprintf( 'Row %d could not be processed and was skipped (needs a human pass).', $i + 2 ) );
+		}
 	}
 
 	// 2. Payment-only households.
@@ -161,13 +267,18 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 		if ( isset( $formEmails[ $email ] ) ) {
 			continue;
 		}
-		$upsert( $email, array(
-			'member1_name'  => '',
-			'member1_email' => $email,
-			'cars'          => array(),
-			'paid_through'  => fcmc_paid_through( new DateTimeImmutable( $d['last'], wp_timezone() ) )->format( 'Y-m-d' ),
-			'member_since'  => $d['first'],
-		), 'payment-only' );
+		try {
+			$upsert( $email, array(
+				'member1_name'  => '',
+				'member1_email' => $email,
+				'cars'          => array(),
+				'paid_through'  => fcmc_paid_through( new DateTimeImmutable( $d['last'], wp_timezone() ) )->format( 'Y-m-d' ),
+				'member_since'  => $d['first'],
+			), 'payment-only' );
+		} catch ( \Throwable $ex ) {
+			$rowErrors++;
+			WP_CLI::warning( 'A payment-only row could not be processed and was skipped (needs a human pass).' );
+		}
 	}
 
 	// Each merge is counted once as created/updated (the first occurrence of the email) and
@@ -176,6 +287,12 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 	// distinct households this run actually resolves to, in both dry and real runs alike.
 	$final = $created + $updated - $merged;
 	WP_CLI::log( sprintf( '%screated %d, updated %d, merged %d -> %d households after this run', $dry ? '[DRY RUN] ' : '', $created, $updated, $merged, $final ) );
+	WP_CLI::log( sprintf( 'conflicts (officer edits preserved, not overwritten): %d', $conflicts ) );
+	WP_CLI::log( sprintf( '%d form rows with no email address (cannot be imported, need a human pass)', $noFormEmail ) );
 	WP_CLI::log( sprintf( 'payments with no email (need a human pass against Square): %d', $noMail ) );
+	WP_CLI::log( sprintf( '%d payments with an unparseable date (need a human pass)', $badDates ) );
+	if ( $rowErrors > 0 ) {
+		WP_CLI::log( sprintf( '%d rows failed unexpectedly and were skipped (needs a human pass)', $rowErrors ) );
+	}
 	WP_CLI::success( $dry ? 'Dry run complete — nothing written.' : 'Import complete.' );
 } );
