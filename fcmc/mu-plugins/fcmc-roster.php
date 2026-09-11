@@ -606,5 +606,220 @@ function fcmc_render_roster() {
 		</tbody>
 	</table>
 	</div>
+
+	<?php fcmc_render_needs_linking(); ?>
 	<?php
 }
+
+/* -------------------------------------------------------------------------
+ * 5. Needs-linking — officers connect an account to a household by hand
+ * ---------------------------------------------------------------------- */
+
+const FCMC_LINK_ACTION = 'fcmc_link_household';
+const FCMC_LINK_NONCE  = 'fcmc_link_household_nonce';
+
+/**
+ * Households with no linked user account.
+ *
+ * @return array[] fcmc_household_get() arrays.
+ */
+function fcmc_roster_unclaimed_households() {
+	$out = array();
+	foreach ( fcmc_household_all() as $id ) {
+		if ( get_post_meta( $id, 'claimed_by', true ) ) {
+			continue;
+		}
+		$out[] = fcmc_household_get( $id );
+	}
+	return $out;
+}
+
+/**
+ * WP users with no household of their own.
+ *
+ * @return WP_User[]
+ */
+function fcmc_roster_unlinked_users() {
+	$out = array();
+	foreach ( get_users( array( 'orderby' => 'display_name' ) ) as $user ) {
+		if ( get_user_meta( $user->ID, 'fcmc_household_id', true ) ) {
+			continue;
+		}
+		$out[] = $user;
+	}
+	return $out;
+}
+
+/**
+ * A short, human label for a household in the linking <select> — the contact
+ * name if there is one, a non-identifying placeholder otherwise. Escaped by the
+ * caller; this returns raw data.
+ *
+ * @param array $h fcmc_household_get() array.
+ * @return string
+ */
+function fcmc_household_label( $h ) {
+	return '' !== trim( (string) $h['member1_name'] )
+		? $h['member1_name']
+		/* translators: %d: household post ID */
+		: sprintf( __( 'Household #%d', 'fcmc' ), $h['id'] );
+}
+
+/**
+ * The needs-linking section, rendered below the roster table.
+ *
+ * Officer-only — checked again here rather than assuming the caller (
+ * fcmc_render_roster(), which already gates the whole tab) is the only way in.
+ * Lists unclaimed households and WP accounts with no household, and lets an
+ * officer connect one pair at a time via a form posting to admin-post.php.
+ */
+function fcmc_render_needs_linking() {
+	if ( ! current_user_can( FCMC_ROSTER_CAP ) ) {
+		return;
+	}
+
+	$unclaimed = fcmc_roster_unclaimed_households();
+	$unlinked  = fcmc_roster_unlinked_users();
+	?>
+	<h2><?php esc_html_e( 'Needs linking', 'fcmc' ); ?></h2>
+
+	<p>
+		<em>
+			<?php esc_html_e( '7 payments on file carry no email address, so the site has no way to match them automatically — those need a human pass against Square.', 'fcmc' ); ?>
+		</em>
+	</p>
+
+	<?php
+	// Read-only display of a redirect flag from the form handler below — nothing
+	// here changes state, so no nonce is needed to read it.
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended
+	$just_linked  = isset( $_GET['fcmc_linked'] );
+	$link_failed  = isset( $_GET['fcmc_link_error'] );
+	// phpcs:enable
+	?>
+	<?php if ( $just_linked ) : ?>
+		<div class="woocommerce-message"><?php esc_html_e( 'Household linked.', 'fcmc' ); ?></div>
+	<?php elseif ( $link_failed ) : ?>
+		<div class="woocommerce-error"><?php esc_html_e( 'Could not link that account — please check the selection and try again.', 'fcmc' ); ?></div>
+	<?php endif; ?>
+
+	<h3>
+		<?php
+		printf(
+			/* translators: %d: count of unclaimed households */
+			esc_html__( 'Unclaimed households (%d)', 'fcmc' ),
+			count( $unclaimed )
+		);
+		?>
+	</h3>
+	<?php if ( empty( $unclaimed ) ) : ?>
+		<p><?php esc_html_e( 'None — every household is linked to an account.', 'fcmc' ); ?></p>
+	<?php else : ?>
+		<ul>
+			<?php foreach ( $unclaimed as $h ) : ?>
+				<li>
+					<?php echo esc_html( fcmc_household_label( $h ) ); ?>
+					<?php if ( $h['member1_email'] ) : ?>
+						&mdash; <a href="mailto:<?php echo esc_attr( $h['member1_email'] ); ?>"><?php echo esc_html( $h['member1_email'] ); ?></a>
+					<?php endif; ?>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+	<?php endif; ?>
+
+	<h3>
+		<?php
+		printf(
+			/* translators: %d: count of accounts with no household */
+			esc_html__( 'Accounts with no household (%d)', 'fcmc' ),
+			count( $unlinked )
+		);
+		?>
+	</h3>
+	<?php if ( empty( $unlinked ) ) : ?>
+		<p><?php esc_html_e( 'None — every account is linked to a household.', 'fcmc' ); ?></p>
+	<?php elseif ( empty( $unclaimed ) ) : ?>
+		<p><?php esc_html_e( 'These accounts have no household, and there are no unclaimed households left to link them to.', 'fcmc' ); ?></p>
+		<ul>
+			<?php foreach ( $unlinked as $user ) : ?>
+				<li><?php echo esc_html( $user->display_name ); ?> (<?php echo esc_html( $user->user_email ); ?>)</li>
+			<?php endforeach; ?>
+		</ul>
+	<?php else : ?>
+		<div style="overflow-x:auto;">
+		<table class="widefat">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Account', 'fcmc' ); ?></th>
+					<th><?php esc_html_e( 'Link to household', 'fcmc' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $unlinked as $user ) : ?>
+					<tr>
+						<td>
+							<?php echo esc_html( $user->display_name ); ?><br />
+							<a href="mailto:<?php echo esc_attr( $user->user_email ); ?>"><?php echo esc_html( $user->user_email ); ?></a>
+						</td>
+						<td>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+								<?php wp_nonce_field( FCMC_LINK_ACTION, FCMC_LINK_NONCE ); ?>
+								<input type="hidden" name="action" value="<?php echo esc_attr( FCMC_LINK_ACTION ); ?>" />
+								<input type="hidden" name="fcmc_user_id" value="<?php echo esc_attr( $user->ID ); ?>" />
+								<select name="fcmc_household_id">
+									<option value=""><?php esc_html_e( '— select a household —', 'fcmc' ); ?></option>
+									<?php foreach ( $unclaimed as $h ) : ?>
+										<option value="<?php echo esc_attr( $h['id'] ); ?>"><?php echo esc_html( fcmc_household_label( $h ) ); ?></option>
+									<?php endforeach; ?>
+								</select>
+								<button type="submit" class="button"><?php esc_html_e( 'Link', 'fcmc' ); ?></button>
+							</form>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		</div>
+	<?php endif; ?>
+	<?php
+}
+
+/**
+ * admin-post.php handler: link one account to one household by hand.
+ *
+ * Verifies the nonce AND re-checks the capability independently — admin-post.php
+ * is a generic dispatcher shared by the whole site, so this must not trust that
+ * only the roster's own form can reach it.
+ */
+function fcmc_handle_link_household() {
+	$redirect = wc_get_account_endpoint_url( FCMC_ROSTER_ENDPOINT );
+
+	if ( ! isset( $_POST[ FCMC_LINK_NONCE ] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST[ FCMC_LINK_NONCE ] ) ), FCMC_LINK_ACTION )
+	) {
+		wp_die( esc_html__( 'Security check failed.', 'fcmc' ), '', array( 'response' => 403 ) );
+	}
+	if ( ! current_user_can( FCMC_ROSTER_CAP ) ) {
+		wp_die( esc_html__( 'You do not have permission to do that.', 'fcmc' ), '', array( 'response' => 403 ) );
+	}
+
+	$user_id      = isset( $_POST['fcmc_user_id'] ) ? absint( $_POST['fcmc_user_id'] ) : 0;
+	$household_id = isset( $_POST['fcmc_household_id'] ) ? absint( $_POST['fcmc_household_id'] ) : 0;
+
+	$ok = $user_id && $household_id
+		&& get_userdata( $user_id )
+		&& 'fcmc_household' === get_post_type( $household_id )
+		&& ! get_post_meta( $household_id, 'claimed_by', true )
+		&& function_exists( 'fcmc_household_claim' );
+
+	if ( $ok ) {
+		fcmc_household_claim( $household_id, $user_id );
+		$redirect = add_query_arg( 'fcmc_linked', '1', $redirect );
+	} else {
+		$redirect = add_query_arg( 'fcmc_link_error', '1', $redirect );
+	}
+
+	wp_safe_redirect( $redirect );
+	exit;
+}
+add_action( 'admin_post_' . FCMC_LINK_ACTION, 'fcmc_handle_link_household' );
