@@ -1,18 +1,80 @@
 {
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "mcp__concretecms__.*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "IN=$(cat); SID=$(printf '%s' \"$IN\" | jq -r '.session_id // \"nosession\"'); FLAG=\"${TMPDIR:-/tmp}/cc-schema-$SID.flag\"; if [ ! -f \"$FLAG\" ]; then printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Run ToolSearch for the concretecms tool schema BEFORE this call. Concrete CMS param names are case-sensitive (e.g. pageID not pageId) and unknown keys are silently dropped, surfacing as a generic 404. Do: ToolSearch query select:<tool-name> (or a concretecms keyword search), then retry. This gate clears for the rest of the session after any concretecms ToolSearch.\"}}'; fi",
-            "timeout": 10,
-            "statusMessage": "Verifying concretecms schema was discovered…"
-          }
-        ]
-      }
+  "permissions": {
+    "allow": [
+      "mcp__woocommerce__woocommerce-products-list",
+      "mcp__woocommerce__woocommerce-products-get",
+      "mcp__woocommerce__woocommerce-orders-list",
+      "mcp__woocommerce__woocommerce-orders-get"
     ],
+    "ask": [
+      "mcp__woocommerce__woocommerce-products-create",
+      "mcp__woocommerce__woocommerce-products-update",
+      "mcp__woocommerce__woocommerce-products-delete",
+      "mcp__woocommerce__woocommerce-orders-create",
+      "mcp__woocommerce__woocommerce-orders-update",
+
+      "mcp__cornercad-com__wp_create_post",
+      "mcp__cornercad-com__wp_update_post",
+      "mcp__cornercad-com__wp_alter_post",
+      "mcp__cornercad-com__wp_delete_post",
+      "mcp__cornercad-com__wp_update_post_meta",
+      "mcp__cornercad-com__wp_delete_post_meta",
+      "mcp__cornercad-com__wp_add_post_terms",
+      "mcp__cornercad-com__wp_set_featured_image",
+      "mcp__cornercad-com__wp_create_term",
+      "mcp__cornercad-com__wp_update_term",
+      "mcp__cornercad-com__wp_delete_term",
+      "mcp__cornercad-com__wp_upload_media",
+      "mcp__cornercad-com__wp_upload_request",
+      "mcp__cornercad-com__wp_update_media",
+      "mcp__cornercad-com__wp_delete_media",
+      "mcp__cornercad-com__wp_update_option",
+      "mcp__cornercad-com__wp_create_user",
+      "mcp__cornercad-com__wp_update_user",
+      "mcp__cornercad-com__wp_create_comment",
+      "mcp__cornercad-com__wp_update_comment",
+      "mcp__cornercad-com__wp_delete_comment",
+      "mcp__cornercad-com__wp_write_blocks",
+      "mcp__cornercad-com__wp_insert_block_pattern",
+      "mcp__cornercad-com__mwai_image",
+
+      "mcp__cornercad-com__wc_create_product",
+      "mcp__cornercad-com__wc_update_product",
+      "mcp__cornercad-com__wc_alter_product",
+      "mcp__cornercad-com__wc_delete_product",
+      "mcp__cornercad-com__wc_update_stock",
+      "mcp__cornercad-com__wc_bulk_update_stock",
+      "mcp__cornercad-com__wc_update_order_status",
+      "mcp__cornercad-com__wc_add_order_note",
+      "mcp__cornercad-com__wc_create_refund",
+      "mcp__cornercad-com__wc_update_customer",
+      "mcp__cornercad-com__wc_approve_review",
+      "mcp__cornercad-com__wc_delete_review",
+
+      "mcp__cornercad-com__wp_activate_plugin",
+      "mcp__cornercad-com__wp_deactivate_plugin",
+      "mcp__cornercad-com__wp_create_plugin",
+      "mcp__cornercad-com__wp_copy_plugin",
+      "mcp__cornercad-com__wp_rename_plugin",
+      "mcp__cornercad-com__wp_delete_plugin",
+      "mcp__cornercad-com__wp_plugin_put_file",
+      "mcp__cornercad-com__wp_plugin_alter_file",
+      "mcp__cornercad-com__wp_plugin_mkdir",
+      "mcp__cornercad-com__wp_plugin_delete_path",
+
+      "mcp__cornercad-com__wp_switch_theme",
+      "mcp__cornercad-com__wp_create_theme",
+      "mcp__cornercad-com__wp_copy_theme",
+      "mcp__cornercad-com__wp_rename_theme",
+      "mcp__cornercad-com__wp_delete_theme",
+      "mcp__cornercad-com__wp_theme_put_file",
+      "mcp__cornercad-com__wp_theme_alter_file",
+      "mcp__cornercad-com__wp_theme_mkdir",
+      "mcp__cornercad-com__wp_theme_delete_path",
+      "mcp__cornercad-com__wp_theme_set_screenshot"
+    ]
+  },
+  "hooks": {
     "PostToolUse": [
       {
         "matcher": "ToolSearch",
