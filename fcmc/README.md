@@ -80,6 +80,28 @@ Done:
 - [ ] **Test account `fcmc-test-member` has a known password** set 2026-09-10 for automated
       flow testing. Change or delete the account before launch.
 
+## API keys and tokens on this site
+
+Two different Anthropic-related credentials live here and they are easy to confuse:
+
+| What | Where it lives | Purpose |
+|---|---|---|
+| **AI Engine content key** | wp-admin -> AI Engine -> Settings -> AI -> Environments | Content generation inside the plugin |
+| **AI Engine MCP bearer token** | `mwai_options['mcp_bearer_token']`, mirrored in `~/.claude.json` | Authenticates the `fcmc-dev` MCP server |
+
+⚠️ **The content key EXPIRES and fails silently.** When it lapses, AI Engine falls back to
+"No API Key (ChatML Engine)" — no error, no notice, it just stops working. This has already
+happened twice on cornercad.com; the second time the key had been dead since Aug 24 before
+anyone noticed.
+
+Current key: named **`fcmc`**, workspace-scoped, **30-day expiry created 2026-09-11 — expires
+approximately 2026-10-11.** An existing key cannot be re-revealed, so rotation always means
+minting a new one and pasting it into wp-admin by hand.
+
+Scope note: use a **workspace**-scoped key, never Organization. An Organization key requires an
+`anthropic-workspace-id` header that AI Engine does not send, so it fails looking like a bad
+credential — and it grants far more than a plugin needs from a key sitting in the site database.
+
 ## Debugging notes
 
 **Where fatals actually land:** `wp-content/uploads/wc-logs/fatal-errors-*.log`. WooCommerce's own
