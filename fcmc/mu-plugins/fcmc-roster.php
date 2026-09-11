@@ -38,7 +38,7 @@ const FCMC_ROSTER_CAP      = 'fcmc_manage_members';
  * re-runs only when that version changes.
  */
 function fcmc_roster_install() {
-	$version = '1';
+	$version = '2';
 	if ( get_option( 'fcmc_roster_version' ) === $version ) {
 		return;
 	}
@@ -54,6 +54,27 @@ function fcmc_roster_install() {
 	$admin = get_role( 'administrator' );
 	if ( $admin ) {
 		$admin->add_cap( FCMC_ROSTER_CAP );
+	}
+
+	// Grant the fcmc_household post type's OWN generated primitives (NOT
+	// fcmc_manage_members — mapping a post type's meta caps onto that string is the
+	// bug this version fixes, see fcmc-households.php). Read them off the registered
+	// post type rather than hardcoding the list, so a WP core change in primitive
+	// naming can't silently desync this from what's actually registered.
+	$household_type = get_post_type_object( 'fcmc_household' );
+	if ( $household_type ) {
+		$officer = get_role( 'membership_officer' );
+		foreach ( (array) $household_type->cap as $cap ) {
+			if ( 'do_not_allow' === $cap ) {
+				continue;
+			}
+			if ( $officer ) {
+				$officer->add_cap( $cap );
+			}
+			if ( $admin ) {
+				$admin->add_cap( $cap );
+			}
+		}
 	}
 
 	update_option( 'fcmc_roster_version', $version );
