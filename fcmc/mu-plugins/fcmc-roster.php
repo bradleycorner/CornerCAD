@@ -808,7 +808,9 @@ function fcmc_handle_link_household() {
 
 	$ok = $user_id && $household_id
 		&& get_userdata( $user_id )
+		&& ! get_user_meta( $user_id, 'fcmc_household_id', true )
 		&& 'fcmc_household' === get_post_type( $household_id )
+		&& 'publish' === get_post_status( $household_id )
 		&& ! get_post_meta( $household_id, 'claimed_by', true )
 		&& function_exists( 'fcmc_household_claim' );
 
