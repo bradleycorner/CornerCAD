@@ -39,7 +39,7 @@ const FCMC_ROSTER_CAP      = 'fcmc_manage_members';
  * re-runs only when that version changes.
  */
 function fcmc_roster_install() {
-	$version = '2';
+	$version = '3';
 	if ( get_option( 'fcmc_roster_version' ) === $version ) {
 		return;
 	}
@@ -65,8 +65,17 @@ function fcmc_roster_install() {
 	$household_type = get_post_type_object( 'fcmc_household' );
 	if ( $household_type ) {
 		$officer = get_role( 'membership_officer' );
-		foreach ( (array) $household_type->cap as $cap ) {
-			if ( 'do_not_allow' === $cap ) {
+		// Meta caps (edit_post/read_post/delete_post) are always intercepted by
+		// map_meta_cap() at request time and resolved against a specific post ID —
+		// granting them as STORED role capabilities is inert. It is also the same
+		// family of bug as the one that broke the roster tab (see the
+		// fcmc-households.php docblock): treating a capability that only ever
+		// makes sense per-object as a plain, grantable one. Only the PLURAL
+		// primitive caps (edit_posts, edit_others_posts, publish_posts,
+		// read_private_posts, delete_posts, …) are real, checkable role grants.
+		$meta_caps = array( 'edit_post', 'read_post', 'delete_post' );
+		foreach ( (array) $household_type->cap as $meta_key => $cap ) {
+			if ( in_array( $meta_key, $meta_caps, true ) || 'do_not_allow' === $cap ) {
 				continue;
 			}
 			if ( $officer ) {
@@ -680,14 +689,58 @@ function fcmc_render_needs_linking() {
 
 	$unclaimed = fcmc_roster_unclaimed_households();
 	$unlinked  = fcmc_roster_unlinked_users();
+
+	// Written by the importer (fcmc-import-roster.php), replaced wholesale on
+	// every run — never a hardcoded count, which goes stale the moment a re-run
+	// changes the number. See IMPORTANT 3, 2026-09-11 review.
+	$unattributable = get_option( 'fcmc_unattributable_payments', array() );
+	$unattributable = is_array( $unattributable ) ? $unattributable : array();
 	?>
 	<h2><?php esc_html_e( 'Needs linking', 'fcmc' ); ?></h2>
 
 	<p>
 		<em>
-			<?php esc_html_e( '7 payments on file carry no email address, so the site has no way to match them automatically — those need a human pass against Square.', 'fcmc' ); ?>
+			<?php if ( empty( $unattributable ) ) : ?>
+				<?php esc_html_e( 'No payments on file currently carry an unmatched (missing) email address.', 'fcmc' ); ?>
+			<?php else : ?>
+				<?php
+				printf(
+					esc_html(
+						/* translators: %d: count of payments with no email on file */
+						_n(
+							'%d payment on file carries no email address, so the site has no way to match it automatically — it needs a human pass against Square.',
+							'%d payments on file carry no email address, so the site has no way to match them automatically — those need a human pass against Square.',
+							count( $unattributable ),
+							'fcmc'
+						)
+					),
+					count( $unattributable )
+				);
+				?>
+			<?php endif; ?>
 		</em>
 	</p>
+
+	<?php if ( ! empty( $unattributable ) ) : ?>
+		<table class="widefat striped" style="max-width:480px;">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Date', 'fcmc' ); ?></th>
+					<th><?php esc_html_e( 'Order #', 'fcmc' ); ?></th>
+					<th><?php esc_html_e( 'Amount', 'fcmc' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $unattributable as $row ) : ?>
+					<tr>
+						<td><?php echo esc_html( $row['date'] ?? '' ); ?></td>
+						<td><?php echo esc_html( $row['order_number'] ?? '' ); ?></td>
+						<td><?php echo esc_html( $row['amount'] ?? '' ); ?></td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+	<?php endif; ?>
 
 	<?php
 	// Read-only display of a redirect flag from the form handler below — nothing
