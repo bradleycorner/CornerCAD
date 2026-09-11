@@ -250,7 +250,7 @@ payment amounts                     41 x $30,  1 x $60
 Three consequences:
 
 **Import the car field verbatim as a single `car_description`.** Do not attempt to parse trim or
-colour — `'2012/Copper Red'`, `'2001 Red LS'` and `'NA.....Yet'` have no shared grammar, and
+color — `'2012/Copper Red'`, `'2001 Red LS'` and `'NA.....Yet'` have no shared grammar, and
 guessing wrong produces exactly the mess the membership design exists to end ("four date formats in
 twenty submissions, a letter O typed for a zero"). One row says the member does not have a Miata
 yet.

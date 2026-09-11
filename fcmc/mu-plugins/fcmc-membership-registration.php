@@ -603,7 +603,7 @@ add_action( 'admin_post_fcmc_add_memberships_to_cart', function () {
 
 	// Land on the cart, not straight on checkout: the member sees the line they just
 	// created ("2 x FCMC Annual Membership, $60") and chooses to proceed. Jumping
-	// past the cart made the button's promise and its behaviour disagree.
+	// past the cart made the button's promise and its behavior disagree.
 	wp_safe_redirect( wc_get_cart_url() );
 	exit;
 } );

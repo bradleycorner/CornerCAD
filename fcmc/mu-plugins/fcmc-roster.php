@@ -341,7 +341,7 @@ function fcmc_render_roster() {
 	// filtering to "lapsed" would make it look like the club had shrunk.
 	$totals = array_count_values( wp_list_pluck( fcmc_roster_rows(), 'status' ) );
 
-	$colours = array(
+	$colors = array(
 		'active' => array( '#1c6b3c', '#e4f4ea' ),
 		'grace'  => array( '#8a6100', '#fdf3dc' ),
 		'lapsed' => array( '#8a1f1f', '#fbe6e6' ),
@@ -451,7 +451,7 @@ function fcmc_render_roster() {
 		   its selectors outrank anything here — so 768px is the real breakpoint
 		   whether or not this file agrees with it. Matching it deliberately.
 
-		   That single breakpoint is also what produces the behaviour the club
+		   That single breakpoint is also what produces the behavior the club
 		   wanted, for free: a phone is under 768px held tall and over it held wide,
 		   so portrait gets cards and landscape gets columns with no orientation
 		   query at all.
@@ -558,7 +558,7 @@ function fcmc_render_roster() {
 		</thead>
 		<tbody>
 		<?php foreach ( $rows as $row ) : ?>
-			<?php list( $fg, $bg ) = $colours[ $row['status'] ] ?? $colours['none']; ?>
+			<?php list( $fg, $bg ) = $colors[ $row['status'] ] ?? $colors['none']; ?>
 			<tr>
 				<td data-title="<?php esc_attr_e( 'Member', 'fcmc' ); ?>">
 					<strong><?php echo esc_html( $row['primary'] ); ?></strong><br />

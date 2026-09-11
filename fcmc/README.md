@@ -115,7 +115,7 @@ block checkout — or test as a customer-role user, never as an admin. Verified 
 "Great things..." copy present; after switching to Live it was 347,925 bytes with the block markup
 present and the copy gone.
 
-### Changed 2026-09-10 — signup button behaviour and header cart
+### Changed 2026-09-10 — signup button behavior and header cart
 
 Three related fixes after the flow was walked for real:
 
@@ -131,7 +131,7 @@ Three related fixes after the flow was walked for real:
    re-submit. Verified: a 2-qty line re-submitted as 1 car became one line, qty 1, $30.00 —
    replaced, not stacked.
 3. **Button relabelled and redirect changed.** "Add to Cart & Continue to Payment" promised one
-   thing and did another — it replaced the cart and jumped past it to checkout. Now labelled
+   thing and did another — it replaced the cart and jumped past it to checkout. Now labeled
    **"Add to Cart"** and redirects to `wc_get_cart_url()`, so the member sees the line they just
    created and proceeds themselves.
 

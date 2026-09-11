@@ -385,7 +385,7 @@ git commit -m "feat(fcmc): household records independent of user accounts"
 
 - [ ] **Step 1: Write the importer**
 
-Key behaviours, all required by the spec:
+Key behaviors, all required by the spec:
 - reads both CSVs from **explicit paths** (never in-repo)
 - keys households on normalised `member1_email`; updates rather than duplicates on re-run (idempotent)
 - merges rows sharing an email and reports each merge
