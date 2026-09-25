@@ -1,7 +1,15 @@
 # Laser-Engraved Coaster Workflow — Design Spec
 
 **Date:** 2026-08-08
-**Status:** Approved design (pre-implementation-plan)
+**Status:** ⚠️ SUPERSEDED 2026-09-05 for the launch architecture — see
+`2026-09-05-laser-coaster-launch-design.md`. This doc's Woo-native + Product Add-ons + Zakeke
+architecture (§2–§4) was never built; the coaster line instead followed the same Square-sync +
+flattened-variation-attribute pattern as the rest of the catalog (first seen in the Engraved Slate
+Coaster, built 2026-08-23, before this session formalized it). The **curation groundwork (§6 item 1),
+the custom/photo-upload tier concept (§8), and the license-check item (§6 item 5)** are still live
+ideas — re-evaluate them against the new spec's architecture if/when personalization is revisited,
+since a true live-preview customizer still can't ride a Square-synced attribute (the reason this doc
+chose Woo-native in the first place). Kept below for history.
 **Related tasks:** #7 (add laser products to Square), #8 (laser coaster workflow)
 **Related memory:** `project_staging-validation-and-prelaunch`, `project_laser-design-bundle`
 

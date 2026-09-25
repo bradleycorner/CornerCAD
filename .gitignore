@@ -80,3 +80,6 @@ april.txt
 *-members.csv
 *-jobforms*.csv
 *-paid-orders*.csv
+
+# Subagent-driven-development scratch workspace (ledgers, briefs, reports)
+.superpowers/
