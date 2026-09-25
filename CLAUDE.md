@@ -214,8 +214,9 @@ production**. Switching `Environment` to Sandbox is the safe operation — it us
 ### State — **both columns verified 2026-09-25 by WP-CLI read over SSH**
 🚨 **Staging is currently NOT on sandbox.** It was recreated 2026-09-25 as
 **`cornercad.com/staging/8946/`** (tables `staging_awF_*` in production's own database
-`cornerfa_WP2UG`), cloned from production — so it carries production's LIVE Square config and has a
-pending `wc_square_sync`. Until it is switched back to sandbox, staging checkout would hit the live
+`cornerfa_WP2UG`), cloned from production — so it carries production's LIVE Square config. Sync was switched off 2026-09-25 (backup at
+`~/wc_square_settings.staging8946.backup-20260925-153029.json`, token keys excluded), but it is
+**still on the live environment**. Until it is switched back to sandbox, staging checkout would hit the live
 account; only Catalog Mode (snippet 143) blocks purchases. The old `/staging/7680/` install is
 dismantled (no `wp-config.php`); `/staging/6862/` is a one-file leftover.
 
@@ -225,8 +226,8 @@ dismantled (no `wp-config.php`); `/staging/6862/` is a one-file leftover.
 | `sandbox_application_id` | *(empty — deliberate, see below)* | *(empty)* |
 | `sandbox_location_id` | *(empty)* | *(empty)* |
 | `production_location_id` | **`LS4SZ98SBX4F6`** (CornerCAD) ✅ | **`LS4SZ98SBX4F6`** 🚨 live |
-| `system_of_record` | **`square`** (live since ~2026-09) | **`square`** 🚨 |
-| inventory / fulfillment sync | **`yes`** / `no` | **`yes`** / — 🚨 |
+| `system_of_record` | **`square`** (live since ~2026-09) | `disabled` (set 2026-09-25 15:30 UTC) |
+| inventory / fulfillment sync | **`yes`** / `no` | `no` / — (set 2026-09-25) |
 | `sync_interval` | **`24`** (hours) | — |
 | `override_product_images` | `yes` | — |
 
