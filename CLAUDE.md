@@ -60,13 +60,14 @@ Table prefix is **`awF_`**, not `wp_`. Action Scheduler lives in `awF_actionsche
 `_claims` / `_logs` / `_groups`.
 
 ### Cron
-`DISABLE_WP_CRON` is `true` in `wp-config.php`; a cPanel cron drives WP every 5 minutes:
+`DISABLE_WP_CRON` is `true` in `wp-config.php`; a cPanel cron drives WP every **21 minutes** (`*/21`,
+verified from `crontab -l` 2026-09-25 — it was every 5 when this section was first written):
 ```bash
 cd /home1/cornerfa/public_html/cornercad && date >> cron-test.log && /opt/cpanel/ea-php83/root/usr/bin/php /usr/local/bin/wp cron event run --due-now >> cron-test.log 2>&1
 ```
 WARNING: **never go back to a curl-based cron.** cornercad.com sits behind **Cloudflare**, which
 bot-challenges the request — that silently killed WP-Cron for weeks and deadlocked Action Scheduler
-with 477 orphaned claims. Side effect of the 5-minute cadence: actions can sit up to 5 minutes past
+with 477 orphaned claims. Side effect of the cron cadence: actions can sit up to 21 minutes past
 due, so WooCommerce's "past-due action" banner appears intermittently and is **cosmetic**.
 
 ### Site timezone is UTC
@@ -210,25 +211,32 @@ site. Staging is a clone sharing production's token, so disconnecting on staging
 production**. Switching `Environment` to Sandbox is the safe operation — it uses sandbox credentials
 *instead of* the stored production token without revoking it.
 
-### State — **production re-verified 2026-09-11; staging column still as of 2026-07-30**
-| | production | staging |
+### State — **both columns verified 2026-09-25 by WP-CLI read over SSH**
+🚨 **Staging is currently NOT on sandbox.** It was recreated 2026-09-25 as
+**`cornercad.com/staging/8946/`** (tables `staging_awF_*` in production's own database
+`cornerfa_WP2UG`), cloned from production — so it carries production's LIVE Square config and has a
+pending `wc_square_sync`. Until it is switched back to sandbox, staging checkout would hit the live
+account; only Catalog Mode (snippet 143) blocks purchases. The old `/staging/7680/` install is
+dismantled (no `wp-config.php`); `/staging/6862/` is a one-file leftover.
+
+| | production | staging (8946) |
 |---|---|---|
-| `enable_sandbox` | `no` | **`yes`** |
-| `sandbox_application_id` | *(empty — deliberate, see below)* | `sandbox-sq0idb-D9tOd3hNREjp6QFaAHIlFQ` |
-| `sandbox_location_id` | *(empty)* | `L4KK3G9JY6RDY` |
-| `production_location_id` | **`LS4SZ98SBX4F6`** (CornerCAD) ✅ | `LV94H6Q7QPB42` ⚠️ stale |
-| `system_of_record` | **`square`** (live since ~2026-09) | `disabled` |
-| inventory / fulfillment sync | **`yes`** / `no` | `no` / `no` |
+| `enable_sandbox` | `no` | **`no`** 🚨 |
+| `sandbox_application_id` | *(empty — deliberate, see below)* | *(empty)* |
+| `sandbox_location_id` | *(empty)* | *(empty)* |
+| `production_location_id` | **`LS4SZ98SBX4F6`** (CornerCAD) ✅ | **`LS4SZ98SBX4F6`** 🚨 live |
+| `system_of_record` | **`square`** (live since ~2026-09) | **`square`** 🚨 |
+| inventory / fulfillment sync | **`yes`** / `no` | **`yes`** / — 🚨 |
 | `sync_interval` | **`24`** (hours) | — |
 | `override_product_images` | `yes` | — |
 
-The split is in place and confirmed against the database, not just the admin UI. The live token was
-**not** revoked — `production_location_id` survives on both sites and production's sandbox fields are
-empty, so live checkout is untouched.
+Production's half of the split is intact: its sandbox fields are empty and the live token was never
+revoked. **Staging's half is not** — see the 🚨 above; it must be switched back to sandbox in the
+admin (Environment = Sandbox + sandbox credentials), never by pressing Disconnect.
 
-⚠️ Staging's row has **not** been re-read since 2026-07-30 — the `cornercad-staging` MCP endpoint is
-returning **HTTP 401 `rest_forbidden`** as of 2026-09-11, so its bearer token needs re-minting before
-that column can be trusted again.
+⚠️ The `cornercad-staging` MCP entry still points at the dismantled `/staging/7680/` and is refused by
+Cloudflare (`403 cf-mitigated: challenge`). Repoint it at `/staging/8946/` with a token minted on the
+new install. Until then, read staging over SSH (WP-CLI from `~/public_html/cornercad/staging/8946`).
 
 🚨 **2026-09-11 — production's sandbox fields had been repopulated, and were stripped.** A read found
 `sandbox_application_id`, `sandbox_location_id` and a 64-char `sandbox_token` present on **production**,
@@ -370,7 +378,7 @@ sandbox, but it would become live-wrong if staging were ever switched off sandbo
   `enable_sandbox` on staging after every clone/restore. (This config survived the 2026-07-29 restore
   *as live* — that's how the exposure was found.)
 - Square does not support staging on a **subdomain** (auth domain mismatch); a **subfolder** is required.
-  `cornercad.com/staging/7680/` is already the supported shape.
+  `cornercad.com/staging/8946/` (current since 2026-09-25; was `/7680/`) is the supported shape.
 - Token storage key name is unknown — `wc_square_access_token` / `_refresh_token` / `_merchant_id` all
   return `false` even on connected production, so their absence proves nothing about authentication.
 - Docs: [sandbox mode](https://woocommerce.com/document/woocommerce-square/testing-the-woocommerce-square-extension-in-sandbox-mode/) ·
