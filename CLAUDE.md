@@ -5,6 +5,9 @@ consumer hub for Bradley's CAD / 3D-printed / laser-engraved products (vases, pl
 and automotive/custom parts). B2B/wholesale is a separate arm at **CornerCADWorks.com**. No
 marketplace/processor branding appears publicly.
 
+**This repo covers three sites** (cornercad.com, fcmc-dev, Lisa's uniquecreationsbylisac.store) — see
+`docs/sites.md` for the map.
+
 Site design + IA (platform-neutral; written against Concrete but the IA/content model still holds — see
 the migration mapping at its top): `docs/superpowers/specs/2026-06-24-cornercad-site-structure-design.md`.
 

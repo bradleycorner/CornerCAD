@@ -1,5 +1,9 @@
 # Agent instructions
 
+**Start with [`docs/sites.md`](docs/sites.md)** — which websites this repo covers (CornerCAD, the
+First Coast Miata Club, Unique Creations by Lisa C), their URLs, server folders, MCP servers and what
+lives where in the repo.
+
 The project instructions for every coding agent (Cursor, Codex, Claude Code) live in
 **[`CLAUDE.md`](CLAUDE.md)**, with the MCP/tooling protocol in
 [`docs/wordpress-mcp-protocol.md`](docs/wordpress-mcp-protocol.md). Read both before doing anything.
