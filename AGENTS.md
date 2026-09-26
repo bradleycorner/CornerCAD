@@ -12,5 +12,7 @@ This file is deliberately only a pointer. A copied `AGENTS.md` went stale within
 claimed Square sync was off after it had gone live) — keep one source of truth.
 
 Non-negotiables, in brief:
+- **Gitflow:** branch from `develop` (`feature/<topic>`), PR back into `develop`. `main` = what is
+  deployed; only `release/*` and `hotfix/*` merge into it. Details in `CLAUDE.md` → Git workflow.
 - cornercad.com is a **live store**. Every write needs Bradley's explicit confirmation first.
 - **Verify live state before asserting it** — query the site, don't reason from docs.
