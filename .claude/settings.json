@@ -131,20 +131,5 @@
 
       "mcp__fcmc-dev__wp_db_query"
     ]
-  },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "ToolSearch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "IN=$(cat); SID=$(printf '%s' \"$IN\" | jq -r '.session_id // \"nosession\"'); if printf '%s' \"$IN\" | grep -qi 'concretecms'; then touch \"${TMPDIR:-/tmp}/cc-schema-$SID.flag\"; fi",
-            "timeout": 10,
-            "statusMessage": "Recording concretecms schema discovery…"
-          }
-        ]
-      }
-    ]
   }
 }

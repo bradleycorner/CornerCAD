@@ -39,11 +39,6 @@ bug_report.md
 bug_report.json.txt
 full_session.json.txt
 
-# Third-party Concrete CMS marketplace addons (installed on the server,
-# not vendored here) and their downloaded installers
-msv_cloudflare_turnstile/
-msv_cloudflare_turnstile.zip
-
 # Catalog import — generated artifacts (bundled at deploy, not versioned):
 # ~120 MB of optimized images + the machine-generated manifest. Keep the
 # sample + schema + code committed.

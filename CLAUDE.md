@@ -495,8 +495,6 @@ requiring my confirmation:
   corrected on 2026-07-25 — the originals (`product-create`, `products-query`, `order-update-status`,
   `order-add-note`) **did not exist and gated nothing**. Real naming is
   `woocommerce-<resource>-<verb>`; see `docs/wordpress-mcp-protocol.md` §0.3.
-- The obsolete `mcp__concretecms__.*` schema-discovery hook is still in `settings.json`; harmless
-  (that server is dead) but it protects nothing on WordPress.
 
 ## Content
 `content/*.md` hold the finalized page copy (home, catalog, custom-work, about) — **still valid**, the copy

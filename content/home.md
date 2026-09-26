@@ -37,7 +37,7 @@
 ---
 
 ## Featured products block
-*(Page List filtered to Product page type, featured/limited — Concrete Auto pulls these)*
+*(Dynamic product list, filtered to the Product page type, featured/limited)*
 
 **Section heading:** Things worth keeping
 

@@ -1,0 +1,6 @@
+# Python dependencies for the CornerCAD tooling in scripts/.
+# Standard library covers most of it; these two are the only third-party needs:
+#   - Pillow   : image optimisation in scripts/build_manifest.py (optimize_image)
+#   - requests : Square Catalog API calls in scripts/square_*.py
+Pillow>=10,<13
+requests>=2.28

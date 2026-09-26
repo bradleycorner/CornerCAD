@@ -65,7 +65,7 @@ here does more for trust than any amount of copy. — supply and I'll place it.)
 ---
 
 ### Contact
-*(Concrete Form block — the site's only contact form, per spec. Fields below.)*
+*(Contact form block — the site's only contact form, per spec. Fields below.)*
 
 **Heading:** Get in touch
 
@@ -94,5 +94,5 @@ here does more for trust than any amount of copy. — supply and I'll place it.)
 - Keep the story about **you / CornerCAD** — Lisa's brand lives on her own site. Mention shared events only
   if you want; I kept it neutral ("we sell at events") so it works either way.
 - Contact form delivers to **brad@cornercad.com** ✓ (confirmed ACTIVE in Proton Mail).
-  Deploy detail (Code-mode): Concrete needs SMTP configured to *send* the form notification, and
+  Deploy detail (Code-mode): the site needs SMTP configured to *send* the form notification, and
   cornercad.com needs Proton's SPF/DKIM records so those emails don't land in spam.
