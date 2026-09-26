@@ -11,6 +11,26 @@ marketplace/processor branding appears publicly.
 Site design + IA (platform-neutral; written against Concrete but the IA/content model still holds — see
 the migration mapping at its top): `docs/superpowers/specs/2026-06-24-cornercad-site-structure-design.md`.
 
+## Git workflow — gitflow (adopted 2026-09-26)
+Applies to every agent (Claude Code, Cursor, Codex) and every site in this repo.
+
+| Branch | Holds | Rule |
+|---|---|---|
+| `main` | **what is deployed on the live sites** | Only updated by merging a `release/*` or `hotfix/*`. Never commit to it directly. |
+| `develop` | integration — done, reviewed work not yet released | Default base for all new work. |
+| `feature/<topic>` | one piece of work | Branch from `develop`, merge back with `--no-ff`, then delete. |
+| `release/<yyyy-mm-dd>` | a batch being deployed | Branch from `develop`; merge to `main` **and** `develop` once the change is live and verified. |
+| `hotfix/<topic>` | a fix already made (or urgently needed) on a live site | Branch from `main`; merge to `main` **and** `develop`. |
+
+- **`main` must match production.** Code that mirrors a live site (`snippets/`, `fcmc/mu-plugins/`)
+  reaches `main` only after it is deployed and byte-checked against the server. Undeployed code
+  stays on `develop`.
+- **A change made directly on a live site** (WPCode edit, mu-plugin fix over SSH) is recorded as a
+  `hotfix/*` so `main` keeps matching production.
+- Cursor Cloud Agent branches (`cursor/*`) are feature branches: PR them into **`develop`**, not `main`.
+- Retired: `brainstorm/wordpress-site-buildout` was the long-running working branch until 2026-09-26;
+  everything on it is in `main`. Don't build on it.
+
 ## Operating protocol
 Three MCP servers, split by job:
 - **`woocommerce`** (9 tools) — products and orders. The only way to read orders.
