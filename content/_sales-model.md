@@ -96,7 +96,7 @@ disconnected catalog to reconcile by hand — wrong for a two-person shop.
 **HARD RULE — never upload h3li0 designs to any maker platform.** Public posting = distributing his files =
 license violation. Bulk-upload tools make this easy to do by accident; keep the queue to your own geometry only.
 
-**Slant3D Teleport / API:** Teleport's turnkey integrations are Etsy/Shopify/Amazon — NOT Concrete or Square.
+**Slant3D Teleport / API:** Teleport's turnkey integrations are Etsy/Shopify/Amazon — NOT WooCommerce/WordPress or Square.
 Auto-fulfilling website orders would require the raw Slant3D API (Code-mode custom build). Defer; in-house
 fulfillment for now. Still off-limits for h3li0 designs. A "scale your own FDM designs later" lever only.
 

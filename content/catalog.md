@@ -30,7 +30,7 @@ own set. Keep this filter available but understated.)*
 ---
 
 ### Product grid
-*(Concrete **Page List** block, filtered to page type = Product, honoring the selected category topic.)*
+*(Dynamic product list, filtered to page type = Product, honoring the selected category.)*
 
 Each card renders from the Product page: featured image, `product_short_desc`, price (if `buy`), and its CTA.
 No copy needed here — cards pull per product. Cards for licensed items carry the "designed by h3li0" credit.

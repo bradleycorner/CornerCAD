@@ -1,7 +1,10 @@
-> ## ⚠️ SUPERSEDED — 2026-07-25
-> cornercad.com migrated to **WordPress + WooCommerce**. The Concrete CMS site and its API token are gone.
-> The live protocol is **`docs/wordpress-mcp-protocol.md`**. This file is kept only for history and for
-> any *other* Concrete site (e.g. uniquecreationsbylisac.com) still on that platform.
+> ## ⛔ RETIRED — Concrete CMS is no longer used in this repo
+> All three sites this repo covers — cornercad.com, fcmc-dev.cornerfamily.com and
+> uniquecreationsbylisac.store — now run **WordPress + WooCommerce** (see `docs/sites.md`). cornercad.com
+> migrated off Concrete CMS on **2026-07-25**; the Concrete site and its API token are gone, and no site
+> remains on the platform. The live protocol is **`docs/wordpress-mcp-protocol.md`**. This file is kept
+> only as a historical record of the old Concrete API workflow (a couple of dated specs under
+> `docs/superpowers/` still link to its §3).
 
 # Concrete CMS REST API — Operating Protocol (via the `concretecms` / Macareux MCP)
 
