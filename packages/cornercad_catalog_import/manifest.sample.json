@@ -1,0 +1,86 @@
+{
+  "_comment": "SAMPLE manifest. scripts/build_manifest.py generates the real manifest.json from the downloaded Proton folder. Hand-edit categories / cta_type / price / licensed after generation. Rename to manifest.json to make it live.",
+  "catalog_parent_path": "/catalog",
+  "products": [
+    {
+      "slug": "alvor-vase",
+      "name": "Alvor Vase",
+      "type": "vase",
+      "categories": ["Home & Garden"],
+      "licensed": "h3li0",
+      "short_desc": "Sculptural printed vase — made to order in your choice of color and finish.",
+      "cta_type": "buy",
+      "cta_target": "",
+      "price": "",
+      "external_links": "",
+      "featured_image": "alvor_vase_photos/alvor_01.jpg",
+      "gallery": ["alvor_vase_photos/alvor_01.jpg", "alvor_vase_photos/alvor_02.jpg"],
+      "configurator": null
+    },
+    {
+      "slug": "gaia-pen-organiser",
+      "name": "Gaia Pen Organiser",
+      "type": "pen_organiser",
+      "categories": ["Functional / Hardware", "Display & Retail"],
+      "licensed": "h3li0",
+      "short_desc": "Desk pen organiser — printed on demand.",
+      "cta_type": "buy",
+      "cta_target": "",
+      "price": "",
+      "external_links": "",
+      "featured_image": "gaia_pen_organiser_photos/gaia_01.jpg",
+      "gallery": [],
+      "configurator": null
+    },
+    {
+      "slug": "clarit-lamp",
+      "name": "Clarit Lamp",
+      "type": "lamp",
+      "categories": ["Home & Garden"],
+      "licensed": "h3li0",
+      "short_desc": "Ambient printed lamp shade.",
+      "cta_type": "inquire",
+      "cta_target": "mailto:brad@cornercad.com",
+      "price": "",
+      "external_links": "",
+      "featured_image": "clarit_lamp_photos/clarit_lamp_01.jpg",
+      "gallery": [],
+      "configurator": null
+    },
+    {
+      "slug": "daytona-spade-connector-block",
+      "name": "Daytona Coupe Spade Connector Distribution Block",
+      "type": "automotive_part",
+      "categories": ["Automotive", "Functional / Hardware"],
+      "licensed": null,
+      "short_desc": "Parametric distribution block developed and tested on a real Factory Five Type-65.",
+      "cta_type": "download",
+      "cta_target": "",
+      "price": "",
+      "external_links": "https://www.printables.com/... (add link)",
+      "featured_image": "",
+      "gallery": [],
+      "configurator": null
+    },
+    {
+      "slug": "custom-coasters",
+      "name": "Custom Coasters",
+      "type": "coaster",
+      "categories": ["Display & Retail"],
+      "licensed": null,
+      "short_desc": "Personalized coasters in slate or bare wood — pick material, shape, and your design.",
+      "cta_type": "buy",
+      "cta_target": "",
+      "price": "",
+      "external_links": "",
+      "featured_image": "cova_coasters_photos/cova_01.jpg",
+      "gallery": [],
+      "configurator": {
+        "note": "SKUs live in a Community Store variant product, NOT one page per combo. This page is the landing/configurator entry only. The stepped drill-down front-end is a separate Phase-B workstream.",
+        "materials": ["Slate", "Bare Wood"],
+        "shapes": ["Circle", "Square", "Octagon (source TBD)"],
+        "design": "customer image upload or design picker"
+      }
+    }
+  ]
+}

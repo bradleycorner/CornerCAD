@@ -1,0 +1,21 @@
+# Place this file as .well-known/.htaccess on your server
+# It disables ModSecurity for Square/Apple Pay domain verification requests
+
+# Apache mod_security (v1 and v2)
+<IfModule mod_security.c>
+  SecRuleEngine Off
+</IfModule>
+<IfModule mod_security2.c>
+  SecRuleEngine Off
+</IfModule>
+
+# LiteSpeed WAF (if your host uses LiteSpeed instead of Apache)
+<IfModule LiteSpeed>
+  SecFilterEngine Off
+</IfModule>
+
+# Ensure the file is served as a plain download (no content negotiation issues)
+<Files "apple-developer-merchantid-domain-association">
+  ForceType application/octet-stream
+  Header set Access-Control-Allow-Origin "*"
+</Files>

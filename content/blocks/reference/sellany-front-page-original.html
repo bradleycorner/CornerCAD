@@ -1,0 +1,89 @@
+<!--
+  REFERENCE ONLY — NOT DEPLOYED.
+  SellAny's stock Front Page template (wp_template ID 36) as it shipped, captured from staging
+  2026-07-26 before Task 4 replaced it. All of it is theme demo content: the images come from
+  wp-content/themes/sellany/assets/, and none of the copy is CornerCAD's.
+
+  Kept because its five named patterns are a useful reference for our own bands:
+    sellany/banner                            hero, image left / copy right, #000103
+    sellany/icon-box                          4-up icon row
+    sellany/product-collection-new-arrivals   Woo product-collection, 8 per page, 4 columns
+    sellany/call-to-action                    full-bleed parallax cover
+    sellany/latest-articles                   3-column post query
+
+  To restore the theme default at any time: Appearance -> Editor -> Templates -> Front Page ->
+  Clear customizations. That is a cleaner restore path than re-pasting this file.
+-->
+<!-- wp:template-part {"slug":"header","theme":"sellany","tagName":"header"} /-->
+
+<!-- wp:group {"tagName":"main","style":{"spacing":{"margin":{"top":"0px","bottom":"0px"},"blockGap":"0"}},"layout":{"type":"constrained"}} -->
+<main class="wp-block-group" style="margin-top:0px;margin-bottom:0px"><!-- wp:group {"metadata":{"patternName":"sellany/banner","name":"Banner","description":"A banner section with a call to action and an image.","categories":["banner","sellany-pages"]},"align":"full","style":{"color":{"background":"#000103"},"spacing":{"padding":{"top":"var:preset|spacing|large","bottom":"var:preset|spacing|large"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull has-background" style="background-color:#000103;padding-top:var(--wp--preset--spacing--large);padding-bottom:var(--wp--preset--spacing--large)"><!-- wp:columns {"verticalAlignment":"center","align":"wide"} -->
+<div class="wp-block-columns alignwide are-vertically-aligned-center"><!-- wp:column {"verticalAlignment":"center","width":"60%"} -->
+<div class="wp-block-column is-vertically-aligned-center" style="flex-basis:60%"><!-- wp:image {"sizeSlug":"large","linkDestination":"none"} -->
+<figure class="wp-block-image size-large"><img src="https://cornercad.com/staging/7680/wp-content/themes/sellany/assets/images/placeholder-image-1.webp" alt=""/></figure>
+<!-- /wp:image --></div>
+<!-- /wp:column -->
+
+<!-- wp:column {"verticalAlignment":"center","width":"40%","style":{"spacing":{"blockGap":"var:preset|spacing|large"}}} -->
+<div class="wp-block-column is-vertically-aligned-center" style="flex-basis:40%"><!-- wp:group {"style":{"spacing":{"blockGap":"var:preset|spacing|medium"}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group"><!-- wp:group {"style":{"spacing":{"blockGap":"var:preset|spacing|x-small"}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group"><!-- wp:paragraph {"style":{"elements":{"link":{"color":{"text":"var:preset|color|base"}}}},"textColor":"base","fontSize":"x-small"} -->
+<p class="has-base-color has-text-color has-link-color has-x-small-font-size">• Collection</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":1,"style":{"elements":{"link":{"color":{"text":"var:preset|color|base"}}}},"textColor":"base","fontSize":"x-large"} -->
+<h1 class="wp-block-heading has-base-color has-text-color has-link-color has-x-large-font-size">Discover the Art of Fine Porcelain</h1>
+<!-- /wp:heading --></div>
+<!-- /wp:group -->
+
+<!-- wp:paragraph {"style":{"elements":{"link":{"color":{"text":"var:preset|color|base"}}}},"textColor":"base","fontSize":"base"} -->
+<p class="has-base-color has-text-color has-link-color has-base-font-size">Handcrafted ceramic pieces that bring timeless elegance and everyday luxury to your space.</p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:group -->
+
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button {"className":"is-style-button-light"} -->
+<div class="is-style-button-light wp-block-button"><a class="wp-block-button__link wp-element-button" href="#">Shop Now</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons --></div>
+<!-- /wp:column --></div>
+<!-- /wp:columns --></div>
+<!-- /wp:group -->
+
+<!-- wp:group {"metadata":{"patternName":"sellany/icon-box","name":"Icon Box","description":"A simple icon box with an icon, title, and description.","categories":["sellany-pages"]},"align":"full","style":{"color":{"background":"#000103"},"spacing":{"padding":{"top":"var:preset|spacing|large","bottom":"var:preset|spacing|large"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull has-background" style="background-color:#000103;padding-top:var(--wp--preset--spacing--large);padding-bottom:var(--wp--preset--spacing--large)">
+<!-- The four icon columns (Free Shipping / Simple Returns / Secured Payments / Call us Anytime)
+     are elided here for readability. They are identical in structure: a wp:columns with four
+     wp:column, each holding a 4rem wp:image from themes/sellany/assets/images/icon-image-N.webp,
+     an h2 at base font size, and an xx-small paragraph. Note the theme ships a typo in the third:
+     "GShop with confidence". Restore via Clear customizations rather than this file. -->
+</div>
+<!-- /wp:group -->
+
+<!-- wp:group {"metadata":{"patternName":"sellany/product-collection-new-arrivals","name":"New Arrivals Product Collection","description":"A collection of new arrival products displayed in a carousel layout with product images, titles, prices, and buttons.","categories":["sellany-pages"]},"align":"full","style":{"spacing":{"padding":{"top":"var:preset|spacing|large","bottom":"var:preset|spacing|large"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull" style="padding-top:var(--wp--preset--spacing--large);padding-bottom:var(--wp--preset--spacing--large)">
+<!-- wp:woocommerce/product-collection — query: perPage 8, postType product, orderBy date desc,
+     stock in/out/backorder, displayLayout flex 4 columns, collection
+     woocommerce/product-collection/new-arrivals. Heading "New Arrivals" (medium, centered),
+     x-small centered intro paragraph. Product template: product-image with sale badge,
+     post-title (h3, linked, small), product-price (base, weight 600), product-button. -->
+</div>
+<!-- /wp:group -->
+
+<!-- wp:cover {"url":"…/themes/sellany/assets/images/placeholder-image-1.webp","id":1927,"hasParallax":true,"dimRatio":50,"overlayColor":"contrast-dark","isUserOverlayColor":true,"minHeight":32,"minHeightUnit":"rem","sizeSlug":"full","metadata":{"patternName":"sellany/call-to-action","name":"Call to Action"},"align":"full","style":{"spacing":{"blockGap":"var:preset|spacing|large","padding":{"top":"var:preset|spacing|xx-large","bottom":"var:preset|spacing|xx-large"}}},"layout":{"type":"constrained"}} -->
+<!-- Contains: centered 4rem/600 paragraph "Crafted with Creativity, Designed for Artisans",
+     a centered supporting paragraph, and a centered is-style-button-light button "Shop Handmade"
+     linking to "#". -->
+<!-- /wp:cover -->
+
+<!-- wp:group {"metadata":{"patternName":"sellany/latest-articles","name":"Latest Articles","description":"A section showcasing the latest blog posts with a heading and description.","categories":["sellany-pages"]},"align":"full","style":{"spacing":{"blockGap":"var:preset|spacing|medium","padding":{"top":"var:preset|spacing|large","bottom":"var:preset|spacing|large"}}},"layout":{"type":"constrained"}} -->
+<div class="wp-block-group alignfull">
+<!-- Heading "Latest Articles" + intro, then wp:query perPage 3, postType post, orderBy date desc,
+     post-template in a 3-column grid: post-featured-image (linked, 4/3), post-date, post-title,
+     post-excerpt at 15 words. -->
+</div>
+<!-- /wp:group --></main>
+<!-- /wp:group -->
+
+<!-- wp:template-part {"slug":"footer","theme":"sellany","tagName":"footer"} /-->
