@@ -223,17 +223,17 @@ It registers exactly **one** tool, `wp_db_query`, implemented in
 `mcp__fcmc-dev__wp_db_query` was added to `permissions.ask` *before* the restart that made the tool
 visible. Rules now total **118**.
 
-**2026-09-27 — `uclc` gated too.** Lisa's store had **no** `permissions.ask` rules at all, so every
-`mcp__uclc__*` write (incl. `wc_create_refund`, `wp_switch_theme`) ran unprompted. Added all 56 `uclc`
-write tools plus the 5 `woocommerce-uclc` writers, each name checked against the live server's
-advertised list; the 38 ungated `uclc` tools are all reads. Rules now total **179**.
-
 **Use it for verification, not mutation.** Its value is ground-truthing MCP reads that silently lie
 (`wp_count_media` above). For post/meta changes use the typed tools, which validate input and bust
 caches — the module's own description says so.
 
 **It does not replace SSH.** SQL cannot touch mu-plugins or plugin/theme PHP, which is where FCMC
 work actually lives.
+
+**2026-09-27 — `uclc` gated too.** Lisa's store had **no** `permissions.ask` rules at all, so every
+`mcp__uclc__*` write (incl. `wc_create_refund`, `wp_switch_theme`) ran unprompted. Added all 56 `uclc`
+write tools plus the 5 `woocommerce-uclc` writers, each name checked against the live server's
+advertised list; the 38 ungated `uclc` tools are all reads. Rules now total **179**.
 
 ### Standing rule
 Prefer typed tools. **Treat direct database/SQL access as a last resort for WRITES** — raw SQL
