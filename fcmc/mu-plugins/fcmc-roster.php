@@ -143,6 +143,26 @@ add_action(
  * ---------------------------------------------------------------------- */
 
 /**
+ * Status of an UNCLAIMED household, derived from its own paid_through — the rule
+ * fcmc_roster_rows() has always used inline.
+ */
+function fcmc_roster_household_status( array $h ): string {
+	$d = $h['paid_through'] ? DateTimeImmutable::createFromFormat( 'Y-m-d', $h['paid_through'], wp_timezone() ) : null;
+	return fcmc_status_for( $d ?: null );
+}
+
+/** '' or 'all' = everyone; 'current' = active + grace; otherwise an exact status. */
+function fcmc_roster_status_matches( string $filter, string $status ): bool {
+	if ( '' === $filter || 'all' === $filter ) {
+		return true;
+	}
+	if ( 'current' === $filter ) {
+		return in_array( $status, array( 'active', 'grace' ), true );
+	}
+	return $filter === $status;
+}
+
+/**
  * Build the roster rows.
  *
  * One row per HOUSEHOLD — including lapsed ones and those who never paid, which is
@@ -195,13 +215,10 @@ function fcmc_roster_rows( $filters = array() ) {
 			$since        = $h['member_since'];
 			$cars         = $h['cars'];
 
-			$paid_through_date = $h['paid_through']
-				? DateTimeImmutable::createFromFormat( 'Y-m-d', $h['paid_through'], wp_timezone() )
-				: null;
-			$status = fcmc_status_for( $paid_through_date ?: null );
+			$status = fcmc_roster_household_status( $h );
 		}
 
-		if ( ! empty( $filters['status'] ) && $filters['status'] !== $status ) {
+		if ( ! fcmc_roster_status_matches( $filters['status'] ?? '', $status ) ) {
 			continue;
 		}
 		if ( ! empty( $filters['joined_since'] ) ) {
@@ -223,6 +240,9 @@ function fcmc_roster_rows( $filters = array() ) {
 			'cars'         => $cars,
 			'household_id' => $household_id,
 			'claimed'      => null !== $row_user,
+			'legacy_id'    => $h['legacy_member_id'],
+			'home_area'    => $h['home_area'],
+			'birthdays'    => $h['birthdays'],
 		);
 	}
 
@@ -238,7 +258,7 @@ function fcmc_roster_rows( $filters = array() ) {
 
 		$status = function_exists( 'fcmc_get_status' ) ? fcmc_get_status( $user->ID ) : 'none';
 
-		if ( ! empty( $filters['status'] ) && $filters['status'] !== $status ) {
+		if ( ! fcmc_roster_status_matches( $filters['status'] ?? '', $status ) ) {
 			continue;
 		}
 
@@ -264,6 +284,9 @@ function fcmc_roster_rows( $filters = array() ) {
 			'cars'         => $cars,
 			'household_id' => null,
 			'claimed'      => true,
+			'legacy_id'    => '',
+			'home_area'    => '',
+			'birthdays'    => '',
 		);
 	}
 
@@ -327,13 +350,13 @@ function fcmc_render_roster() {
 
 	// Read-only filters, so no nonce — nothing here changes state.
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended
-	$status_filter = isset( $_GET['fcmc_status'] ) ? sanitize_key( wp_unslash( $_GET['fcmc_status'] ) ) : '';
+	$status_filter = isset( $_GET['fcmc_status'] ) ? sanitize_key( wp_unslash( $_GET['fcmc_status'] ) ) : 'current';
 	$joined_since  = isset( $_GET['fcmc_joined_since'] ) ? sanitize_text_field( wp_unslash( $_GET['fcmc_joined_since'] ) ) : '';
 	// phpcs:enable
 
 	$valid = array( 'active', 'grace', 'lapsed', 'none' );
-	if ( $status_filter && ! in_array( $status_filter, $valid, true ) ) {
-		$status_filter = '';
+	if ( ! in_array( $status_filter, array_merge( array( 'current', 'all' ), $valid ), true ) ) {
+		$status_filter = 'current';
 	}
 	if ( $joined_since && ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $joined_since ) ) {
 		$joined_since = '';
@@ -377,7 +400,8 @@ function fcmc_render_roster() {
 		<label>
 			<?php esc_html_e( 'Status', 'fcmc' ); ?><br />
 			<select name="fcmc_status">
-				<option value=""><?php esc_html_e( 'All', 'fcmc' ); ?></option>
+				<option value="current" <?php selected( $status_filter, 'current' ); ?>><?php esc_html_e( 'Current members', 'fcmc' ); ?></option>
+				<option value="all" <?php selected( $status_filter, 'all' ); ?>><?php esc_html_e( 'All (complete history)', 'fcmc' ); ?></option>
 				<?php foreach ( $valid as $key ) : ?>
 					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $status_filter, $key ); ?>>
 						<?php echo esc_html( fcmc_status_label( $key ) ); ?>
@@ -393,7 +417,7 @@ function fcmc_render_roster() {
 
 		<button type="submit" class="button"><?php esc_html_e( 'Filter', 'fcmc' ); ?></button>
 
-		<?php if ( $status_filter || $joined_since ) : ?>
+		<?php if ( 'current' !== $status_filter || $joined_since ) : ?>
 			<a class="button" href="<?php echo esc_url( wc_get_account_endpoint_url( FCMC_ROSTER_ENDPOINT ) ); ?>">
 				<?php esc_html_e( 'Clear', 'fcmc' ); ?>
 			</a>
@@ -430,6 +454,7 @@ function fcmc_render_roster() {
 		.fcmc-roster .fcmc-col-car { white-space: nowrap; }
 		.fcmc-roster .fcmc-car-value { display: block; line-height: 1.6; }
 		.fcmc-roster .fcmc-none { opacity: .45; }
+		.fcmc-roster .fcmc-history { opacity: .7; }
 
 		/* Ten columns do not fit the standard My Account content column (measured:
 		   the table wants ~1360px, the column offers ~700). WooCommerce puts a
@@ -572,6 +597,16 @@ function fcmc_render_roster() {
 				<td data-title="<?php esc_attr_e( 'Member', 'fcmc' ); ?>">
 					<strong><?php echo esc_html( $row['primary'] ); ?></strong><br />
 					<a href="mailto:<?php echo esc_attr( $row['email'] ); ?>"><?php echo esc_html( $row['email'] ); ?></a>
+					<?php
+					$history = array_filter( array(
+						$row['legacy_id'] ? sprintf( /* translators: %s: old member number */ __( 'Old #%s', 'fcmc' ), $row['legacy_id'] ) : '',
+						$row['home_area'],
+						$row['birthdays'] ? sprintf( /* translators: %s: birthdays */ __( 'Birthdays %s', 'fcmc' ), $row['birthdays'] ) : '',
+					) );
+					?>
+					<?php if ( $history ) : ?>
+						<br /><small class="fcmc-history"><?php echo esc_html( implode( ' · ', $history ) ); ?></small>
+					<?php endif; ?>
 				</td>
 				<td data-title="<?php esc_attr_e( '2nd member', 'fcmc' ); ?>">
 					<?php if ( $row['member2'] ) : ?>
@@ -690,6 +725,14 @@ function fcmc_render_needs_linking() {
 	$unclaimed = fcmc_roster_unclaimed_households();
 	$unlinked  = fcmc_roster_unlinked_users();
 
+	// Former members from the 1991–2020 history import aren't expected to have accounts —
+	// listing ~110 of them would bury the real work. They stay in the Link dropdown below.
+	$unclaimed_to_list = array_values( array_filter( $unclaimed, function ( $h ) {
+		return 'legacy-2020' !== $h['fcmc_source']
+			|| in_array( fcmc_roster_household_status( $h ), array( 'active', 'grace' ), true );
+	} ) );
+	$former_count = count( $unclaimed ) - count( $unclaimed_to_list );
+
 	// Written by the importer (fcmc-import-roster.php), replaced wholesale on
 	// every run — never a hardcoded count, which goes stale the moment a re-run
 	// changes the number. See IMPORTANT 3, 2026-09-11 review.
@@ -761,15 +804,19 @@ function fcmc_render_needs_linking() {
 		printf(
 			/* translators: %d: count of unclaimed households */
 			esc_html__( 'Unclaimed households (%d)', 'fcmc' ),
-			count( $unclaimed )
+			count( $unclaimed_to_list )
 		);
 		?>
 	</h3>
-	<?php if ( empty( $unclaimed ) ) : ?>
-		<p><?php esc_html_e( 'None — every household is linked to an account.', 'fcmc' ); ?></p>
+	<?php if ( empty( $unclaimed_to_list ) ) : ?>
+		<?php if ( $former_count > 0 ) : ?>
+			<p><?php esc_html_e( 'None needing attention.', 'fcmc' ); ?></p>
+		<?php else : ?>
+			<p><?php esc_html_e( 'None — every household is linked to an account.', 'fcmc' ); ?></p>
+		<?php endif; ?>
 	<?php else : ?>
 		<ul>
-			<?php foreach ( $unclaimed as $h ) : ?>
+			<?php foreach ( $unclaimed_to_list as $h ) : ?>
 				<li>
 					<?php echo esc_html( fcmc_household_label( $h ) ); ?>
 					<?php if ( $h['member1_email'] ) : ?>
@@ -778,6 +825,17 @@ function fcmc_render_needs_linking() {
 				</li>
 			<?php endforeach; ?>
 		</ul>
+	<?php endif; ?>
+	<?php if ( $former_count > 0 ) : ?>
+		<p><em>
+			<?php
+			printf(
+				/* translators: %d: number of former members */
+				esc_html__( 'Plus %d former members from the 1991–2020 history, not listed here — they are not expected to have accounts. They can still be picked in the Link control below.', 'fcmc' ),
+				(int) $former_count
+			);
+			?>
+		</em></p>
 	<?php endif; ?>
 
 	<h3>

@@ -114,6 +114,7 @@ function fcmc_household_get( $id ) {
 		'address', 'city', 'state', 'zip',
 		'cars', 'paid_through', 'member_since',
 		'fcmc_source', 'claimed_by', 'import_batch',
+		'legacy_member_id', 'home_area', 'birthdays', 'directory_listed', 'legacy_stat',
 	);
 
 	$out = array( 'id' => (int) $id );
@@ -533,6 +534,11 @@ function fcmc_household_editable_fields() {
 		'city'          => 'text',
 		'state'         => 'text',
 		'zip'           => 'text',
+		'legacy_member_id' => 'text',
+		'home_area'        => 'text',
+		'birthdays'        => 'text',
+		'directory_listed' => 'text',
+		'legacy_stat'      => 'text',
 	);
 }
 
@@ -600,6 +606,11 @@ function fcmc_render_household_meta_box( $post ) {
 		'city'          => __( 'City', 'fcmc' ),
 		'state'         => __( 'State', 'fcmc' ),
 		'zip'           => __( 'ZIP', 'fcmc' ),
+		'legacy_member_id' => __( 'Old member ID (1991–2020 database)', 'fcmc' ),
+		'home_area'        => __( 'Home area', 'fcmc' ),
+		'birthdays'        => __( 'Birthdays', 'fcmc' ),
+		'directory_listed' => __( 'Listed in old printed directory (Y/N)', 'fcmc' ),
+		'legacy_stat'      => __( 'Old status code (C/E/P — reference only)', 'fcmc' ),
 	);
 	?>
 	<table class="form-table">
