@@ -255,9 +255,13 @@ tools before `execute_python`).
 | Pages, posts, which page holds a form | `wp_get_posts` (`search`) / `wp_get_post` |
 | Settings | `wp_get_option` (`raw: true` where caching misleads) |
 
-*Read-only* SQL via `wp_db_query` is for what no typed tool can answer — and for cross-checking a
-typed tool suspected of returning a plausible-but-wrong value (e.g. `wp_count_media`). Say so when
-using it. SSH is for mu-plugins, WP-CLI commands, or when MCP is down. Two disciplines apply, because the
+**SQL and SSH need Bradley's permission, every time, and only when there is no other choice.** Before
+any `wp_db_query` or SSH command, say why no typed tool can do it and show the exact query/command,
+then wait for a yes. Why: Bradley has to read each query to judge whether it could load the shared
+account, and multi-join or nested lookups are hard to vet at a glance — "it was quicker" is never the
+reason. Legitimate cases: no typed tool answers the question; cross-checking a typed tool suspected of
+returning a plausible-but-wrong value (e.g. `wp_count_media`); mu-plugin files and WP-CLI commands
+(SSH only); MCP down. Keep any approved query as simple as the question allows. Two disciplines apply, because the
 2026-07-28 account-wide outage was caused by request/process volume on the shared CloudLinux cage
 and this module makes issuing queries frictionless:
 - **Batch.** Fold multiple checks into one statement (`UNION ALL`) rather than looping.
