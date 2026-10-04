@@ -45,7 +45,9 @@ years is one more run of the same command.
 
 `wp fcmc import-legacy <sheet.csv> [--overrides=<file>] [--dry-run] [--undo=<batch>]`, added to
 `fcmc-import-roster.php` — the file already reserved for one-off migration code, removable after the
-migration. It reuses that file's helpers (household writer, email normaliser, `import_batch`) and
+migration. The pure logic (reading, translating, merging, deciding) lives in a new WordPress-free
+library, `fcmc-legacy-lib.php`, so it can be unit-tested locally with plain `php`
+(`fcmc/tests/test-legacy-lib.php`); the command reuses that file's helpers (household writer, email normaliser, `import_batch`) and
 `fcmc_paid_through()` / status derivation from the lifecycle plugin. It has its own match-and-merge
 logic because legacy data **enriches** existing records rather than creating fresh ones; folding it
 into `import-roster` would put two merge policies in one function.
@@ -86,7 +88,7 @@ When a row matches existing data, the sheet **adds history and never overwrites*
 | Field | On an existing household / user |
 |---|---|
 | `member_since` | set to the earlier of existing and sheet values (only ever moves earlier — same floor semantics as today) |
-| `fcmc_paid_through_manual` | set to the later of existing and sheet values (a floor; usually unchanged because 2026 is later) |
+| `paid_through` (household; mirrored to the user's `fcmc_paid_through_manual` floor by the existing sync) | set to the later of existing and sheet values (usually unchanged because 2026 is later) |
 | `legacy_member_id`, `home_area`, `birthdays`, `directory_listed`, `legacy_stat` | set if empty |
 | cars | added only if the household has **no** cars |
 | contact details (names, emails, phones, address), consents, newsletter preference | **never changed** |
@@ -98,7 +100,7 @@ A user's own car profiles, consents and contact details are never touched by thi
 **Dates**
 
 - `member_since` = earliest of `ORIG_ENTRY` and `JOIN_DATE`, stored `Y-m-d`.
-- `fcmc_paid_through_manual` = `EXP DATE` converted to the site convention: **5/31/YYYY → YYYY-06-01**,
+- household `paid_through` = `EXP DATE` converted to the site convention: **5/31/YYYY → YYYY-06-01**,
   which is what `fcmc_paid_through()` yields for a paid year. Any other expiry date becomes the
   first 06-01 on or after it (e.g. 8/31/2015 → 2016-06-01) and is reported.
 - No stored status — derived by the existing lifecycle code (`active` / `grace` / `lapsed` / `none`).
@@ -146,6 +148,9 @@ Y/N), `legacy_stat` (`STAT` C/E/P, reference only).
 `C_COUNTER` / `P_COUNTER` (the site counts cars and people itself), `PERSONAL_ID`, `STATS_ID`,
 `REGISTRY_ID` (duplicates of `MEMBER_ID`), `REGISTER`.
 
+**Row key** (for re-runs, overrides and reports): `id:<MEMBER_ID>`, or `r:<8 hex>` — a hash of the
+first email (or name) — for the 2019–2020 rows that have no `MEMBER_ID`. Keys carry no PII.
+
 **Every household created** gets `fcmc_source = legacy-2020` and the run's `import_batch`.
 
 **Claim flow is unchanged.** When a lapsed member returns and claims their household, history
@@ -160,6 +165,10 @@ preference are **not** copied — the member chooses them fresh on the signup fo
   unchanged.
 - **No new columns.** `legacy_member_id`, `home_area`, `birthdays` are shown in the existing row
   detail / mobile card. Backfilled `member_since` appears in the existing Member since column.
+
+- **Needs linking** lists only households that are expected to get an account: legacy-2020
+  households that aren't current are summarised as "plus N former members" instead of listed one by
+  one. They stay selectable in the Link control.
 
 `fcmc-households.php`: the household edit meta box shows and saves the new officer-only fields.
 
@@ -181,7 +190,7 @@ challenge. SSH work follows the load rules in `docs/sites.md` (one batched sessi
 ## § 7 — Delivery
 
 Branch `feature/fcmc-legacy-import` from `develop`. firstcoastmiataclub.org is live, so the change
-ships as a release: deploy the three mu-plugins over SSH, byte-check against the repo, then merge to
+ships as a release: deploy the four mu-plugins (three changed + the new library) over SSH, byte-check against the repo, then merge to
 `main` and `develop`.
 
 ## § 8 — Testing
