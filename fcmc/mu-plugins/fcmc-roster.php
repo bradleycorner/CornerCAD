@@ -809,7 +809,11 @@ function fcmc_render_needs_linking() {
 		?>
 	</h3>
 	<?php if ( empty( $unclaimed_to_list ) ) : ?>
-		<p><?php esc_html_e( 'None — every household is linked to an account.', 'fcmc' ); ?></p>
+		<?php if ( $former_count > 0 ) : ?>
+			<p><?php esc_html_e( 'None needing attention.', 'fcmc' ); ?></p>
+		<?php else : ?>
+			<p><?php esc_html_e( 'None — every household is linked to an account.', 'fcmc' ); ?></p>
+		<?php endif; ?>
 	<?php else : ?>
 		<ul>
 			<?php foreach ( $unclaimed_to_list as $h ) : ?>
