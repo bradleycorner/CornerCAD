@@ -545,9 +545,16 @@ function fcmc_legacy_enrich( int $hid, array $d, array &$log ): void {
 
 	$uid = (int) $h['claimed_by'];
 	if ( $uid ) {
+		$before = count( $log['changes'] );
 		fcmc_legacy_user_since( $uid, (string) $d['member_since'], $log );
-		if ( $paid_changed ) {
-			fcmc_household_sync_to_user( $hid );
+		if ( '' !== (string) $d['paid_through'] ) {
+			$floor = (string) get_user_meta( $uid, 'fcmc_paid_through_manual', true );
+			if ( '' === $floor || $d['paid_through'] > $floor ) {
+				fcmc_legacy_set( 'user', $uid, 'fcmc_paid_through_manual', $d['paid_through'], $log );
+			}
+		}
+		if ( count( $log['changes'] ) > $before && function_exists( 'fcmc_recompute_member' ) ) {
+			fcmc_recompute_member( $uid );
 		}
 	}
 }
@@ -626,9 +633,6 @@ function fcmc_legacy_undo( string $batch, bool $dry ): array {
 		} else {
 			'post' === $c['t'] ? delete_post_meta( $c['id'], $c['k'] ) : delete_user_meta( $c['id'], $c['k'] );
 		}
-		if ( 'post' === $c['t'] && 'paid_through' === $c['k'] ) {
-			fcmc_household_sync_to_user( (int) $c['id'] );
-		}
 		if ( 'user' === $c['t'] && function_exists( 'fcmc_recompute_member' ) ) {
 			fcmc_recompute_member( (int) $c['id'] );
 		}
@@ -636,6 +640,16 @@ function fcmc_legacy_undo( string $batch, bool $dry ): array {
 
 	foreach ( $log['created'] as $hid ) {
 		if ( ! get_post( $hid ) ) {
+			continue;
+		}
+		$expected = 0;
+		foreach ( $log['changes'] as $c ) {
+			if ( 'user' === $c['t'] && 'fcmc_household_id' === $c['k'] && (int) $c['new'] === (int) $hid ) {
+				$expected = (int) $c['id'];
+			}
+		}
+		if ( (int) get_post_meta( $hid, 'claimed_by', true ) !== $expected ) {
+			$r['conflicts'][] = "household {$hid} was claimed since import — left as is";
 			continue;
 		}
 		$r['deleted']++;
