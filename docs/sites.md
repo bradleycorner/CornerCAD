@@ -36,9 +36,18 @@ Bradley's consumer store for 3D-printed and laser-engraved products. **Live stor
 ## First Coast Miata Club — fcmc-dev.cornerfamily.com
 Car club site being migrated off GoDaddy. Membership, households, roster and newsletters are built as
 custom **mu-plugins**.
-- **Repo:** `fcmc/mu-plugins/*.php` (deployed copies; 6 files byte-match the server except a one-word
-  comment difference in `fcmc-membership-registration.php`), `fcmc/README.md`,
-  `docs/superpowers/specs|plans/*fcmc*`.
+- **Repo:** `fcmc/mu-plugins/*.php` (deployed copies; all 8 byte-match the server as of the
+  2026-10-04 release), `fcmc/README.md`, `docs/superpowers/specs|plans/*fcmc*`.
+- **2026-10-04 — member history imported.** The 1991–2020 sheet added 110 former-member households
+  and backfilled join dates (see `fcmc/README.md` → *Legacy history import*). The roster defaults to
+  current members. 2021–2025 still has no source.
+- **2026-10-04 — officers and signup spam.** Seven officer accounts created (role
+  `membership_officer`; no emails sent — they sign in via *Lost password*); the leftover bare
+  `member` role was deleted. ~10 bot signups (random-string names) were removed, and the My Account
+  signup now has a hidden honeypot plus a "What car is this club about?" question. Contact Form 7 is
+  the only form plugin in use (WPForms disabled); Akismet needs a paid plan for this site.
+- **MCP vs SSH:** the `fcmc-dev` MCP worked again on 2026-10-04 afternoon (Bluehost challenge off for
+  it). Use `wp_list_plugins_detailed` for plugins rather than SQL.
 - **mu-plugins are invisible to MCP** — deploy and inspect them over SSH only.
 - The `fcmc-dev` MCP has the extra read-only-by-default `wp_db_query` tool (other sites don't).
 - **2026-10-04:** live at **`firstcoastmiataclub.org`** since 2026-09-30 (DNS at Bluehost). Email is Proton
