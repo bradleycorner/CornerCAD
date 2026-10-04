@@ -245,8 +245,19 @@ bypasses draft → verify → publish, post revisions, and the git-mirrored bloc
 `content/blocks/`, on a live store. Same principle as global `CLAUDE.md` rule #7 (typed FreeCAD
 tools before `execute_python`).
 
-*Read-only* SQL via `wp_db_query` is the exception and is **encouraged** as a verification channel,
-given how often these tools return plausible-but-wrong values. Two disciplines apply, because the
+**Reads go through typed tools too (Bradley, 2026-10-04).** Check for a typed tool before reaching for
+`wp_db_query` or SSH — they exist for most questions:
+
+| Question | Tool |
+|---|---|
+| Installed / active plugins | `wp_list_plugins_detailed` |
+| Users and roles | `wp_get_users` (no registration date, but IDs only increase) |
+| Pages, posts, which page holds a form | `wp_get_posts` (`search`) / `wp_get_post` |
+| Settings | `wp_get_option` (`raw: true` where caching misleads) |
+
+*Read-only* SQL via `wp_db_query` is for what no typed tool can answer — and for cross-checking a
+typed tool suspected of returning a plausible-but-wrong value (e.g. `wp_count_media`). Say so when
+using it. SSH is for mu-plugins, WP-CLI commands, or when MCP is down. Two disciplines apply, because the
 2026-07-28 account-wide outage was caused by request/process volume on the shared CloudLinux cage
 and this module makes issuing queries frictionless:
 - **Batch.** Fold multiple checks into one statement (`UNION ALL`) rather than looping.
