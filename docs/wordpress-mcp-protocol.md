@@ -235,6 +235,10 @@ work actually lives.
 write tools plus the 5 `woocommerce-uclc` writers, each name checked against the live server's
 advertised list; the 38 ungated `uclc` tools are all reads. Rules now total **179**.
 
+**2026-10-04 — `uclc` grew 4 tools, gated.** `uclc` now advertises `wp_install_plugin`,
+`wp_install_theme`, `wp_update_plugin`, `wp_update_theme` (not present on `cornercad-com` or
+`fcmc-dev`). All four arrived ungated and were added to `permissions.ask`.
+
 ### Standing rule
 Prefer typed tools. **Treat direct database/SQL access as a last resort for WRITES** — raw SQL
 bypasses draft → verify → publish, post revisions, and the git-mirrored block markup in
