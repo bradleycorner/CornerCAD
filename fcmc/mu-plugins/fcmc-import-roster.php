@@ -529,10 +529,8 @@ function fcmc_legacy_enrich( int $hid, array $d, array &$log ): void {
 	if ( '' !== $d['member_since'] && ( '' === (string) $h['member_since'] || $d['member_since'] < $h['member_since'] ) ) {
 		fcmc_legacy_set( 'post', $hid, 'member_since', $d['member_since'], $log );
 	}
-	$paid_changed = false;
 	if ( '' !== $d['paid_through'] && $d['paid_through'] > (string) $h['paid_through'] ) {
 		fcmc_legacy_set( 'post', $hid, 'paid_through', $d['paid_through'], $log );
-		$paid_changed = true;
 	}
 	foreach ( fcmc_legacy_history_keys() as $k ) {
 		if ( '' !== (string) $d[ $k ] && '' === (string) get_post_meta( $hid, $k, true ) ) {
