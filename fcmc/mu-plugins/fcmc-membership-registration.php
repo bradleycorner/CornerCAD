@@ -192,6 +192,54 @@ add_filter( 'woocommerce_registration_errors', function ( $errors, $username, $e
 	return $errors;
 }, 10, 3 );
 
+/* -------------------------------------------------------------------------
+ * Signup bot protection (added 2026-10-04 after ~10 bot accounts in 3 days,
+ * each filling every field with random strings).
+ *
+ * - Honeypot: a field people never see. Bots fill every input, so any value
+ *   means a bot.
+ * - Club question: "What car is this club about?" — Miata / MX-5, any case.
+ *
+ * Enforced on woocommerce_process_registration_errors, which fires only for the
+ * My Account registration form — never for an account created at checkout,
+ * where these fields aren't rendered.
+ * ---------------------------------------------------------------------- */
+
+const FCMC_HONEYPOT_FIELD = 'fcmc_company_website';
+
+add_action( 'woocommerce_register_form', function () {
+	$answer = isset( $_POST['fcmc_club_question'] ) ? sanitize_text_field( wp_unslash( $_POST['fcmc_club_question'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+	?>
+	<p class="woocommerce-form-row woocommerce-form-row--wide form-row form-row-wide">
+		<label for="fcmc_club_question"><?php esc_html_e( 'What car is this club about?', 'fcmc' ); ?>&nbsp;<span class="required" aria-hidden="true">*</span></label>
+		<input type="text" class="woocommerce-Input input-text" name="fcmc_club_question" id="fcmc_club_question" value="<?php echo esc_attr( $answer ); ?>" autocomplete="off" required aria-required="true" />
+	</p>
+	<div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+		<label for="<?php echo esc_attr( FCMC_HONEYPOT_FIELD ); ?>"><?php esc_html_e( 'Leave this field empty', 'fcmc' ); ?></label>
+		<input type="text" name="<?php echo esc_attr( FCMC_HONEYPOT_FIELD ); ?>" id="<?php echo esc_attr( FCMC_HONEYPOT_FIELD ); ?>" value="" tabindex="-1" autocomplete="off" />
+	</div>
+	<?php
+}, 30 );
+
+/** True when the answer names the club's car: "Miata", "MX-5", "mx5", "Mazda Miata"… */
+function fcmc_club_question_ok( string $answer ): bool {
+	$a = strtolower( preg_replace( '/[^a-z0-9]/i', '', $answer ) );
+	return false !== strpos( $a, 'miata' ) || false !== strpos( $a, 'mx5' );
+}
+
+add_filter( 'woocommerce_process_registration_errors', function ( $errors ) {
+	// phpcs:disable WordPress.Security.NonceVerification -- WooCommerce verified its own registration nonce before this filter.
+	$honeypot = isset( $_POST[ FCMC_HONEYPOT_FIELD ] ) ? trim( (string) wp_unslash( $_POST[ FCMC_HONEYPOT_FIELD ] ) ) : '';
+	$answer   = isset( $_POST['fcmc_club_question'] ) ? sanitize_text_field( wp_unslash( $_POST['fcmc_club_question'] ) ) : '';
+	// phpcs:enable
+	if ( '' !== $honeypot ) {
+		$errors->add( 'fcmc_signup_blocked', __( 'Sorry, we could not create your account. Please contact the club if this keeps happening.', 'fcmc' ) );
+	} elseif ( ! fcmc_club_question_ok( $answer ) ) {
+		$errors->add( 'fcmc_club_question_error', __( 'Please answer the club question — hint: it’s a small Mazda roadster.', 'fcmc' ) );
+	}
+	return $errors;
+} );
+
 function fcmc_save_account_fields( $user_id ) {
 	foreach ( fcmc_account_fields() as $key => $field ) {
 		if ( 'checkbox' === $field['type'] ) {

@@ -14,6 +14,7 @@ there is no activation step, and they cannot be deactivated from wp-admin.
 | `fcmc-membership-registration.php` | Account-level member fields on the WooCommerce register / edit-account forms, plus `[fcmc_membership_signup]` — lets a logged-in member declare how many car-memberships they are buying, fill in each car, and adds one cart line per car with its own meta before checkout. |
 | `fcmc-membership-lifecycle.php` | §1 of the membership design — `fcmc_paid_through()`, the derived active/grace/lapsed status, and the three cached fields on the WP user (`fcmc_paid_through`, `fcmc_status`, `fcmc_member_since`). Order hooks keep the cache honest in both directions; a nightly job refreshes status; `wp fcmc recompute [user_id]` rebuilds from order history. |
 | `fcmc-roster.php` | §2 — the officer-facing **Club Roster**, as a My Account tab rather than a wp-admin screen. Adds the `membership_officer` role and the `fcmc_manage_members` capability. |
+| `fcmc-legacy-lib.php` | WordPress-free logic behind `wp fcmc import-legacy` (reading, translating, merging and deciding sheet rows). Unit-tested locally; see *Legacy history import* below. Removable after the migration. |
 | `fcmc-newsletter-display.php` | `[fcmc_latest_newsletter]` and `[fcmc_newsletter_archive]`. Reads `Vol-XX-Issue-YY-*.pdf` straight from the Media Library, so uploading a new issue is the only step — the Newsletters page never needs editing. |
 
 ### Deploying
@@ -36,6 +37,42 @@ deploy silently reverts it.
 - **WP Mail SMTP settings** — database option containing the Proton SMTP token. Must never be
   committed; read individual non-secret keys rather than the whole option.
 - **Member data** — see `.gitignore`. This repo is public.
+
+## Legacy history import (1991–2020) — run 2026-10-04
+
+`wp fcmc import-legacy` (in `fcmc-import-roster.php`, logic in the WordPress-free
+`fcmc-legacy-lib.php`) loads the club's old membership sheet as `fcmc_household` posts.
+Spec: `docs/superpowers/specs/2026-10-04-fcmc-legacy-member-import-design.md`.
+
+```bash
+cd ~/public_html/fcmc-dev && W="/opt/cpanel/ea-php83/root/usr/bin/php /usr/local/bin/wp"
+$W fcmc import-legacy ~/fcmc-import/<sheet>.csv --overrides=~/fcmc-import/<overrides>.csv --dry-run
+$W fcmc import-legacy --undo=<batch> --dry-run
+```
+
+- **Matching is email only.** Same-name rows are reported as `near-match`, never acted on. The
+  overrides CSV (`key,action,target`; keys like `id:632` or `r:1a2b3c4d`; actions `link-household`,
+  `link-user`, `skip`) settles them; unknown keys are reported as "matched no row".
+- **2026 data wins:** existing households/accounts only gain history (earlier `member_since`, later
+  paid-through, empty history fields, cars if none). Contact details, consents and newsletter
+  preference are never changed.
+- **Re-runs are safe:** created households carry `legacy_row_key`, so a second run enriches instead
+  of duplicating. A 2021–2025 file would be one more run of the same command.
+- **Undo** reads option `fcmc_legacy_import_log` (saved after every row). It keeps households a member
+  has claimed since and values an officer has edited since, and reports them. ⚠️ The option holds old
+  and new member values — never `wp option get` it unfiltered; delete it when the undo window closes.
+- **PII:** the report prints row keys, `h:`/`u:` IDs and counts only. The sheet lives in
+  `~/Documents/FCMC-private/` and is deleted from the server after each run. Tests (synthetic data):
+  `php fcmc/tests/test-legacy-lib.php`.
+
+**The 2026-10-04 run** (batch `legacy-20261004T164118Z`): 132 rows → 110 new former-member
+households, 2 linked to existing accounts (#632, #001), 15 existing households enriched, 7 skipped
+(5 with no name/contact, plus 2 by override). The undo log was deleted the same day once accepted.
+Open: sheet row `id:560` held back pending a decision (same name as household 502); 2021–2025 has no
+source yet.
+
+The roster now defaults to **Current members** (active + grace); **All (complete history)** shows
+former members, and Needs-linking summarises them as "Plus N former members".
 
 ## Launch checklist
 

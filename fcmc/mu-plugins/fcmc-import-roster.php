@@ -418,3 +418,310 @@ WP_CLI::add_command( 'fcmc import-roster', function ( $args, $assoc ) {
 
 	WP_CLI::success( $dry ? 'Dry run complete — nothing written.' : 'Import complete.' );
 } );
+
+/* ===========================================================================
+ * Legacy member history import (1991–2020 sheet).
+ * Pure logic: fcmc-legacy-lib.php. This section only touches WordPress.
+ * @see docs/superpowers/specs/2026-10-04-fcmc-legacy-member-import-design.md
+ * ======================================================================== */
+
+/**
+ * Email, name and legacy-row-key indexes over live households and users. A user with a household is
+ * that household. The key index maps `legacy_row_key` (written on households this import created) to
+ * the household, so an email-less row finds its own household on a re-run.
+ */
+function fcmc_legacy_build_index(): array {
+	$email = array();
+	$name  = array();
+	$key   = array();
+	$add   = function ( array &$map, string $k, string $t ): void {
+		if ( '' !== $k && '|' !== $k ) {
+			$map[ $k ][ $t ] = true;
+		}
+	};
+
+	foreach ( fcmc_household_all() as $hid ) {
+		$t = 'h:' . $hid;
+		foreach ( array( 'member1_email', 'member2_email' ) as $k ) {
+			$add( $email, fcmc_normalize_email( get_post_meta( $hid, $k, true ) ), $t );
+		}
+		$add( $name, fcmc_legacy_name_key_from_full( (string) get_post_meta( $hid, 'member1_name', true ) ), $t );
+		$add( $key, trim( (string) get_post_meta( $hid, 'legacy_row_key', true ) ), $t );
+	}
+	foreach ( get_users( array( 'fields' => 'all' ) ) as $u ) {
+		$hid = (int) get_user_meta( $u->ID, 'fcmc_household_id', true );
+		$t   = $hid ? 'h:' . $hid : 'u:' . $u->ID;
+		$add( $email, fcmc_normalize_email( $u->user_email ), $t );
+		$add( $email, fcmc_normalize_email( (string) get_user_meta( $u->ID, 'fcmc_member2_email', true ) ), $t );
+		$add( $name, strtolower( trim( $u->last_name ) . '|' . trim( $u->first_name ) ), $t );
+	}
+
+	$flat = function ( array $m ): array {
+		return array_map( 'array_keys', $m );
+	};
+	return array( $flat( $email ), $flat( $name ), $flat( $key ) );
+}
+
+/** Turn actions whose target no longer fits into skips (bad override, or two rows claiming one user). */
+function fcmc_legacy_validate_targets( array $actions ): array {
+	$users_taken = array();
+	foreach ( $actions as &$a ) {
+		if ( 'enrich' === $a['type'] && ( 'fcmc_household' !== get_post_type( (int) $a['target'] ) || 'publish' !== get_post_status( (int) $a['target'] ) ) ) {
+			$a['type']   = 'skip';
+			$a['reason'] = 'bad-target';
+		}
+		if ( 'create_linked' === $a['type'] ) {
+			$uid = (int) $a['target'];
+			if ( ! get_userdata( $uid ) || get_user_meta( $uid, 'fcmc_household_id', true ) || isset( $users_taken[ $uid ] ) ) {
+				$a['type']   = 'skip';
+				$a['reason'] = 'bad-target';
+			} else {
+				$users_taken[ $uid ] = true;
+			}
+		}
+	}
+	unset( $a );
+	return $actions;
+}
+
+/** Write one meta value and record what was there, so --undo can put it back. */
+function fcmc_legacy_set( string $type, int $id, string $key, $new, array &$log ): void {
+	$had = metadata_exists( $type, $id, $key );
+	$old = $had ? ( 'post' === $type ? get_post_meta( $id, $key, true ) : get_user_meta( $id, $key, true ) ) : null;
+	$log['changes'][] = array( 't' => $type, 'id' => $id, 'k' => $key, 'had' => $had, 'old' => $old, 'new' => $new );
+	if ( 'post' === $type ) {
+		update_post_meta( $id, $key, $new );
+	} else {
+		update_user_meta( $id, $key, $new );
+	}
+}
+
+/** member_since on a user only ever moves earlier. */
+function fcmc_legacy_user_since( int $uid, string $since, array &$log ): void {
+	if ( '' === $since ) {
+		return;
+	}
+	$cur = (string) get_user_meta( $uid, 'fcmc_member_since', true );
+	if ( '' === $cur || $since < $cur ) {
+		fcmc_legacy_set( 'user', $uid, 'fcmc_member_since', $since, $log );
+	}
+}
+
+/** Logged user-side paid-through floor (`fcmc_paid_through_manual`): only when empty or the legacy date is later. */
+function fcmc_legacy_user_floor( int $uid, string $paid_through, array &$log ): void {
+	if ( '' === $paid_through ) {
+		return;
+	}
+	$floor = (string) get_user_meta( $uid, 'fcmc_paid_through_manual', true );
+	if ( '' === $floor || $paid_through > $floor ) {
+		fcmc_legacy_set( 'user', $uid, 'fcmc_paid_through_manual', $paid_through, $log );
+	}
+}
+
+/** Create a legacy household. Title is the member's name, never an email. */
+function fcmc_legacy_create_household( array $d, string $row_key, string $batch, array &$log ): int {
+	$hid = wp_insert_post( array(
+		'post_type'   => 'fcmc_household',
+		'post_status' => 'publish',
+		'post_title'  => '' !== $d['member1_name'] ? $d['member1_name'] : 'Household (legacy)',
+		'post_author' => 0,
+	), true );
+	if ( is_wp_error( $hid ) ) {
+		throw new RuntimeException( 'Household insert failed: ' . $hid->get_error_message() );
+	}
+	$hid = (int) $hid;
+	foreach ( $d as $k => $v ) {
+		update_post_meta( $hid, $k, $v );
+	}
+	update_post_meta( $hid, 'fcmc_source', FCMC_LEGACY_SOURCE );
+	update_post_meta( $hid, 'import_batch', $batch );
+	update_post_meta( $hid, 'legacy_row_key', $row_key ); // lets an email-less row find this household on a re-run
+	$log['created'][] = $hid;
+	return $hid;
+}
+
+/** Enrich an existing household: history only, 2026 data wins (spec § 3). */
+function fcmc_legacy_enrich( int $hid, array $d, array &$log ): void {
+	$h = fcmc_household_get( $hid );
+
+	if ( '' !== $d['member_since'] && ( '' === (string) $h['member_since'] || $d['member_since'] < $h['member_since'] ) ) {
+		fcmc_legacy_set( 'post', $hid, 'member_since', $d['member_since'], $log );
+	}
+	if ( '' !== $d['paid_through'] && $d['paid_through'] > (string) $h['paid_through'] ) {
+		fcmc_legacy_set( 'post', $hid, 'paid_through', $d['paid_through'], $log );
+	}
+	foreach ( fcmc_legacy_history_keys() as $k ) {
+		if ( '' !== (string) $d[ $k ] && '' === (string) get_post_meta( $hid, $k, true ) ) {
+			fcmc_legacy_set( 'post', $hid, $k, $d[ $k ], $log );
+		}
+	}
+	if ( ! empty( $d['cars'] ) && empty( $h['cars'] ) ) {
+		fcmc_legacy_set( 'post', $hid, 'cars', $d['cars'], $log );
+	}
+
+	$uid = (int) $h['claimed_by'];
+	if ( $uid ) {
+		$before = count( $log['changes'] );
+		fcmc_legacy_user_since( $uid, (string) $d['member_since'], $log );
+		fcmc_legacy_user_floor( $uid, (string) $d['paid_through'], $log );
+		if ( count( $log['changes'] ) > $before && function_exists( 'fcmc_recompute_member' ) ) {
+			fcmc_recompute_member( $uid );
+		}
+	}
+}
+
+/** Link a household created this batch to an existing account. The account's own data is untouched. */
+function fcmc_legacy_link_user( int $hid, int $uid, array $d, array &$log ): void {
+	update_post_meta( $hid, 'claimed_by', $uid ); // household is new this batch; undo deletes it
+	fcmc_legacy_set( 'user', $uid, 'fcmc_household_id', $hid, $log );
+	fcmc_legacy_user_since( $uid, (string) $d['member_since'], $log );
+	fcmc_legacy_user_floor( $uid, (string) $d['paid_through'], $log );
+	if ( function_exists( 'fcmc_recompute_member' ) ) {
+		fcmc_recompute_member( $uid );
+	}
+}
+
+/** Execute actions. Dry run writes nothing. Returns per-type counts. */
+function fcmc_legacy_apply( array $actions, string $batch, bool $dry ): array {
+	$log    = array( 'created' => array(), 'changes' => array() );
+	$errors = 0;
+	$all    = get_option( 'fcmc_legacy_import_log', array() );
+	$all    = is_array( $all ) ? $all : array();
+	foreach ( $actions as $a ) {
+		if ( $dry || 'skip' === $a['type'] ) {
+			continue;
+		}
+		try {
+			$d = $a['row']['data'];
+			if ( 'enrich' === $a['type'] ) {
+				fcmc_legacy_enrich( (int) $a['target'], $d, $log );
+				continue;
+			}
+			$hid = fcmc_legacy_create_household( $d, (string) $a['row']['key'], $batch, $log );
+			if ( 'create_linked' === $a['type'] ) {
+				fcmc_legacy_link_user( $hid, (int) $a['target'], $d, $log );
+			}
+		} catch ( \Throwable $e ) {
+			$errors++;
+			WP_CLI::warning( sprintf( 'Row %s failed and was skipped: %s', $a['row']['key'], $e->getMessage() ) );
+		} finally {
+			// Persist after every action (including partial ones) so a fatal mid-run still leaves an undo record.
+			$all[ $batch ] = $log;
+			update_option( 'fcmc_legacy_import_log', $all, false );
+		}
+	}
+	return array( 'errors' => $errors, 'created' => count( $log['created'] ), 'changes' => count( $log['changes'] ) );
+}
+
+/** Same value? Arrays compared loosely, scalars as strings (meta round-trips ints as strings). */
+function fcmc_legacy_same( $a, $b ): bool {
+	return ( is_array( $a ) || is_array( $b ) ) ? $a == $b : (string) $a === (string) $b; // phpcs:ignore Universal.Operators.StrictComparisons
+}
+
+/** Reverse one batch. Values changed since the batch are reported, never reverted. */
+function fcmc_legacy_undo( string $batch, bool $dry ): array {
+	$all = get_option( 'fcmc_legacy_import_log', array() );
+	if ( ! is_array( $all ) || ! isset( $all[ $batch ] ) ) {
+		throw new RuntimeException( "Unknown batch: {$batch}" );
+	}
+	$log = $all[ $batch ];
+	$r   = array( 'deleted' => 0, 'restored' => 0, 'conflicts' => array() );
+
+	foreach ( array_reverse( $log['changes'] ) as $c ) {
+		if ( 'post' === $c['t'] && in_array( (int) $c['id'], $log['created'], true ) ) {
+			continue; // the whole household goes below
+		}
+		$cur = 'post' === $c['t'] ? get_post_meta( $c['id'], $c['k'], true ) : get_user_meta( $c['id'], $c['k'], true );
+		if ( ! fcmc_legacy_same( $cur, $c['new'] ) ) {
+			$r['conflicts'][] = "{$c['t']} {$c['id']} {$c['k']} changed since import — left as is";
+			continue;
+		}
+		$r['restored']++;
+		if ( $dry ) {
+			continue;
+		}
+		if ( $c['had'] ) {
+			'post' === $c['t'] ? update_post_meta( $c['id'], $c['k'], $c['old'] ) : update_user_meta( $c['id'], $c['k'], $c['old'] );
+		} else {
+			'post' === $c['t'] ? delete_post_meta( $c['id'], $c['k'] ) : delete_user_meta( $c['id'], $c['k'] );
+		}
+		if ( 'user' === $c['t'] && function_exists( 'fcmc_recompute_member' ) ) {
+			fcmc_recompute_member( (int) $c['id'] );
+		}
+	}
+
+	foreach ( $log['created'] as $hid ) {
+		if ( ! get_post( $hid ) ) {
+			continue;
+		}
+		$expected = 0;
+		foreach ( $log['changes'] as $c ) {
+			if ( 'user' === $c['t'] && 'fcmc_household_id' === $c['k'] && (int) $c['new'] === (int) $hid ) {
+				$expected = (int) $c['id'];
+			}
+		}
+		if ( (int) get_post_meta( $hid, 'claimed_by', true ) !== $expected ) {
+			$r['conflicts'][] = "household {$hid} was claimed since import — left as is";
+			continue;
+		}
+		$r['deleted']++;
+		if ( ! $dry ) {
+			wp_delete_post( $hid, true );
+		}
+	}
+
+	if ( ! $dry ) {
+		unset( $all[ $batch ] );
+		update_option( 'fcmc_legacy_import_log', $all, false );
+	}
+	return $r;
+}
+
+WP_CLI::add_command( 'fcmc import-legacy', function ( $args, $assoc ) {
+	$dry = ! empty( $assoc['dry-run'] );
+
+	if ( ! empty( $assoc['undo'] ) ) {
+		try {
+			$r = fcmc_legacy_undo( (string) $assoc['undo'], $dry );
+		} catch ( \Throwable $e ) {
+			WP_CLI::error( $e->getMessage() );
+		}
+		WP_CLI::log( sprintf( '%sdeleted households: %d, restored values: %d, conflicts: %d', $dry ? '[DRY RUN] ' : '', $r['deleted'], $r['restored'], count( $r['conflicts'] ) ) );
+		foreach ( $r['conflicts'] as $line ) {
+			WP_CLI::log( $line );
+		}
+		WP_CLI::success( $dry ? 'Undo dry run complete — nothing written.' : 'Undo complete.' );
+		return;
+	}
+
+	$path = (string) ( $args[0] ?? '' );
+	if ( ! is_readable( $path ) ) {
+		WP_CLI::error( "Cannot read: {$path}" );
+	}
+	$overrides = array( 'valid' => array(), 'invalid' => array() );
+	if ( ! empty( $assoc['overrides'] ) ) {
+		if ( ! is_readable( $assoc['overrides'] ) ) {
+			WP_CLI::error( 'Cannot read overrides file.' );
+		}
+		$ov_rows = fcmc_legacy_read_csv( $assoc['overrides'] );
+		if ( $ov_rows && ! array_key_exists( 'key', $ov_rows[0] ) ) {
+			WP_CLI::error( 'Overrides file must have columns key,action,target' );
+		}
+		$overrides = fcmc_legacy_parse_overrides( $ov_rows );
+	}
+
+	$merged             = fcmc_legacy_merge_duplicates( array_map( 'fcmc_legacy_map_row', fcmc_legacy_read_csv( $path ) ) );
+	list( $ei, $ni, $ki ) = fcmc_legacy_build_index();
+	$actions            = fcmc_legacy_validate_targets( fcmc_legacy_decide( $merged['rows'], $ei, $ni, $overrides['valid'], $ki ) );
+	$batch              = 'legacy-' . gmdate( 'Ymd\THis\Z' );
+	$result             = fcmc_legacy_apply( $actions, $batch, $dry );
+
+	foreach ( fcmc_legacy_report_lines( $actions, $merged['merges'], $overrides['invalid'], array_keys( $overrides['valid'] ) ) as $line ) {
+		WP_CLI::log( ( $dry ? '[DRY RUN] ' : '' ) . $line );
+	}
+	foreach ( fcmc_legacy_sanity_lines( $actions, current_time( 'Y-m-d' ) ) as $line ) {
+		WP_CLI::log( ( $dry ? '[DRY RUN] ' : '' ) . $line );
+	}
+	WP_CLI::log( sprintf( 'rows read: %d, households created: %d, values written: %d, errors: %d', count( $actions ) + count( $merged['merges'] ), $result['created'], $result['changes'], $result['errors'] ) );
+	WP_CLI::success( $dry ? 'Dry run complete — nothing written.' : "Import complete. Batch {$batch} (undo: wp fcmc import-legacy --undo={$batch})" );
+} );

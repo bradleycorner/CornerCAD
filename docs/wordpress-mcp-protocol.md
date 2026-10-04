@@ -230,6 +230,11 @@ caches — the module's own description says so.
 **It does not replace SSH.** SQL cannot touch mu-plugins or plugin/theme PHP, which is where FCMC
 work actually lives.
 
+**2026-09-27 — `uclc` gated too.** Lisa's store had **no** `permissions.ask` rules at all, so every
+`mcp__uclc__*` write (incl. `wc_create_refund`, `wp_switch_theme`) ran unprompted. Added all 56 `uclc`
+write tools plus the 5 `woocommerce-uclc` writers, each name checked against the live server's
+advertised list; the 38 ungated `uclc` tools are all reads. Rules now total **179**.
+
 ### Standing rule
 Prefer typed tools. **Treat direct database/SQL access as a last resort for WRITES** — raw SQL
 bypasses draft → verify → publish, post revisions, and the git-mirrored block markup in
