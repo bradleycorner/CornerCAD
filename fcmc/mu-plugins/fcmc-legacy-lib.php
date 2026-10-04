@@ -259,9 +259,26 @@ function fcmc_legacy_min_date( string $a, string $b ): string {
 	return '' === $b ? $a : min( $a, $b );
 }
 
+/** Merge a source row into a destination row; return the merged destination. */
+function fcmc_legacy_merge_into( array $keep, array $row ): array {
+	foreach ( $row['data'] as $k => $v ) {
+		if ( 'member_since' === $k ) {
+			$keep['data'][ $k ] = fcmc_legacy_min_date( (string) $keep['data'][ $k ], (string) $v );
+		} elseif ( 'paid_through' === $k ) {
+			$keep['data'][ $k ] = max( (string) $keep['data'][ $k ], (string) $v );
+		} elseif ( ( '' === $keep['data'][ $k ] || array() === $keep['data'][ $k ] ) && '' !== $v && array() !== $v ) {
+			$keep['data'][ $k ] = $v;
+		}
+	}
+	$keep['emails']   = array_values( array_unique( array_merge( $keep['emails'], $row['emails'] ) ) );
+	$keep['warnings'] = array_merge( $keep['warnings'], $row['warnings'] );
+	return $keep;
+}
+
 /**
  * Merge rows that share any email (the same person entered twice). Earliest member_since,
  * latest paid_through, first non-empty value for everything else. Skipped rows pass through.
+ * Transitive: rows A(a), B(b), C(a,b) merge into one. Merge all hits into earliest hit row.
  */
 function fcmc_legacy_merge_duplicates( array $rows ): array {
 	$out      = array();
@@ -273,14 +290,19 @@ function fcmc_legacy_merge_duplicates( array $rows ): array {
 			$out[] = $row;
 			continue;
 		}
-		$hit = null;
+
+		// Find all distinct output rows that share an email with this row.
+		$hits = array();
 		foreach ( $row['emails'] as $e ) {
 			if ( isset( $by_email[ $e ] ) ) {
-				$hit = $by_email[ $e ];
-				break;
+				$idx      = $by_email[ $e ];
+				$hits[$idx] = true;
 			}
 		}
-		if ( null === $hit ) {
+		$hits = array_keys( $hits );
+
+		if ( empty( $hits ) ) {
+			// No email match; add as new row.
 			$out[] = $row;
 			$i     = count( $out ) - 1;
 			foreach ( $row['emails'] as $e ) {
@@ -289,23 +311,49 @@ function fcmc_legacy_merge_duplicates( array $rows ): array {
 			continue;
 		}
 
-		$merges[] = array( $out[ $hit ]['key'], $row['key'] );
-		$keep     = $out[ $hit ];
-		foreach ( $row['data'] as $k => $v ) {
-			if ( 'member_since' === $k ) {
-				$keep['data'][ $k ] = fcmc_legacy_min_date( (string) $keep['data'][ $k ], (string) $v );
-			} elseif ( 'paid_through' === $k ) {
-				$keep['data'][ $k ] = max( (string) $keep['data'][ $k ], (string) $v );
-			} elseif ( ( '' === $keep['data'][ $k ] || array() === $keep['data'][ $k ] ) && '' !== $v && array() !== $v ) {
-				$keep['data'][ $k ] = $v;
+		// Merge all hit rows and incoming row into the earliest hit row.
+		sort( $hits );
+		$keep_idx = $hits[0];
+		$keep     = $out[ $keep_idx ];
+
+		// Record merge of incoming row first.
+		$merges[] = array( $keep['key'], $row['key'] );
+		$keep     = fcmc_legacy_merge_into( $keep, $row );
+
+		// Then merge other hit rows into the kept row.
+		foreach ( array_slice( $hits, 1 ) as $hit_idx ) {
+			$merges[] = array( $keep['key'], $out[ $hit_idx ]['key'] );
+			$keep     = fcmc_legacy_merge_into( $keep, $out[ $hit_idx ] );
+		}
+
+		// Update kept row in output.
+		$out[ $keep_idx ] = $keep;
+
+		// Repoint all emails (from kept, absorbed, and incoming rows) to kept row.
+		foreach ( $keep['emails'] as $e ) {
+			$by_email[ $e ] = $keep_idx;
+		}
+
+		// Remove absorbed rows (other hit rows) from $out and repoint indices.
+		$absorbed = array_slice( $hits, 1 );
+		rsort( $absorbed );
+		foreach ( $absorbed as $hit_idx ) {
+			unset( $out[ $hit_idx ] );
+		}
+		$out = array_values( $out );
+
+		// Update $by_email to reflect new indices.
+		$by_email = array();
+		foreach ( $out as $i => $r ) {
+			if ( null === $r['skip'] ) {
+				foreach ( $r['emails'] as $e ) {
+					$by_email[ $e ] = $i;
+				}
 			}
 		}
-		$keep['emails']   = array_values( array_unique( array_merge( $keep['emails'], $row['emails'] ) ) );
-		$keep['warnings'] = array_merge( $keep['warnings'], $row['warnings'] );
-		$out[ $hit ]      = $keep;
-		foreach ( $keep['emails'] as $e ) {
-			$by_email[ $e ] = $hit;
-		}
+
+		// Adjust keep_idx to new position.
+		$keep_idx = array_search( $keep, $out, true );
 	}
 
 	return array( 'rows' => $out, 'merges' => $merges );

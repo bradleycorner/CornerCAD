@@ -148,6 +148,20 @@ check( 'merge keeps first non-empty', $merged['rows'][0]['data']['home_area'], '
 check( 'merge emails union', $merged['rows'][0]['emails'], array( 'pat@example.invalid', 'lee@example.invalid', 'pat.alt@example.invalid' ) );
 check( 'merge leaves skips alone', count( fcmc_legacy_merge_duplicates( array( $a, fcmc_legacy_map_row( $nn ) ) )['rows'] ), 2 );
 
+// Transitive merge: A(a), B(b), C(a,b) → 1 row, 2 merge pairs
+$rowA = $row; $rowA['MEMBER_ID'] = '9001'; $rowA['PERSONAL_E-MAIL ADDRESS'] = 'aaa@example.invalid'; $rowA['E-MAIL ADDRESS 2'] = '';
+$a_trans = fcmc_legacy_map_row( $rowA );
+$rowB = $row; $rowB['MEMBER_ID'] = '9002'; $rowB['PERSONAL_E-MAIL ADDRESS'] = 'bbb@example.invalid'; $rowB['E-MAIL ADDRESS 2'] = '';
+$b_trans = fcmc_legacy_map_row( $rowB );
+$rowC = $row; $rowC['MEMBER_ID'] = '9003'; $rowC['PERSONAL_E-MAIL ADDRESS'] = 'aaa@example.invalid'; $rowC['E-MAIL ADDRESS 2'] = 'bbb@example.invalid';
+$c_trans = fcmc_legacy_map_row( $rowC );
+$merged_trans = fcmc_legacy_merge_duplicates( array( $a_trans, $b_trans, $c_trans ) );
+check( 'transitive merge -> one row', count( $merged_trans['rows'] ), 1 );
+check( 'transitive merge emails', $merged_trans['rows'][0]['emails'], array( 'aaa@example.invalid', 'bbb@example.invalid' ) );
+check( 'transitive merge pairs count', count( $merged_trans['merges'] ), 2 );
+check( 'transitive merge first pair', $merged_trans['merges'][0], array( 'id:9001', 'id:9003' ) );
+check( 'transitive merge second pair', $merged_trans['merges'][1], array( 'id:9001', 'id:9002' ) );
+
 $ov = fcmc_legacy_parse_overrides( array(
 	array( 'key' => 'id:9001', 'action' => 'link-user', 'target' => '18' ),
 	array( 'key' => 'id:9002', 'action' => 'skip', 'target' => '' ),
