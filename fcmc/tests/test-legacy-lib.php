@@ -218,5 +218,58 @@ check( 'report near-match', in_array( 'near-match id:9001 -> u:44', $lines, true
 check( 'report merge', in_array( 'merged id:9001 + r:abcdef12', $lines, true ), true );
 check( 'report invalid override', in_array( 'invalid override id:9003 (ignored)', $lines, true ), true );
 
+/* ---- Final-review fixes ---- */
+// C1: two-digit year pivot (yy > current yy -> 19yy, else 20yy)
+check( 'date yy 99 -> 1999', fcmc_legacy_parse_date( '5/31/99' ), '1999-05-31' );
+check( 'date yy 95 -> 1995', fcmc_legacy_parse_date( '3/1/95' ), '1995-03-01' );
+check( 'date yy 05 -> 2005', fcmc_legacy_parse_date( '1/1/05' ), '2005-01-01' );
+
+// C1b: PII-free sanity lines (grace = 60 days after paid_through, mirroring fcmc_status_for)
+$mk = function ( string $type, string $paid, string $since ) {
+	return array( 'type' => $type, 'row' => array( 'key' => 'id:1', 'data' => array( 'paid_through' => $paid, 'member_since' => $since ) ) );
+};
+$sl = fcmc_legacy_sanity_lines( array(
+	$mk( 'create', '2026-10-05', '1991-01-01' ),   // active (today < paid)
+	$mk( 'create', '2026-10-04', '2001-01-01' ),   // paid == today -> grace
+	$mk( 'create_linked', '2026-08-06', '' ),      // today < paid+60d (2026-10-05) -> grace
+	$mk( 'create', '2026-08-05', '2020-05-01' ),   // paid+60d == today -> lapsed
+	$mk( 'create', '', '' ),                       // none
+	$mk( 'enrich', '2015-06-01', '1995-01-01' ),   // not counted for status; counted for years
+	array( 'type' => 'skip', 'row' => array( 'key' => 'id:2', 'data' => array() ) ),
+), '2026-10-04' );
+check( 'sanity active', in_array( 'would-create status active: 1', $sl, true ), true );
+check( 'sanity grace', in_array( 'would-create status grace: 2', $sl, true ), true );
+check( 'sanity lapsed', in_array( 'would-create status lapsed: 1', $sl, true ), true );
+check( 'sanity none', in_array( 'would-create status none: 1', $sl, true ), true );
+check( 'sanity since years', in_array( 'member_since years: 1991–2020', $sl, true ), true );
+check( 'sanity paid years', in_array( 'paid_through years: 2015–2026', $sl, true ), true );
+check( 'sanity empty years', fcmc_legacy_sanity_lines( array(), '2026-10-04' )[4], 'member_since years: n/a' );
+
+// I3: row-key index for email-less rows
+$nomail = $row; $nomail['MEMBER_ID'] = '9005'; $nomail['PERSONAL_E-MAIL ADDRESS'] = ''; $nomail['E-MAIL ADDRESS 2'] = '';
+$nm = fcmc_legacy_map_row( $nomail );
+check( 'nomail row key', $nm['key'], 'id:9005' );
+$act = fcmc_legacy_decide( array( $nm ), array(), array(), array(), array( 'id:9005' => array( 'h:31' ) ) );
+check( 'key index -> enrich', array( $act[0]['type'], $act[0]['target'] ), array( 'enrich', 31 ) );
+$act = fcmc_legacy_decide( array( $a ), array( 'pat@example.invalid' => array( 'h:31' ) ), array(), array(), array( 'id:9001' => array( 'h:31' ) ) );
+check( 'key hit + same email household -> one target', array( $act[0]['type'], $act[0]['target'] ), array( 'enrich', 31 ) );
+$act = fcmc_legacy_decide( array( $a ), array( 'pat@example.invalid' => array( 'h:40' ) ), array(), array(), array( 'id:9001' => array( 'h:31' ) ) );
+check( 'key hit + different email target -> ambiguous', array( $act[0]['type'], $act[0]['reason'] ), array( 'skip', 'ambiguous' ) );
+$act = fcmc_legacy_decide( array( $nm ), array(), array(), array(), array() );
+check( 'no key index -> create', $act[0]['type'], 'create' );
+
+// I4a: non-numeric link targets rejected
+$ov2 = fcmc_legacy_parse_overrides( array(
+	array( 'key' => 'id:1', 'action' => 'link-user', 'target' => '12abc' ),
+	array( 'key' => 'id:2', 'action' => 'link-household', 'target' => ' 12 ' ),
+) );
+check( 'override 12abc invalid', $ov2['invalid'], array( 'id:1' ) );
+check( 'override padded digits ok', $ov2['valid'], array( 'id:2' => array( 'action' => 'link-household', 'target' => 12 ) ) );
+
+// I4c: override keys matching no row
+$l = fcmc_legacy_report_lines( fcmc_legacy_decide( array( $a ), array(), array(), array() ), array(), array(), array( 'id:9001', 'id:7777' ) );
+check( 'override unmatched reported', in_array( 'override id:7777 matched no row', $l, true ), true );
+check( 'override matched not reported', in_array( 'override id:9001 matched no row', $l, true ), false );
+
 echo $GLOBALS['fails'] ? "\n{$GLOBALS['fails']} FAILED\n" : "\nALL PASSED\n";
 exit( $GLOBALS['fails'] ? 1 : 0 );

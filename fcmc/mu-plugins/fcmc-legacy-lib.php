@@ -41,13 +41,19 @@ function fcmc_legacy_read_csv( string $path ): array {
 	return $rows;
 }
 
-/** `m/d/Y` or `m/d/yy` (yy read as 20yy) → `Y-m-d`; anything else → null. Never guesses. */
+/**
+ * `m/d/Y` or `m/d/yy` → `Y-m-d`; anything else → null. Never guesses. Two-digit years pivot on the
+ * current year: yy greater than date('y') is 19yy, otherwise 20yy.
+ */
 function fcmc_legacy_parse_date( $raw ): ?string {
 	$s = trim( (string) $raw );
 	if ( ! preg_match( '#^(\d{1,2})/(\d{1,2})/(\d{2}|\d{4})$#', $s, $m ) ) {
 		return null;
 	}
-	$y = (int) $m[3] + ( 2 === strlen( $m[3] ) ? 2000 : 0 );
+	$y = (int) $m[3];
+	if ( 2 === strlen( $m[3] ) ) {
+		$y += $y > (int) date( 'y' ) ? 1900 : 2000;
+	}
 	if ( ! checkdate( (int) $m[1], (int) $m[2], $y ) ) {
 		return null;
 	}
@@ -366,7 +372,8 @@ function fcmc_legacy_parse_overrides( array $rows ): array {
 	foreach ( $rows as $r ) {
 		$key    = trim( (string) ( $r['key'] ?? '' ) );
 		$action = trim( (string) ( $r['action'] ?? '' ) );
-		$target = (int) ( $r['target'] ?? 0 );
+		$raw    = trim( (string) ( $r['target'] ?? '' ) );
+		$target = ctype_digit( $raw ) ? (int) $raw : 0;
 		if ( '' === $key ) {
 			continue;
 		}
@@ -382,7 +389,7 @@ function fcmc_legacy_parse_overrides( array $rows ): array {
 }
 
 /** One action per row. Email-only matching; overrides beat matching; names only ever reported. */
-function fcmc_legacy_decide( array $rows, array $email_index, array $name_index, array $overrides ): array {
+function fcmc_legacy_decide( array $rows, array $email_index, array $name_index, array $overrides, array $key_index = array() ): array {
 	$name_counts = array();
 	foreach ( $rows as $row ) {
 		if ( null === $row['skip'] ) {
@@ -429,6 +436,10 @@ function fcmc_legacy_decide( array $rows, array $email_index, array $name_index,
 				$targets[ $t ] = true;
 			}
 		}
+		// A household created by an earlier run (email-less rows carry no email to match on).
+		foreach ( $key_index[ $row['key'] ] ?? array() as $t ) {
+			$targets[ $t ] = true;
+		}
 		$targets = array_keys( $targets );
 
 		if ( 0 === count( $targets ) ) {
@@ -449,7 +460,7 @@ function fcmc_legacy_decide( array $rows, array $email_index, array $name_index,
 }
 
 /** Human-readable, PII-free run report: counts, then one line per thing needing attention. */
-function fcmc_legacy_report_lines( array $actions, array $merges, array $invalid_overrides ): array {
+function fcmc_legacy_report_lines( array $actions, array $merges, array $invalid_overrides, array $override_keys = array() ): array {
 	$counts = array( 'create' => 0, 'create_linked' => 0, 'enrich' => 0, 'skip' => 0 );
 	$lines  = array();
 	foreach ( $actions as $a ) {
@@ -477,9 +488,65 @@ function fcmc_legacy_report_lines( array $actions, array $merges, array $invalid
 	foreach ( $invalid_overrides as $k ) {
 		$lines[] = "invalid override {$k} (ignored)";
 	}
+	$row_keys = array();
+	foreach ( $actions as $a ) {
+		$row_keys[ $a['row']['key'] ] = true;
+	}
+	foreach ( $override_keys as $k ) {
+		if ( ! isset( $row_keys[ $k ] ) ) {
+			$lines[] = "override {$k} matched no row";
+		}
+	}
 	$head = array();
 	foreach ( $counts as $type => $n ) {
 		$head[] = "{$type}: {$n}";
 	}
 	return array_merge( $head, $lines );
+}
+
+/**
+ * PII-free dry-run sanity lines: the status each would-be-created household's account would get, and
+ * the year range of member_since / paid_through over every non-skipped row. Status mirrors
+ * fcmc_status_for() (fcmc-membership-lifecycle.php:102-109): active while today < paid_through,
+ * grace while today < paid_through + fcmc_grace_days() (default 60, line 47), else lapsed; no date → none.
+ */
+function fcmc_legacy_sanity_lines( array $actions, string $today_ymd ): array {
+	$st    = array( 'active' => 0, 'grace' => 0, 'lapsed' => 0, 'none' => 0 );
+	$since = array();
+	$paid  = array();
+	foreach ( $actions as $a ) {
+		if ( 'skip' === $a['type'] ) {
+			continue;
+		}
+		$d = $a['row']['data'];
+		if ( '' !== (string) ( $d['member_since'] ?? '' ) ) {
+			$since[] = (int) substr( $d['member_since'], 0, 4 );
+		}
+		$p = (string) ( $d['paid_through'] ?? '' );
+		if ( '' !== $p ) {
+			$paid[] = (int) substr( $p, 0, 4 );
+		}
+		if ( ! in_array( $a['type'], array( 'create', 'create_linked' ), true ) ) {
+			continue;
+		}
+		if ( '' === $p ) {
+			$st['none']++;
+		} elseif ( $today_ymd < $p ) {
+			$st['active']++;
+		} elseif ( $today_ymd < gmdate( 'Y-m-d', strtotime( $p . ' UTC +60 days' ) ) ) {
+			$st['grace']++;
+		} else {
+			$st['lapsed']++;
+		}
+	}
+	$lines = array();
+	foreach ( $st as $k => $n ) {
+		$lines[] = "would-create status {$k}: {$n}";
+	}
+	$range   = function ( array $ys ): string {
+		return $ys ? min( $ys ) . '–' . max( $ys ) : 'n/a';
+	};
+	$lines[] = 'member_since years: ' . $range( $since );
+	$lines[] = 'paid_through years: ' . $range( $paid );
+	return $lines;
 }
