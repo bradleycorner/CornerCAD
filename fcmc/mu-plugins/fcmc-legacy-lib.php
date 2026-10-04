@@ -250,3 +250,188 @@ function fcmc_legacy_map_row( array $r ): array {
 
 	return $out;
 }
+
+/** Earlier of two Y-m-d strings, ignoring empties. */
+function fcmc_legacy_min_date( string $a, string $b ): string {
+	if ( '' === $a ) {
+		return $b;
+	}
+	return '' === $b ? $a : min( $a, $b );
+}
+
+/**
+ * Merge rows that share any email (the same person entered twice). Earliest member_since,
+ * latest paid_through, first non-empty value for everything else. Skipped rows pass through.
+ */
+function fcmc_legacy_merge_duplicates( array $rows ): array {
+	$out      = array();
+	$merges   = array();
+	$by_email = array();
+
+	foreach ( $rows as $row ) {
+		if ( null !== $row['skip'] ) {
+			$out[] = $row;
+			continue;
+		}
+		$hit = null;
+		foreach ( $row['emails'] as $e ) {
+			if ( isset( $by_email[ $e ] ) ) {
+				$hit = $by_email[ $e ];
+				break;
+			}
+		}
+		if ( null === $hit ) {
+			$out[] = $row;
+			$i     = count( $out ) - 1;
+			foreach ( $row['emails'] as $e ) {
+				$by_email[ $e ] = $i;
+			}
+			continue;
+		}
+
+		$merges[] = array( $out[ $hit ]['key'], $row['key'] );
+		$keep     = $out[ $hit ];
+		foreach ( $row['data'] as $k => $v ) {
+			if ( 'member_since' === $k ) {
+				$keep['data'][ $k ] = fcmc_legacy_min_date( (string) $keep['data'][ $k ], (string) $v );
+			} elseif ( 'paid_through' === $k ) {
+				$keep['data'][ $k ] = max( (string) $keep['data'][ $k ], (string) $v );
+			} elseif ( ( '' === $keep['data'][ $k ] || array() === $keep['data'][ $k ] ) && '' !== $v && array() !== $v ) {
+				$keep['data'][ $k ] = $v;
+			}
+		}
+		$keep['emails']   = array_values( array_unique( array_merge( $keep['emails'], $row['emails'] ) ) );
+		$keep['warnings'] = array_merge( $keep['warnings'], $row['warnings'] );
+		$out[ $hit ]      = $keep;
+		foreach ( $keep['emails'] as $e ) {
+			$by_email[ $e ] = $hit;
+		}
+	}
+
+	return array( 'rows' => $out, 'merges' => $merges );
+}
+
+/** Overrides CSV (key,action,target) → valid map + list of rejected keys. */
+function fcmc_legacy_parse_overrides( array $rows ): array {
+	$valid   = array();
+	$invalid = array();
+	foreach ( $rows as $r ) {
+		$key    = trim( (string) ( $r['key'] ?? '' ) );
+		$action = trim( (string) ( $r['action'] ?? '' ) );
+		$target = (int) ( $r['target'] ?? 0 );
+		if ( '' === $key ) {
+			continue;
+		}
+		$ok = 'skip' === $action
+			|| ( in_array( $action, array( 'link-household', 'link-user' ), true ) && $target > 0 );
+		if ( ! $ok ) {
+			$invalid[] = $key;
+			continue;
+		}
+		$valid[ $key ] = array( 'action' => $action, 'target' => 'skip' === $action ? 0 : $target );
+	}
+	return array( 'valid' => $valid, 'invalid' => $invalid );
+}
+
+/** One action per row. Email-only matching; overrides beat matching; names only ever reported. */
+function fcmc_legacy_decide( array $rows, array $email_index, array $name_index, array $overrides ): array {
+	$name_counts = array();
+	foreach ( $rows as $row ) {
+		if ( null === $row['skip'] ) {
+			$name_counts[ $row['name_key'] ] = ( $name_counts[ $row['name_key'] ] ?? 0 ) + 1;
+		}
+	}
+
+	$actions = array();
+	foreach ( $rows as $row ) {
+		$a = array(
+			'type'     => 'skip',
+			'target'   => 0,
+			'reason'   => '',
+			'targets'  => array(),
+			'near'     => array(),
+			'dup_name' => false,
+			'override' => false,
+			'row'      => $row,
+		);
+
+		if ( null !== $row['skip'] ) {
+			$a['reason'] = $row['skip'];
+			$actions[]   = $a;
+			continue;
+		}
+		$a['dup_name'] = ( $name_counts[ $row['name_key'] ] ?? 0 ) > 1;
+
+		if ( isset( $overrides[ $row['key'] ] ) ) {
+			$ov            = $overrides[ $row['key'] ];
+			$a['override'] = true;
+			if ( 'skip' === $ov['action'] ) {
+				$a['reason'] = 'override';
+			} else {
+				$a['type']   = 'link-household' === $ov['action'] ? 'enrich' : 'create_linked';
+				$a['target'] = (int) $ov['target'];
+			}
+			$actions[] = $a;
+			continue;
+		}
+
+		$targets = array();
+		foreach ( $row['emails'] as $e ) {
+			foreach ( $email_index[ $e ] ?? array() as $t ) {
+				$targets[ $t ] = true;
+			}
+		}
+		$targets = array_keys( $targets );
+
+		if ( 0 === count( $targets ) ) {
+			$a['type'] = 'create';
+			$a['near'] = array_values( $name_index[ $row['name_key'] ] ?? array() );
+		} elseif ( 1 === count( $targets ) ) {
+			list( $kind, $id ) = explode( ':', $targets[0] );
+			$a['type']         = 'h' === $kind ? 'enrich' : 'create_linked';
+			$a['target']       = (int) $id;
+		} else {
+			$a['reason']  = 'ambiguous';
+			$a['targets'] = $targets;
+		}
+		$actions[] = $a;
+	}
+
+	return $actions;
+}
+
+/** Human-readable, PII-free run report: counts, then one line per thing needing attention. */
+function fcmc_legacy_report_lines( array $actions, array $merges, array $invalid_overrides ): array {
+	$counts = array( 'create' => 0, 'create_linked' => 0, 'enrich' => 0, 'skip' => 0 );
+	$lines  = array();
+	foreach ( $actions as $a ) {
+		$counts[ $a['type'] ]++;
+		$key = '' !== $a['row']['key'] ? $a['row']['key'] : '(no key)';
+		if ( 'skip' === $a['type'] ) {
+			$lines[] = "skip {$key} {$a['reason']}" . ( $a['targets'] ? ' -> ' . implode( ',', $a['targets'] ) : '' );
+		}
+		if ( $a['near'] ) {
+			$lines[] = "near-match {$key} -> " . implode( ',', $a['near'] );
+		}
+		if ( $a['dup_name'] ) {
+			$lines[] = "same-name-in-sheet {$key}";
+		}
+		if ( $a['override'] && 'skip' !== $a['type'] ) {
+			$lines[] = "override {$key} -> {$a['type']} {$a['target']}";
+		}
+		foreach ( $a['row']['warnings'] as $w ) {
+			$lines[] = "warning {$key} {$w}";
+		}
+	}
+	foreach ( $merges as $pair ) {
+		$lines[] = "merged {$pair[0]} + {$pair[1]}";
+	}
+	foreach ( $invalid_overrides as $k ) {
+		$lines[] = "invalid override {$k} (ignored)";
+	}
+	$head = array();
+	foreach ( $counts as $type => $n ) {
+		$head[] = "{$type}: {$n}";
+	}
+	return array_merge( $head, $lines );
+}

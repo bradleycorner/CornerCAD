@@ -130,6 +130,79 @@ check( 'csv bom stripped', array_keys( $rows[0] ), array( 'MEMBER_ID', 'LastName
 check( 'csv rows', count( $rows ), 2 );
 
 /* ---- Task 2 tests are appended below this line ---- */
+/* ---- Task 2: merge, decide, overrides, report ---- */
+check( 'min date', fcmc_legacy_min_date( '2015-01-01', '2012-02-11' ), '2012-02-11' );
+check( 'min date empty a', fcmc_legacy_min_date( '', '2012-02-11' ), '2012-02-11' );
+check( 'min date empty b', fcmc_legacy_min_date( '2015-01-01', '' ), '2015-01-01' );
+
+$a = fcmc_legacy_map_row( $row );                     // id:9001, pat@ + lee@, since 2012-02-11, paid 2019-06-01
+$dupe = $row; $dupe['MEMBER_ID'] = ''; $dupe['ORIG_ENTRY'] = '6/1/2008'; $dupe['JOIN_DATE'] = '';
+$dupe['EXP DATE'] = '5/31/2021'; $dupe['HOMEAREA'] = ''; $dupe['E-MAIL ADDRESS 2'] = 'pat.alt@example.invalid';
+$b2 = fcmc_legacy_map_row( $dupe );
+$merged = fcmc_legacy_merge_duplicates( array( $a, $b2 ) );
+check( 'merge -> one row', count( $merged['rows'] ), 1 );
+check( 'merge reported', $merged['merges'], array( array( 'id:9001', $b2['key'] ) ) );
+check( 'merge since earliest', $merged['rows'][0]['data']['member_since'], '2008-06-01' );
+check( 'merge paid latest', $merged['rows'][0]['data']['paid_through'], '2021-06-01' );
+check( 'merge keeps first non-empty', $merged['rows'][0]['data']['home_area'], 'Southside' );
+check( 'merge emails union', $merged['rows'][0]['emails'], array( 'pat@example.invalid', 'lee@example.invalid', 'pat.alt@example.invalid' ) );
+check( 'merge leaves skips alone', count( fcmc_legacy_merge_duplicates( array( $a, fcmc_legacy_map_row( $nn ) ) )['rows'] ), 2 );
+
+$ov = fcmc_legacy_parse_overrides( array(
+	array( 'key' => 'id:9001', 'action' => 'link-user', 'target' => '18' ),
+	array( 'key' => 'id:9002', 'action' => 'skip', 'target' => '' ),
+	array( 'key' => 'id:9003', 'action' => 'link-household', 'target' => '' ),
+	array( 'key' => 'id:9004', 'action' => 'delete', 'target' => '5' ),
+) );
+check( 'override valid', $ov['valid'], array(
+	'id:9001' => array( 'action' => 'link-user', 'target' => 18 ),
+	'id:9002' => array( 'action' => 'skip', 'target' => 0 ),
+) );
+check( 'override invalid', $ov['invalid'], array( 'id:9003', 'id:9004' ) );
+
+$other = $row; $other['MEMBER_ID'] = '9002'; $other['LastName1'] = 'Other'; $other['FirstName1'] = 'Ollie';
+$other['PERSONAL_E-MAIL ADDRESS'] = 'ollie@example.invalid'; $other['E-MAIL ADDRESS 2'] = '';
+$o = fcmc_legacy_map_row( $other );
+
+$act = fcmc_legacy_decide( array( $a ), array(), array(), array() );
+check( 'decide create', $act[0]['type'], 'create' );
+$act = fcmc_legacy_decide( array( $a ), array( 'lee@example.invalid' => array( 'h:12' ) ), array(), array() );
+check( 'decide enrich via email 2', array( $act[0]['type'], $act[0]['target'] ), array( 'enrich', 12 ) );
+$act = fcmc_legacy_decide( array( $a ), array( 'pat@example.invalid' => array( 'u:18' ) ), array(), array() );
+check( 'decide create_linked', array( $act[0]['type'], $act[0]['target'] ), array( 'create_linked', 18 ) );
+$act = fcmc_legacy_decide( array( $a ), array( 'pat@example.invalid' => array( 'h:12' ), 'lee@example.invalid' => array( 'h:12' ) ), array(), array() );
+check( 'decide same target twice is one', $act[0]['type'], 'enrich' );
+$act = fcmc_legacy_decide( array( $a ), array( 'pat@example.invalid' => array( 'h:12' ), 'lee@example.invalid' => array( 'u:30' ) ), array(), array() );
+check( 'decide ambiguous', array( $act[0]['type'], $act[0]['reason'], $act[0]['targets'] ), array( 'skip', 'ambiguous', array( 'h:12', 'u:30' ) ) );
+$act = fcmc_legacy_decide( array( $a ), array(), array( 'sample|pat' => array( 'u:44' ) ), array() );
+check( 'decide near-match reported, still create', array( $act[0]['type'], $act[0]['near'] ), array( 'create', array( 'u:44' ) ) );
+$act = fcmc_legacy_decide( array( $a ), array( 'pat@example.invalid' => array( 'h:12' ) ), array(), array( 'id:9001' => array( 'action' => 'link-user', 'target' => 18 ) ) );
+check( 'decide override beats email', array( $act[0]['type'], $act[0]['target'], $act[0]['override'] ), array( 'create_linked', 18, true ) );
+$act = fcmc_legacy_decide( array( $a ), array(), array(), array( 'id:9001' => array( 'action' => 'skip', 'target' => 0 ) ) );
+check( 'decide override skip', array( $act[0]['type'], $act[0]['reason'] ), array( 'skip', 'override' ) );
+$act = fcmc_legacy_decide( array( fcmc_legacy_map_row( $nn ) ), array(), array(), array() );
+check( 'decide passes row skips', array( $act[0]['type'], $act[0]['reason'] ), array( 'skip', 'no-name' ) );
+$twin = $o; $twin['name_key'] = $a['name_key'];
+$act = fcmc_legacy_decide( array( $a, $twin ), array(), array(), array() );
+check( 'decide same-name-in-sheet', array( $act[0]['dup_name'], $act[1]['dup_name'] ), array( true, true ) );
+
+// Review Focus 4: after a first real run, the created household matches by email -> enrich, not duplicate.
+$act = fcmc_legacy_decide( array( $a ), array( 'pat@example.invalid' => array( 'h:77' ), 'lee@example.invalid' => array( 'h:77' ) ), array(), array() );
+check( 'second run enriches', array( $act[0]['type'], $act[0]['target'] ), array( 'enrich', 77 ) );
+
+$lines = fcmc_legacy_report_lines(
+	fcmc_legacy_decide( array( $a, fcmc_legacy_map_row( $nc ) ), array(), array( 'sample|pat' => array( 'u:44' ) ), array() ),
+	array( array( 'id:9001', 'r:abcdef12' ) ),
+	array( 'id:9003' )
+);
+$joined = implode( "\n", $lines );
+check( 'report has no emails', false === strpos( $joined, '@' ), true );
+check( 'report has no names', false === stripos( $joined, 'sample' ), true );
+check( 'report counts create', in_array( 'create: 1', $lines, true ), true );
+check( 'report counts skip', in_array( 'skip: 1', $lines, true ), true );
+check( 'report near-match', in_array( 'near-match id:9001 -> u:44', $lines, true ), true );
+check( 'report merge', in_array( 'merged id:9001 + r:abcdef12', $lines, true ), true );
+check( 'report invalid override', in_array( 'invalid override id:9003 (ignored)', $lines, true ), true );
 
 echo $GLOBALS['fails'] ? "\n{$GLOBALS['fails']} FAILED\n" : "\nALL PASSED\n";
 exit( $GLOBALS['fails'] ? 1 : 0 );
