@@ -74,7 +74,7 @@ A user and the household it has claimed count as **one** target, not two.
 **reported, never acted on**. Bradley resolves them in the overrides file.
 
 **Overrides file** — CSV kept beside the sheet, outside the repo:
-`legacy_member_id,action,target` where action is `link-household` (target = household post ID),
+`key,action,target` (key = the row key, e.g. `id:632` or `r:xxxxxxxx`, as printed in the dry-run report) where action is `link-household` (target = household post ID),
 `link-user` (target = user ID), or `skip`. Overrides beat automatic matching.
 
 **Duplicate rows for one person** (the sheet has a few, e.g. a second row holding only dates): rows
@@ -104,7 +104,7 @@ A user's own car profiles, consents and contact details are never touched by thi
   which is what `fcmc_paid_through()` yields for a paid year. Any other expiry date becomes the
   first 06-01 on or after it (e.g. 8/31/2015 → 2016-06-01) and is reported.
 - No stored status — derived by the existing lifecycle code (`active` / `grace` / `lapsed` / `none`).
-- Two-digit years read as 20xx. Unparseable dates are reported and left empty; never guessed.
+- Two-digit years pivot on the current year: a year greater than the current two-digit year (`date('y')`) reads as 19yy, otherwise 20yy (so `5/31/99` is 1999 and `8/12/20` is 2020). Unparseable dates are reported and left empty; never guessed.
 
 **Cars** — up to two per row, same keys as `fcmc_car_profiles`:
 

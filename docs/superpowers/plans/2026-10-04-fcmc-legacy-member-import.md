@@ -1393,7 +1393,7 @@ $W eval "echo get_user_meta($U,\"fcmc_member_since\",true),\" hh=\",get_user_met
 
 Expected: dry run reports `create: 1`, `create_linked: 1`, `skip: 1` (`no-contact`); real run prints a batch id; household 9101 → `2012-06-01 2005-03-01 lapsed 1 NA`; user → `2012-02-11 hh=<id>`.
 
-Note: `user create` fires `user_register`; the account has no household yet, so no verification email is attempted. The link happens via the import (create_linked).
+Note: `wp user create` fires `user_register` → `fcmc_maybe_claim_household`, which sends a verification email to the `.invalid` address if a household already matches that email (for `legacytest-alpha`, created in Step 2 after the import, it will). `--skip-email` only suppresses WordPress's new-user notice, not this one. The mail bounces harmlessly; ignore it. (`legacytest-bravo` is created before the import, so no household matches yet and nothing is sent.)
 
 - [ ] **Step 2: Claim test (Review Focus — returning member)** — same session style:
 
@@ -1405,18 +1405,20 @@ $W eval "\$h=fcmc_household_find_by_email(\"alpha.lapsed@example.invalid\"); fcm
 
 Expected: `2005-03-01 cars=1 consent=''` — history copied, consents NOT copied (spec § 4). (`fcmc_household_claim` is called directly to stand in for the emailed verification click.)
 
-- [ ] **Step 3: Undo with a hand edit (Review Focus 5)** — change one imported value by hand, then undo:
+- [ ] **Step 3: Undo with a hand edit (Review Focus 5)** — undo keeps any household that has been claimed since the import (it reports `household <id> was claimed since import — left as is` and leaves it live), and Step 2 claimed household 9101 for `legacytest-alpha`. So first **unclaim** 9101, then change one imported value by hand, then undo:
 
 ```bash
 ssh cornerfa 'cd ~/public_html/fcmc-dev && W="/opt/cpanel/ea-php83/root/usr/bin/php /usr/local/bin/wp";
-B=$($W option get fcmc_legacy_import_log --format=json | /opt/cpanel/ea-php83/root/usr/bin/php -r "echo array_key_last(json_decode(stream_get_contents(STDIN),true));");
+B=$($W eval "echo array_key_last(get_option(\"fcmc_legacy_import_log\"));");
+U2=$($W user get legacytest-alpha --field=ID);
+$W eval "\$h=get_posts([\"post_type\"=>\"fcmc_household\",\"meta_key\"=>\"legacy_member_id\",\"meta_value\"=>\"9101\",\"fields\"=>\"ids\"]); delete_post_meta(\$h[0],\"claimed_by\"); delete_user_meta($U2,\"fcmc_household_id\");";
 U=$($W user get legacytest-bravo --field=ID); $W user meta update $U fcmc_member_since 2010-01-01;
 $W fcmc import-legacy --undo=$B --dry-run; $W fcmc import-legacy --undo=$B;
 $W eval "echo count(get_posts([\"post_type\"=>\"fcmc_household\",\"meta_key\"=>\"fcmc_source\",\"meta_value\"=>\"legacy-2020\",\"fields\"=>\"ids\"])),\" since=\",get_user_meta($U,\"fcmc_member_since\",true),\" hh=\",get_user_meta($U,\"fcmc_household_id\",true),\"\n\";";
 $W user delete $U $($W user get legacytest-alpha --field=ID) --yes; rm ~/fcmc-import/legacy-synthetic.csv'
 ```
 
-Expected: undo reports `deleted households: 2`, one conflict line for `user <U> fcmc_member_since`; final eval prints `0 since=2010-01-01 hh=` (household gone, hand edit preserved, link removed); test users deleted.
+Expected (worked out from `fcmc_legacy_undo`): the household loop deletes every household in the batch's `created` list whose `claimed_by` equals what the log expects — `0` for the unclaimed 9101 after the unclaim above, and the bravo user's id for the create_linked household (its `fcmc_household_id` change is in the log) — so `deleted households: 2`. The only value that no longer equals its logged `new` is bravo's hand-edited `fcmc_member_since`, so exactly one conflict line `user <U> fcmc_member_since changed since import — left as is`; every other logged user value (`fcmc_household_id`, any `fcmc_paid_through_manual` floor) still matches and is restored. Without the unclaim you would instead see `deleted households: 1` and a second conflict `household <9101 id> was claimed since import — left as is`, with 9101 left live. Final result: final eval prints `0 since=2010-01-01 hh=` (household gone, hand edit preserved, link removed); test users deleted.
 
 - [ ] **Step 4:** Record outcomes (counts only) in the task notes; if any expectation fails, stop and fix before Task 8.
 
@@ -1460,6 +1462,7 @@ key,action,target
   - Needs-linking shows "Plus N former members…" instead of a ~110-row list.
   - Re-run check (Review Focus 4): `wp fcmc import-legacy <csv> --dry-run` again → `create: 0` (everything now enriches or is skipped). Requires re-copying the CSV for that one command, then deleting it again.
 - [ ] **Step 5:** If anything is wrong: `wp fcmc import-legacy --undo=<batch>` (dry run first), fix, repeat Task 9.
+- [ ] **Step 6: Close the undo window.** Once Bradley says the import is accepted and undo is no longer needed, delete the log: `wp option delete fcmc_legacy_import_log` (one SSH session). ⚠️ The option holds old and new member values (dates, history fields, car data) for every changed household/account — **never run `wp option get fcmc_legacy_import_log` unfiltered** (it dumps that into the terminal/transcript); to find a batch id use `wp eval 'echo implode(",", array_keys((array) get_option("fcmc_legacy_import_log")));'`. Until it is deleted, undo stays possible; after, it is not.
 
 ---
 
@@ -1469,7 +1472,7 @@ key,action,target
 - Modify: `fcmc/README.md` (add a "Legacy history import" section: command, flags, PII rules, batch undo, where the source lives)
 - Modify: `docs/sites.md` (FCMC section: history imported, roster default, 2021–2025 gap open)
 
-- [ ] **Step 1:** Write both doc updates (no member data; counts only).
+- [ ] **Step 1:** Write both doc updates (no member data; counts only). Confirm `fcmc_legacy_import_log` was deleted (Task 9 Step 6) or note in `docs/sites.md` that it still exists and holds member values.
 - [ ] **Step 2:** Commit on the feature branch.
 - [ ] **Step 3:** Release per gitflow (code is live after Task 6): merge `feature/fcmc-legacy-import` → `develop` (`--no-ff`), create `release/2026-10-xx` from `develop`, merge to `main` and back to `develop`, delete branches.
 - [ ] **Step 4:** 🔒 Ask before `git push origin main develop`.
