@@ -129,6 +129,11 @@
       "mcp__fcmc-dev__wp_upload_request",
       "mcp__fcmc-dev__wp_write_blocks",
 
+      "mcp__fcmc-dev__sclegn_post",
+      "mcp__fcmc-dev__sclegn_publish_now",
+      "mcp__fcmc-dev__sclegn_update_post",
+      "mcp__fcmc-dev__sclegn_delete_post",
+
       "mcp__fcmc-dev__wp_db_query",
 
       "mcp__uclc__mwai_image",
