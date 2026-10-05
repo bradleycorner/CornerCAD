@@ -239,6 +239,15 @@ advertised list; the 38 ungated `uclc` tools are all reads. Rules now total **17
 `wp_install_theme`, `wp_update_plugin`, `wp_update_theme` (not present on `cornercad-com` or
 `fcmc-dev`). All four arrived ungated and were added to `permissions.ask`.
 
+**2026-10-04 — `fcmc-dev` grew 8 Social Engine tools (95 → 103), writers gated.** Enabling Social
+Engine's MCP option in AI Engine registers `sclegn_*` tools (visible only after a session restart).
+Reads, ungated: `sclegn_list_accounts`, `sclegn_get_account`, `sclegn_get_posts`, `sclegn_get_post`.
+Writes, added to `permissions.ask` before first use: `sclegn_post` (**defaults to
+`status: "publish"` = posts to the social network immediately**), `sclegn_publish_now`,
+`sclegn_update_post`, `sclegn_delete_post`. These act on Social Engine's `social_post` queue, not
+WordPress posts. At gating time `sclegn_list_accounts` returned `[]` — no network connected yet.
+Rules now total **187**.
+
 ### Standing rule
 Prefer typed tools. **Treat direct database/SQL access as a last resort for WRITES** — raw SQL
 bypasses draft → verify → publish, post revisions, and the git-mirrored block markup in
