@@ -15,7 +15,7 @@ staging) counts against the same limits — a burst against staging caused an ac
 | **CornerCAD** (production) | https://cornercad.com | `public_html/website_14e4a69e` (`cornercad` → symlink) | `awF_` | `cornercad-com` | most of it |
 | **CornerCAD** (staging) | https://cornercad.com/staging/8946/ | `public_html/cornercad/staging/8946` | `staging_awF_` (same DB as prod) | `cornercad-staging` ⚠️ | — (it's a clone) |
 | **First Coast Miata Club** (dev) | https://fcmc-dev.cornerfamily.com | `public_html/fcmc-dev` | `fcmc_` | `fcmc-dev` | `fcmc/` |
-| **Unique Creations by Lisa C** | https://uniquecreationsbylisac.store | `public_html/website_b895229c` (`ucblc`, `usblc` → symlinks) | `pGH_` | `uclc` | seed scripts + plan only |
+| **Unique Creations by Lisa C** | https://uniquecreationsbylisac.com (`.store` 301s here) | `public_html/website_b895229c` (`ucblc`, `usblc` → symlinks) | `pGH_` | `uclc` | seed scripts + plan only |
 
 ## CornerCAD — cornercad.com
 Bradley's consumer store for 3D-printed and laser-engraved products. **Live store; real money.**
@@ -58,15 +58,24 @@ custom **mu-plugins**.
 - No Florida registration (Sunbiz search, 2026-10-04): the club has a federal EIN only, so WooCommerce
   sales-tax collection stays **off**.
 
-## Unique Creations by Lisa C — uniquecreationsbylisac.store
-Lisa's craft store, moving off a Square Online store. Shares the Square account with CornerCAD —
+## Unique Creations by Lisa C — uniquecreationsbylisac.com
+Lisa's craft store. **Migration off Square Online is complete** — the old Square Online store is gone
+(Bradley, 2026-11-21). Shares the Square account with CornerCAD —
 **filter on location / SKU prefix** (`UCL-` = Lisa, `CAD-` = CornerCAD).
 - **Repo:** `scripts/square_seed_sandbox_uclc.py`, `scripts/seed_state_uclc.json`,
   `docs/2026-08-24-migration-plan-lisac-and-miata.md`. **No site code is mirrored yet.**
 - **2026-10-04:** `uniquecreationsbylisac.com` finished transferring to Bluehost 2026-10-03 (DNS now
   Bluehost). Its Proton records (MX, SPF, verify, DKIM ×3, DMARC `quarantine`, Pinterest) were loaded
   **after** the nameserver switch, so mail briefly went to Bluehost — always load mail records first.
-  The `.com` currently 301-redirects to `.store`; making `.com` the primary URL is still to do.
+  (That redirect direction is now reversed — see below.)
+- **2026-11-21 — `.com` is the primary URL.** `home` and `siteurl` both read
+  `https://uniquecreationsbylisac.com` (`wp_get_option raw`). `uniquecreationsbylisac.store` and `www.`
+  301 to the `.com`. DNS: NS `ns1/ns2.bluehost.com`, `.com` A → `66.235.200.145` (Newfold/Bluehost edge,
+  Cloudflare-fronted — terminal `curl` gets `403 cf-mitigated: challenge`, which is not an outage).
+  DMARC is back to `p=quarantine` and the Pinterest TXT is restored.
+  - Still points at `.store`: the `uclc` MCP URL in `~/.claude.json` (works through the redirect;
+    repoint when convenient). Not yet checked after the move: Square connection/webhooks, Apple Pay
+    domain, Google Search Console / Pinterest re-verification for the `.com`.
 - Lisa's `lisa@`/`sales@` live in Bradley's Proton account and forward to her Gmail (hence Proton's
   "NO E2EE MAIL" badge). Header menu now uses **Navigation - top** (template part post 376). The
   SellAny footer still shows theme demo text ("poster shop … Tokyo") — not yet replaced.
