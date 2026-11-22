@@ -78,3 +78,8 @@ april.txt
 
 # Subagent-driven-development scratch workspace (ledgers, briefs, reports)
 .superpowers/
+
+# Local MCP client configs - hold live bearer tokens and WooCommerce consumer keys.
+# Never commit; this repo has a public-facing remote.
+.codex/config.toml
+.cursor/mcp.json
