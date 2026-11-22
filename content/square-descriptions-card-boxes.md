@@ -62,15 +62,20 @@ Net = price − fees − unit cost. $/printer-h = net ÷ single-box print time.
 | MTG 100 · Fluted + Label | 119.6 | 4h 33m 42s | **$7.21** | $25 | $16.99 | 68% | $3.73 | $32 | $16.91 | 53% | $3.71 |
 | MTG 100 · Fluted — specialty color | 120.2 | 5h 6m 28s | **$7.42** | $25 | $16.78 | 67% | $3.28 | $32 | $16.70 | 52% | $3.27 |
 | Oversized 60 (Planechase / Archenemy) · Smooth | 146.2 | 4h 11m 31s | **$7.91** | $22 | $13.37 | 61% | $3.19 | $30 | $14.27 | 48% | $3.40 |
-| Oversized 60 (Planechase / Archenemy) · Fluted | 146.2 | 5h 38m 37s | **$8.44** | $24 | $14.79 | 62% | $2.62 | $32 | $15.69 | 49% | $2.78 |
+| Oversized 60 (Planechase / Archenemy) · Fluted | 146.2 | 5h 29m 43s | **$8.38** | $24 | $14.85 | 62% | $2.70 | $32 | $15.74 | 49% | $2.86 |
 | Oversized 60 (Planechase / Archenemy) · Fluted + Label | 145.4 | 5h 19m 21s | **$8.29** | $27 | $17.85 | 66% | $3.35 | $35 | $18.74 | 54% | $3.52 |
-| Oversized 100 (Planechase / Archenemy) · Smooth | — | — | TBD | $26 | TBD | | | $34 | TBD | | |
-| Oversized 100 (Planechase / Archenemy) · Fluted | — | — | TBD | $28 | TBD | | | $36 | TBD | | |
-| Oversized 100 (Planechase / Archenemy) · Fluted + Label | — | — | TBD | $31 | TBD | | | $39 | TBD | | |
+| Oversized 100 (Planechase / Archenemy) · Smooth | 190.3 | 5h 10m 56s | **$9.65** | $26 | $15.52 | 60% | $3.00 | $34 | $16.41 | 48% | $3.17 |
+| Oversized 100 (Planechase / Archenemy) · Fluted | 189.9 | 7h 2m 58s | **$10.31** | $28 | $16.81 | 60% | $2.38 | $36 | $17.70 | 49% | $2.51 |
+| Oversized 100 (Planechase / Archenemy) · Fluted + Label | 189.0 | 6h 56m 2s | **$10.24** | $31 | $19.80 | 64% | $2.86 | $39 | $20.68 | 53% | $2.98 |
+
+Unit costs re-checked 2026-11-21 through Maker-Ops `POST /products/calculate/from-gcode` on the real
+G-code (MagicCardBox `scripts/price_from_gcode.py`, inputs above): every row matches within a cent. Oversized 60
+Fluted moved $8.44 → $8.38 because its STL was re-exported (same solid, re-tessellated) and slices 9 min
+faster. Oversized 100 is THICK_SLEEVE (interior ~71.3 mm), exported and gated by macro 41 the same day.
 
 **What the table says.**
 - Every box clears **56–68% net margin** at these prices.
-- But per **printer-hour** they return only **$2.60–$4.04** — a quarter of the Vexel's
+- But per **printer-hour** they return only **$2.38–$3.73** (Oversized 100 · Fluted is the lowest) — a quarter of the Vexel's
   $13.30. On the project's own pricing model these are a poor use of printer time *when the
   printer is the bottleneck*, and fine filler when it isn't. Packing 4 MTG 100s on a plate
   (2 × 2 on 300 × 300) doesn't change this much: a plate's time is roughly 4 × one box.
