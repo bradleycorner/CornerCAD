@@ -450,6 +450,33 @@ cornercad-square-galleries/
   `media_sideload_image` outside the browser.
 - Settings: **none at first.** Fewer knobs, less to break.
 
+**Known bugs in `~/square-gallery.php` — fix these in the plugin (found 2026-11-22):**
+- 🐛 **It skips items at the end of a page.** It reads Square 5 items per page and stops after
+  `$MAX = 2` products that needed work, then saves the cursor for the **next** page — so anything left
+  on the current page is never visited that run. On the last page it then logs `ALLDONE`. The Oversized
+  Deck Box (5th item on the last page, behind LED Lamp Kit-001 and MTG Deck Box) was skipped by every
+  run until those two were finished. Fix: finish the page before stopping, or keep an in-page offset.
+  A clean `ALLDONE` from the current script does **not** prove every product was reached.
+- 🐛 **No lock — two copies corrupt each other.** On 2026-11-22 a "dead" loop was still running on the
+  server (it did not show in `ps` there) when a second was started. Together they re-downloaded galleries
+  for 42 products, creating **1,170** attachments. 224 unused ones were deleted (DB backup
+  `~/db-backup-before-dupe-cleanup-20261122.sql`, files in `~/dupe-backup-20261122/`, IDs in
+  `~/gallery-dupes-final-20261122.txt`); 7 were kept because the race made two attachments share one
+  file (deleting either removes the other's file). Fix: take a lock (`flock`, or a WP option/transient)
+  and refuse to run if it's held. Until then, run it only as
+  `nohup flock -n ~/gallery.lock bash -c '<loop>' > ~/gallery-run.log 2>&1 &`.
+- ⚠️ **A WooCommerce Square re-sync appears to wipe gallery state.** After a manual re-sync with
+  *Override product images* on, products the sync touched came back with no `_cad_gallery_done` record,
+  so the puller re-downloaded their whole gallery as new attachments, orphaning the previous ones
+  (inferred from the data — every rebuilt gallery is all-new IDs — not proven). If confirmed, the
+  plugin must key "already pulled" on something the sync doesn't touch (e.g. the source Square image
+  ID stored on the attachment) and reuse existing attachments instead of re-sideloading.
+- Each sideloaded JPEG also gets a **WebP twin attachment** (`post_parent` 0) from the Bluehost
+  performance module (`newfold-labs/wp-module-performance` `ImageRewriteHandler`). Expected — never
+  treat parent-0 WebP attachments as orphans to delete.
+- Leftovers, not fixed: `egg` (200) lists the same image twice; `Adrift Planter` (641) has 19 gallery
+  images but 20 marked done.
+
 **Public release = separate decision, deliberately deferred.** Demand is obviously real, but shipping to
 wordpress.org means support tickets, cross-host compatibility, and maintenance on every WooCommerce
 Square API change. Run it privately for a few weeks first, then decide with battle-tested code.
