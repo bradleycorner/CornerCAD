@@ -308,7 +308,7 @@ master after 10 min idle; an occasional reconnect is normal, not the rate limit 
 | `wp_create_post` | `post_title` required. `post_status` defaults **draft**, `post_type` defaults **post** — pass `product` for WooCommerce. `post_content` takes HTML / Gutenberg blocks / shortcodes **as-is**; plain prose with no markup is auto-converted from Markdown. `meta_input` sets custom fields at creation. |
 | `wp_update_post` | Full-body update. |
 | `wp_alter_post` | **Surgical edit** — insert/replace a paragraph or shortcode without resending the whole body. Use this for small changes. |
-| `wp_delete_post` | Trash by default; `force: true` permanently destroys (irreversible). |
+| `wp_delete_post` | Trash by default **for posts and pages only**. 🚨 On **products** (and other CPTs) it deleted permanently even without `force` (2026-11-21) — see §4. |
 | `wp_update_post_meta` | Pass a `meta` object to set **many keys at once** — the workhorse for WooCommerce products. |
 | `wp_delete_post_meta` | Remove a meta key. |
 | `wp_add_post_terms` | `append: false` (default) **replaces** all terms in that taxonomy; `append: true` adds. Also used for Woo attributes (`pa_color`, `pa_size`). |
@@ -370,8 +370,13 @@ For the coaster, prefer **variations on a Shape attribute (Round / Square)** ove
 - **Everything writes live.** WordPress has no unapproved-draft-version safety net like Concrete's, so the
   Concrete trick of "write → verify → delete the draft version to roll back" **does not apply**.
   Instead: create as `post_status: draft`, verify, then flip to `publish`.
-- `wp_delete_post` **without** `force` goes to Trash and is recoverable. Only pass `force: true` when
-  you intend permanent destruction.
+- 🚨 **`wp_delete_post` without `force` trashes ONLY posts and pages.** On 2026-11-21 it was called on
+  product 471 (orphaned Card Deck Box, `CAD-BOX-0001`) to "move it to Trash". Afterwards `wp_get_post`
+  returned *Post not found* and a `post_status: trash` search returned nothing, so it was **permanently
+  deleted**. The tool description promises Trash; it lies for CPTs. Our explanation (inferred, not yet
+  read in this install's source): WP core's `wp_delete_post()` only routes `post`/`page` through
+  `wp_trash_post()`. **To trash a product, use `wp_update_post` with `post_status: trash`** — that is
+  recoverable — and treat `wp_delete_post` on any CPT as irreversible.
 - Read back with `wp_get_post_snapshot` after any product write — it returns post + meta + terms together.
 - Post IDs are **stable** across edits (unlike Concrete blockIDs, which changed on every update).
 - `wp_update_post_meta` with a `meta` object **merges** — omitted keys are untouched.

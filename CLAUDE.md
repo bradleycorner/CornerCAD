@@ -388,6 +388,7 @@ is only truly proven on a real card statement.
 | ID | Name | Status | Business name |
 |---|---|---|---|
 | `LS4SZ98SBX4F6` | **CornerCAD** | ACTIVE | CornerCAD ← **Woo points here** |
+| `LK32GGVY8R0XG` | **CornerCAD Events** | ACTIVE | business_name CornerCAD; Lisa's logo/background replaced 2026-11-21 with the CornerCAD cube logo (`assets/brand/`, verified by download). Both CornerCAD locations now share it. In-person/show sales; item library copied from CornerCAD. Holds the in-person **location price overrides** (Woo reads `LS4SZ98SBX4F6`'s overrides, so they can't live there — `update_price_money()`, WC Square 5.5.3) |
 | `L71MXVF5YWZE4` | Unique Creations by Lisa C, LLC | ACTIVE | Unique Creations By Lisa C, LLC |
 | `LV94H6Q7QPB42` | Duval County | INACTIVE | Unique Creations By Lisa C |
 
@@ -486,7 +487,9 @@ Superseded docs, kept for history only: `docs/concrete-cms-api-protocol.md`,
 - **Set `_price` as well as `_regular_price`.** Woo queries `_price`; a product with only
   `_regular_price` won't sort/filter correctly.
 - **`wp_add_post_terms` defaults to `append: false`** — it **replaces** every term in that taxonomy.
-- **`wp_delete_post` with `force: true` is irreversible** (bypasses Trash).
+- **`wp_delete_post` with `force: true` is irreversible** (bypasses Trash). 🚨 **On products it is irreversible
+  even WITHOUT `force`** — product 471 was permanently deleted that way 2026-11-21. Trash a product with
+  `wp_update_post` → `post_status: trash` instead.
 - **`wp_get_posts` returns 10 rows** when `limit` is omitted, and never returns body content.
 - Post IDs are stable across edits — unlike Concrete blockIDs, which changed on every update.
 
