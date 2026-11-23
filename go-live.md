@@ -453,6 +453,17 @@ the Proton token was revoked/rotated, or someone changed the From address to one
 - [ ] **[admin]** Put the code in the Jetpack welcome message (Jetpack → Newsletter → Settings) so
       subscribers actually receive it.
 - OptinMonster is still installed but unconnected, no campaigns — not used for the newsletter.
+- 💡 **Later, maybe: unique per-subscriber codes.** `WELCOME10` is one shared code (Jetpack's welcome
+  message is static), so it can leak to coupon sites — the 1-use-per-customer limit is keyed on billing
+  email, not on being a subscriber. Options, none chosen (Bradley, 2026-11-22: "a possibility for later"):
+  1. **MailPoet** (free, by WooCommerce) — reportedly has an email coupon block that generates a unique
+     single-use Woo coupon per subscriber, sent by a welcome automation. **Unverified — check the current
+     version first.** Means replacing Jetpack Newsletter (list + form move into WordPress; mail goes out
+     via the Proton SMTP setup above). Leading candidate.
+  2. Paid coupon plugin (Smart Coupons / Advanced Coupons) — generates codes, still needs a way to email them.
+  3. Hosted ESP (Klaviyo / Mailchimp + Woo integration) — does this well; another account, cost scales.
+  4. Custom snippet creating a coupon on signup — not possible with Jetpack (signups happen on
+     WordPress.com, the site never sees them).
 
 ## Site hygiene
 
