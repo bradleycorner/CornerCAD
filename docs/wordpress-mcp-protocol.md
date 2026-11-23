@@ -235,14 +235,42 @@ work actually lives.
 write tools plus the 5 `woocommerce-uclc` writers, each name checked against the live server's
 advertised list; the 38 ungated `uclc` tools are all reads. Rules now total **179**.
 
+**2026-10-04 — `uclc` grew 4 tools, gated.** `uclc` now advertises `wp_install_plugin`,
+`wp_install_theme`, `wp_update_plugin`, `wp_update_theme` (not present on `cornercad-com` or
+`fcmc-dev`). All four arrived ungated and were added to `permissions.ask`.
+
+**2026-10-04 — `fcmc-dev` grew 8 Social Engine tools (95 → 103), writers gated.** Enabling Social
+Engine's MCP option in AI Engine registers `sclegn_*` tools (visible only after a session restart).
+Reads, ungated: `sclegn_list_accounts`, `sclegn_get_account`, `sclegn_get_posts`, `sclegn_get_post`.
+Writes, added to `permissions.ask` before first use: `sclegn_post` (**defaults to
+`status: "publish"` = posts to the social network immediately**), `sclegn_publish_now`,
+`sclegn_update_post`, `sclegn_delete_post`. These act on Social Engine's `social_post` queue, not
+WordPress posts. At gating time `sclegn_list_accounts` returned `[]` — no network connected yet.
+Rules now total **187**.
+
 ### Standing rule
 Prefer typed tools. **Treat direct database/SQL access as a last resort for WRITES** — raw SQL
 bypasses draft → verify → publish, post revisions, and the git-mirrored block markup in
 `content/blocks/`, on a live store. Same principle as global `CLAUDE.md` rule #7 (typed FreeCAD
 tools before `execute_python`).
 
-*Read-only* SQL via `wp_db_query` is the exception and is **encouraged** as a verification channel,
-given how often these tools return plausible-but-wrong values. Two disciplines apply, because the
+**Reads go through typed tools too (Bradley, 2026-10-04).** Check for a typed tool before reaching for
+`wp_db_query` or SSH — they exist for most questions:
+
+| Question | Tool |
+|---|---|
+| Installed / active plugins | `wp_list_plugins_detailed` |
+| Users and roles | `wp_get_users` (no registration date, but IDs only increase) |
+| Pages, posts, which page holds a form | `wp_get_posts` (`search`) / `wp_get_post` |
+| Settings | `wp_get_option` (`raw: true` where caching misleads) |
+
+**SQL and SSH need Bradley's permission, every time, and only when there is no other choice.** Before
+any `wp_db_query` or SSH command, say why no typed tool can do it and show the exact query/command,
+then wait for a yes. Why: Bradley has to read each query to judge whether it could load the shared
+account, and multi-join or nested lookups are hard to vet at a glance — "it was quicker" is never the
+reason. Legitimate cases: no typed tool answers the question; cross-checking a typed tool suspected of
+returning a plausible-but-wrong value (e.g. `wp_count_media`); mu-plugin files and WP-CLI commands
+(SSH only); MCP down. Keep any approved query as simple as the question allows. Two disciplines apply, because the
 2026-07-28 account-wide outage was caused by request/process volume on the shared CloudLinux cage
 and this module makes issuing queries frictionless:
 - **Batch.** Fold multiple checks into one statement (`UNION ALL`) rather than looping.
@@ -280,7 +308,7 @@ master after 10 min idle; an occasional reconnect is normal, not the rate limit 
 | `wp_create_post` | `post_title` required. `post_status` defaults **draft**, `post_type` defaults **post** — pass `product` for WooCommerce. `post_content` takes HTML / Gutenberg blocks / shortcodes **as-is**; plain prose with no markup is auto-converted from Markdown. `meta_input` sets custom fields at creation. |
 | `wp_update_post` | Full-body update. |
 | `wp_alter_post` | **Surgical edit** — insert/replace a paragraph or shortcode without resending the whole body. Use this for small changes. |
-| `wp_delete_post` | Trash by default; `force: true` permanently destroys (irreversible). |
+| `wp_delete_post` | Trash by default **for posts and pages only**. 🚨 On **products** (and other CPTs) it deleted permanently even without `force` (2026-11-21) — see §4. |
 | `wp_update_post_meta` | Pass a `meta` object to set **many keys at once** — the workhorse for WooCommerce products. |
 | `wp_delete_post_meta` | Remove a meta key. |
 | `wp_add_post_terms` | `append: false` (default) **replaces** all terms in that taxonomy; `append: true` adds. Also used for Woo attributes (`pa_color`, `pa_size`). |
@@ -342,8 +370,13 @@ For the coaster, prefer **variations on a Shape attribute (Round / Square)** ove
 - **Everything writes live.** WordPress has no unapproved-draft-version safety net like Concrete's, so the
   Concrete trick of "write → verify → delete the draft version to roll back" **does not apply**.
   Instead: create as `post_status: draft`, verify, then flip to `publish`.
-- `wp_delete_post` **without** `force` goes to Trash and is recoverable. Only pass `force: true` when
-  you intend permanent destruction.
+- 🚨 **`wp_delete_post` without `force` trashes ONLY posts and pages.** On 2026-11-21 it was called on
+  product 471 (orphaned Card Deck Box, `CAD-BOX-0001`) to "move it to Trash". Afterwards `wp_get_post`
+  returned *Post not found* and a `post_status: trash` search returned nothing, so it was **permanently
+  deleted**. The tool description promises Trash; it lies for CPTs. Our explanation (inferred, not yet
+  read in this install's source): WP core's `wp_delete_post()` only routes `post`/`page` through
+  `wp_trash_post()`. **To trash a product, use `wp_update_post` with `post_status: trash`** — that is
+  recoverable — and treat `wp_delete_post` on any CPT as irreversible.
 - Read back with `wp_get_post_snapshot` after any product write — it returns post + meta + terms together.
 - Post IDs are **stable** across edits (unlike Concrete blockIDs, which changed on every update).
 - `wp_update_post_meta` with a `meta` object **merges** — omitted keys are untouched.

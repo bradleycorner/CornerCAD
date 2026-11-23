@@ -404,6 +404,93 @@ At ~$5.64/u it sells comfortably at $14–16 (mains kits reasonably carry more t
 
 - [ ] **[admin]** "From" address/name (`sales@cornercad.com`); order-notification recipients; business info
       in receipts; a real test email received.
+      ⚠️ Site mail currently sends as **`brad@cornercad.com`**, not `sales@` (see below). To switch: add
+      `sales@` in Proton, generate an SMTP token for it, then update From + SMTP username + password in
+      WP Mail SMTP together — Proton rejects a From that doesn't match the token's address.
+
+### ✅ Outbound mail goes through Proton SMTP (set up 2026-11-22)
+
+**Why:** before this, WordPress sent through Bluehost's local sendmail as `wordpress@cornercad.com`.
+cornercad.com's SPF only authorises Proton (`include:_spf.protonmail.ch ~all`), DKIM is Proton's, and
+DMARC is `p=quarantine` — so every site email failed authentication and **Gmail silently dropped it**.
+CF7 returned `mail_sent` the whole time; nothing on the WordPress side showed a failure. A contact-form
+test sent 2026-11-22 01:05 never arrived anywhere (inbox, spam, trash). Woo order/account emails
+(registration password, resets, order notices) were affected the same way.
+
+**Setup (live, prod):**
+- Plugin **WP Mail SMTP** 4.10.4 (free), mailer **Other SMTP**.
+- Host `smtp.protonmail.ch`, port **587**, TLS (STARTTLS), auth on, username `brad@cornercad.com`.
+- Password = a **Proton SMTP token** (Proton → Settings → IMAP/SMTP → SMTP tokens), entered by Bradley
+  in WP admin — not in any repo or chat. Tokens are per-address; revoking it stops all site mail.
+- **Force From Email ON** → `brad@cornercad.com`. Required: Woo's own From was `BC80921@GMAIL.COM` and
+  CF7's was `wordpress@cornercad.com`; Proton refuses to send as either. From *name* is not forced, so
+  each sender keeps its own name. CF7 keeps `Reply-To: [your-email]`, so replying reaches the visitor.
+- Return Path set to match From.
+- DNS needed no change — Proton's SPF, DKIM (`protonmail`, `protonmail2`, `protonmail3` CNAMEs) and
+  DMARC were already published.
+- Bluehost allows outbound 587 and 465 (checked from the host 2026-11-22).
+- Previous plugin options saved at `~/wp_mail_smtp-before-20261122.json` on the server.
+
+**Verified 2026-11-22:** WP Mail SMTP's own test email succeeded, and a CF7 submission from /contact
+("CornerCAD contact form test 20261122-030605") arrived in Gmail from `brad@cornercad.com`, not in spam.
+**Not yet verified:** a Woo order email and a password-reset email — do these during the launch test
+transaction (critical path step 7).
+
+**If site mail stops:** check WP Mail SMTP → Email Log / Tools → Email Test first. Most likely causes:
+the Proton token was revoked/rotated, or someone changed the From address to one without a token.
+
+### ✅ Newsletter signup (2026-11-22)
+
+- The header banner ("Get 10% off your first order ・ Just sign up for our Newsletter", template part
+  `header`, ID 98) now links to **`/newsletter/`** (page 6279, template `page-no-title` so no post date).
+  Banner backup: `~/part98-before-20261122.html`.
+- Form = **Jetpack Subscribe block**. Subscribers live on WordPress.com (Jetpack → Newsletter); the
+  confirmation email comes from WordPress.com, not our SMTP. End-to-end tested by Bradley: confirm link
+  worked, subscribed.
+- Coupon **`WELCOME10`** (ID 6281): 10 % off, 1 use per customer, individual use. Woo cannot restrict
+  to a customer's *first* order natively — per-customer limit is the closest. Unusable until catalog
+  mode is off.
+- [x] **[admin]** Code is in the Jetpack welcome message (Jetpack → Newsletter → Settings): "Thanks for
+      subscribing! Use code WELCOME10 for 10% off your first order." (option `subscription_options.welcome`)
+- **Floating Subscribe button ON** site-wide (`jetpack_subscribe_floating_button_enabled` = 1; Jetpack →
+  Newsletter → "Add a subscribe form"). Verified on home, `/catalog/` (the shop — `/shop/` is a 404),
+  a product page, `/contact/`, `/newsletter/`. Pop-up deliberately NOT used (cookie banner + OptinMonster).
+- OptinMonster is still installed but unconnected, no campaigns — not used for the newsletter.
+- 💡 **Later, maybe: unique per-subscriber codes.** `WELCOME10` is one shared code (Jetpack's welcome
+  message is static), so it can leak to coupon sites — the 1-use-per-customer limit is keyed on billing
+  email, not on being a subscriber. Options, none chosen (Bradley, 2026-11-22: "a possibility for later"):
+  1. **MailPoet** (free, by WooCommerce) — reportedly has an email coupon block that generates a unique
+     single-use Woo coupon per subscriber, sent by a welcome automation. **Unverified — check the current
+     version first.** Means replacing Jetpack Newsletter (list + form move into WordPress; mail goes out
+     via the Proton SMTP setup above). Leading candidate.
+  2. Paid coupon plugin (Smart Coupons / Advanced Coupons) — generates codes, still needs a way to email them.
+  3. Hosted ESP (Klaviyo / Mailchimp + Woo integration) — does this well; another account, cost scales.
+  4. Custom snippet creating a coupon on signup — not possible with Jetpack (signups happen on
+     WordPress.com, the site never sees them).
+
+### ✅ Custom project request form (2026-11-22)
+
+The Custom Work page (`/custom-work/`, page 68) used to be a `mailto:` button. It is now CF7 form
+**6283** "Custom project request" (shortcode hash `e806214`). Page backup: `~/page68-before-20261122.html`.
+
+- **Fields:** name, email, phone (opt), project type, description, what it must fit/attach to (opt),
+  quantity (1 / 2-10 / 11-50 / 50+, with a note sending 50+ to CornerCADWorks.com), material, need-by
+  date (opt), budget range (opt), 3 file uploads (8 MB each: jpg png heic pdf step stp stl 3mf dxf),
+  **NDA checkbox**, **portfolio-OK checkbox**. Akismet on name/email.
+- **NDA approach (decided 2026-11-22):** a "Confidential by default" note above the form + the NDA
+  checkbox. Ticking it tells the customer to send a general description only, no files; Bradley sends a
+  **mutual NDA** before details. No click-through "blanket NDA" on the site (would bind us one-way and
+  block portfolio use).
+  - [ ] **[Bradley]** Get one standard mutual NDA template reviewed by a lawyer, keep it ready to send.
+- **Mail 1** → `brad@cornercad.com`, subject `Custom project: [type] - [name]`, Reply-To the customer,
+  files attached. **Mail 2** (auto-reply to customer) echoes **no** visitor text, so it can't relay spam.
+- **Gotcha fixed:** CF7 renames any upload not on its safelist (image/audio/video/pdf/txt) to
+  `name.ext_.txt` — `part.stl` arrived as `part.stl_.txt`. WPCode snippet **6285** (source:
+  `snippets/wpcode-cf7-cad-file-uploads.php`) adds stl/step/stp/3mf/dxf to `wpcf7_file_extension_safelist`.
+  `.php` etc. are still renamed.
+- **Verified 2026-11-22** end-to-end in Proton (himalaya `-a cornercad`): request + auto-reply arrived,
+  all fields correct, NDA flag shown, attachment arrives as `test-part.stl`.
+- Materials line on the page now lists the **Prusa Core One L** (large parts) beside the K2 Plus.
 
 ## Site hygiene
 
@@ -449,6 +536,33 @@ cornercad-square-galleries/
   duplicate or lose work. Keep the wp-admin includes (`file.php`/`media.php`/`image.php`) — required for
   `media_sideload_image` outside the browser.
 - Settings: **none at first.** Fewer knobs, less to break.
+
+**Known bugs in `~/square-gallery.php` — fix these in the plugin (found 2026-11-22):**
+- 🐛 **It skips items at the end of a page.** It reads Square 5 items per page and stops after
+  `$MAX = 2` products that needed work, then saves the cursor for the **next** page — so anything left
+  on the current page is never visited that run. On the last page it then logs `ALLDONE`. The Oversized
+  Deck Box (5th item on the last page, behind LED Lamp Kit-001 and MTG Deck Box) was skipped by every
+  run until those two were finished. Fix: finish the page before stopping, or keep an in-page offset.
+  A clean `ALLDONE` from the current script does **not** prove every product was reached.
+- 🐛 **No lock — two copies corrupt each other.** On 2026-11-22 a "dead" loop was still running on the
+  server (it did not show in `ps` there) when a second was started. Together they re-downloaded galleries
+  for 42 products, creating **1,170** attachments. 224 unused ones were deleted (DB backup
+  `~/db-backup-before-dupe-cleanup-20261122.sql`, files in `~/dupe-backup-20261122/`, IDs in
+  `~/gallery-dupes-final-20261122.txt`); 7 were kept because the race made two attachments share one
+  file (deleting either removes the other's file). Fix: take a lock (`flock`, or a WP option/transient)
+  and refuse to run if it's held. Until then, run it only as
+  `nohup flock -n ~/gallery.lock bash -c '<loop>' > ~/gallery-run.log 2>&1 &`.
+- ⚠️ **A WooCommerce Square re-sync appears to wipe gallery state.** After a manual re-sync with
+  *Override product images* on, products the sync touched came back with no `_cad_gallery_done` record,
+  so the puller re-downloaded their whole gallery as new attachments, orphaning the previous ones
+  (inferred from the data — every rebuilt gallery is all-new IDs — not proven). If confirmed, the
+  plugin must key "already pulled" on something the sync doesn't touch (e.g. the source Square image
+  ID stored on the attachment) and reuse existing attachments instead of re-sideloading.
+- Each sideloaded JPEG also gets a **WebP twin attachment** (`post_parent` 0) from the Bluehost
+  performance module (`newfold-labs/wp-module-performance` `ImageRewriteHandler`). Expected — never
+  treat parent-0 WebP attachments as orphans to delete.
+- Leftovers, not fixed: `egg` (200) lists the same image twice; `Adrift Planter` (641) has 19 gallery
+  images but 20 marked done.
 
 **Public release = separate decision, deliberately deferred.** Demand is obviously real, but shipping to
 wordpress.org means support tickets, cross-host compatibility, and maintenance on every WooCommerce
