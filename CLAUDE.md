@@ -204,6 +204,14 @@ materials, $55/$67/$70), Engraved Slate Coaster (4 shape×pack). Hard constraint
   variation. Use distinct 3-letter suffixes (`-FDM`, `-MER`).
 - Converting an item to variable **deletes and recreates** the Woo product with a `-2` slug — reset
   the slug afterwards.
+  - **Not always.** Vanta Vase, 2026-11-23: the sync made a NEW variable product (6287) and left the
+    old simple one (265) published. 265 kept SKU `CAD-VAS-0009`, so the variation reusing it was
+    silently skipped (no log line). The new product also had no `wc_square_synced` term, so later
+    manual syncs ignored it, and the stock snippet never fixed its out-of-stock variations. Fix, in
+    order: trash the old product (`wp_trash_post`; `wp post delete` refuses without `--force`),
+    `Handlers\Product::set_synced_with_square()` on the new one, sync again. Then set the slug, and
+    delete the old product's `_wp_old_slug`, or the old URL 301s to the trashed post.
+  - The Woo attribute label is the Square option's **name**, not its `display_name`.
 
 **Pricing model: return per printer-hour**, not margin percent — plate hours are the binding
 constraint. Wall Clock $45 / 2h09m = **$18.50/hr** is the benchmark. Vexel $55 = $13.30/hr. The
