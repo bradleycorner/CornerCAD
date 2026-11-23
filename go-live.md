@@ -60,6 +60,26 @@ Legend: `[x]` done · `[ ]` pending · `[~]` partially done.
 
 ## 💾 Backups (set up before launch; critical once taking orders)
 
+### ✅ Backups fixed 2026-11-23 — they had silently stopped in September
+
+- **Symptom:** UpdraftPlus said weekly → Google Drive, but the last backup was **2026-09-02** and the
+  Backup/Restore tab read "Nothing currently scheduled". The `updraft_backup` / `updraft_backup_database`
+  cron events did not exist; WP-Cron itself was healthy (system cron runs `wp cron event run --due-now`
+  every 21 min, 0 overdue). Cause of the events vanishing: **not found**. Saving Settings did NOT
+  recreate them; calling the plugin's own `$updraftplus->schedule_backup()` /
+  `schedule_backup_database()` did.
+- **Schedule now:** database **daily, keep 14**; files **weekly, keep 4**. Remote = Google Drive
+  (folder `UpdraftPlus`, 5 TB plan — size is not a concern). Drive auth is via updraftplus.com
+  (`user_id` + `tmp_access_token`), so an empty `token` field does NOT mean disconnected.
+- **Verified:** full backup 2026-11-23 05:51 UTC — 19 archives uploaded with "Google Drive: OK", 88 DB
+  tables, no errors, local copies removed; recurring events present afterwards (db next 11-24, files 11-30).
+- [ ] **Re-check in a week** that the daily DB backups are actually accumulating (Existing backups count),
+      since the cause of the September stop is unknown.
+- **Size:** `wp-content/uploads` is 5.6 GB, of which **4.4 GB is 20,770 Bluehost-generated `.webp`
+  twins** — many larger than their originals (0.4 MB jpeg → 2.4 MB webp). Originals total 1.2 GB.
+  Most storefront images are served via Jetpack Boost Image CDN (`i0.wp.com`, ~2,900 refs on /catalog/),
+  so visitors probably don't get them — unverified. Post-launch: fix or drop the Bluehost WebP module.
+
 - **The prod DB is the irreplaceable part** — orders + content + config live only there. Files
   (themes/plugins/code) are reproducible and mostly in staging; media (`wp-content/uploads`) matters too.
 - **Two candidates under evaluation (2026-08-13):**
@@ -526,6 +546,33 @@ The Custom Work page (`/custom-work/`, page 68) used to be a `mailto:` button. I
 - Materials line on the page now lists the **Prusa Core One L** (large parts) beside the K2 Plus.
 
 ## Site hygiene
+
+### ✅ Site Health pass 2026-11-23
+
+- **Every page 307-redirected to `?v=34f435c6b599`** (`X-Redirect-By: WordPress`), Googlebot included.
+  Cause: WooCommerce → Default customer location = *Geolocate (with page caching support)*, which appends
+  a location hash (`class-wc-cache-helper.php`). Geolocation never worked anyway (no MaxMind key).
+  **Fixed:** `woocommerce_default_customer_address` = `base` (shop country). Pages now 200 directly.
+  Also clears the MaxMind and "uploads directory protection" Site Health items (that check was getting
+  the 307). Payment endpoints, wc-ajax, REST and the Apple Pay `.well-known` file were never redirected,
+  so this was **not** the Apple Pay failure cause.
+- **Critical: "Cache engine is not loading".** Boost page cache was on and `advanced-cache.php` was
+  Boost's, but `WP_CACHE` was missing from `wp-config.php`. **Fixed:** `define('WP_CACHE', true)`.
+  Backup: `~/wp-config-before-wpcache-20261123.php`. Verified `X-Jetpack-Boost-Cache: hit` on /catalog/,
+  `miss` on /cart/. ⚠️ **On launch day, clear the Boost cache** after leaving catalog mode.
+- **`cron-test.log` was public** (`cornercad.com/cron-test.log`, 3.7 MB, 52k lines). Crontab now logs to
+  `~/logs/cornercad-cron.log`; old file archived to `~/logs/`. Crontab backup `~/crontab-before-20261123.txt`.
+- **Cleanup (Bradley):** OptinMonster deactivated (never connected, no campaigns — the cookie banner is
+  **WPConsent**, not OptinMonster). Unused plugins deleted; kept inactive for later: Afterpay,
+  wp-plugin-payments-shipping, TikTok, WPForms Lite. Only theme left: **Sellany** (no fallback theme —
+  reinstall Twenty Twenty-Five sometime).
+- **Left as-is:** MySQL 5.7 (host's call), persistent object cache (not on shared hosting), Bluehost
+  browser-cache / Cloudflare / concatenation / critical-CSS suggestions (Boost covers most),
+  MonsterInsights ecommerce (paid).
+- **Found, not touched:** a second WordPress install at `public_html/website_14e4a69e` whose siteurl is
+  also `https://cornercad.com` (live site runs from `public_html/cornercad`). Decide whether to delete.
+- uniquecreationsbylisac.com is a separate install (`public_html/website_b895229c`, different IP) —
+  theme/plugin changes here cannot affect it.
 
 - [x] **Search-engine visibility ON** (`blog_public=1`).
 - [ ] **Re-authorize the prod MCP** (`cornercad-com`) — token expired around the sync.
