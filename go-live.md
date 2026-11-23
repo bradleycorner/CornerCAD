@@ -468,6 +468,30 @@ the Proton token was revoked/rotated, or someone changed the From address to one
   4. Custom snippet creating a coupon on signup — not possible with Jetpack (signups happen on
      WordPress.com, the site never sees them).
 
+### ✅ Custom project request form (2026-11-22)
+
+The Custom Work page (`/custom-work/`, page 68) used to be a `mailto:` button. It is now CF7 form
+**6283** "Custom project request" (shortcode hash `e806214`). Page backup: `~/page68-before-20261122.html`.
+
+- **Fields:** name, email, phone (opt), project type, description, what it must fit/attach to (opt),
+  quantity (1 / 2-10 / 11-50 / 50+, with a note sending 50+ to CornerCADWorks.com), material, need-by
+  date (opt), budget range (opt), 3 file uploads (8 MB each: jpg png heic pdf step stp stl 3mf dxf),
+  **NDA checkbox**, **portfolio-OK checkbox**. Akismet on name/email.
+- **NDA approach (decided 2026-11-22):** a "Confidential by default" note above the form + the NDA
+  checkbox. Ticking it tells the customer to send a general description only, no files; Bradley sends a
+  **mutual NDA** before details. No click-through "blanket NDA" on the site (would bind us one-way and
+  block portfolio use).
+  - [ ] **[Bradley]** Get one standard mutual NDA template reviewed by a lawyer, keep it ready to send.
+- **Mail 1** → `brad@cornercad.com`, subject `Custom project: [type] - [name]`, Reply-To the customer,
+  files attached. **Mail 2** (auto-reply to customer) echoes **no** visitor text, so it can't relay spam.
+- **Gotcha fixed:** CF7 renames any upload not on its safelist (image/audio/video/pdf/txt) to
+  `name.ext_.txt` — `part.stl` arrived as `part.stl_.txt`. WPCode snippet **6285** (source:
+  `snippets/wpcode-cf7-cad-file-uploads.php`) adds stl/step/stp/3mf/dxf to `wpcf7_file_extension_safelist`.
+  `.php` etc. are still renamed.
+- **Verified 2026-11-22** end-to-end in Proton (himalaya `-a cornercad`): request + auto-reply arrived,
+  all fields correct, NDA flag shown, attachment arrives as `test-part.stl`.
+- Materials line on the page now lists the **Prusa Core One L** (large parts) beside the K2 Plus.
+
 ## Site hygiene
 
 - [x] **Search-engine visibility ON** (`blog_public=1`).
