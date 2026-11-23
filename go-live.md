@@ -402,11 +402,9 @@ At ~$5.64/u it sells comfortably at $14–16 (mains kits reasonably carry more t
 
 ## Email
 
-- [ ] **[admin]** "From" address/name (`sales@cornercad.com`); order-notification recipients; business info
-      in receipts; a real test email received.
-      ⚠️ Site mail currently sends as **`brad@cornercad.com`**, not `sales@` (see below). To switch: add
-      `sales@` in Proton, generate an SMTP token for it, then update From + SMTP username + password in
-      WP Mail SMTP together — Proton rejects a From that doesn't match the token's address.
+- [x] **[admin]** "From" address `sales@cornercad.com` (2026-11-23); order-notification recipients
+      (`sales@`, see routing below); a real test email received.
+- [ ] **[admin]** Business info in receipts — check on the launch test transaction.
 
 ### ✅ Mail routing — who gets what (decided 2026-11-23)
 
@@ -424,11 +422,17 @@ Woo "From" address set to `sales@cornercad.com` (was the personal Gmail). Previo
 server at `~/email-routing-before-20261123.txt`. Verified 2026-11-23: contact-form test landed in `info@`.
 `admin_email` was changed with WP-CLI, so WordPress's usual confirm-the-new-address email was skipped.
 
-- [ ] **[Bradley] Sending address.** WP Mail SMTP (free) has ONE connection, authenticated as `brad@`
-      with Force From on, so **every** site email — including customer order receipts — is still sent
-      **from `brad@`** regardless of the settings above. To send as `sales@`: generate a Proton SMTP token
-      for `sales@`, then set WP Mail SMTP From + username + password to `sales@` together. Recipients
-      don't change. (Per-message From addresses would need WP Mail SMTP Pro's multiple connections.)
+- [x] **Sending address = `sales@cornercad.com`** (switched 2026-11-23). WP Mail SMTP (free) has ONE
+      connection with Force From on, so **every** site email — order receipts, form notices, auto-replies —
+      is sent **from `sales@`**. Recipients above are unaffected. Verified: test landed in `info@` with
+      `From: CornerCAD <sales@cornercad.com>`. (Per-message From addresses would need WP Mail SMTP Pro.)
+      - The **`brad@` SMTP token is kept in Proton as a fallback** — switching From + username + password
+        back to `brad@` restores mail if the `sales@` token fails.
+      - ⚠️ **From, SMTP username and the token must all be the same address.** During the switch the
+        username briefly read `info@` (Proton: "Could not authenticate") and later the From read `brad@`
+        (Proton: "Sender address rejected: not owned by user sales@") — both stop ALL site mail. Change
+        the three together, and reload the settings page before saving so an old tab can't write back
+        stale values.
 
 ### ✅ Outbound mail goes through Proton SMTP (set up 2026-11-22)
 
@@ -441,10 +445,11 @@ test sent 2026-11-22 01:05 never arrived anywhere (inbox, spam, trash). Woo orde
 
 **Setup (live, prod):**
 - Plugin **WP Mail SMTP** 4.10.4 (free), mailer **Other SMTP**.
-- Host `smtp.protonmail.ch`, port **587**, TLS (STARTTLS), auth on, username `brad@cornercad.com`.
+- Host `smtp.protonmail.ch`, port **587**, TLS (STARTTLS), auth on, username `sales@cornercad.com`
+  (was `brad@` until 2026-11-23).
 - Password = a **Proton SMTP token** (Proton → Settings → IMAP/SMTP → SMTP tokens), entered by Bradley
   in WP admin — not in any repo or chat. Tokens are per-address; revoking it stops all site mail.
-- **Force From Email ON** → `brad@cornercad.com`. Required: Woo's own From was `BC80921@GMAIL.COM` and
+- **Force From Email ON** → `sales@cornercad.com` (was `brad@` until 2026-11-23). Required: Woo's own From was `BC80921@GMAIL.COM` and
   CF7's was `wordpress@cornercad.com`; Proton refuses to send as either. From *name* is not forced, so
   each sender keeps its own name. CF7 keeps `Reply-To: [your-email]`, so replying reaches the visitor.
 - Return Path set to match From.
@@ -455,11 +460,17 @@ test sent 2026-11-22 01:05 never arrived anywhere (inbox, spam, trash). Woo orde
 
 **Verified 2026-11-22:** WP Mail SMTP's own test email succeeded, and a CF7 submission from /contact
 ("CornerCAD contact form test 20261122-030605") arrived in Gmail from `brad@cornercad.com`, not in spam.
-**Not yet verified:** a Woo order email and a password-reset email — do these during the launch test
-transaction (critical path step 7).
+**Verified 2026-11-23:** Woo account registration ("Your CornerCAD.com account has been created!") and
+lost-password ("Reset your password for CornerCAD.com") emails both arrived (throwaway customer
+`brad+formtest@`, deleted afterwards). Product search returns results.
+**Not yet verified:** Woo order emails — do these during the launch test transaction (critical path step 7).
 
-**If site mail stops:** check WP Mail SMTP → Email Log / Tools → Email Test first. Most likely causes:
-the Proton token was revoked/rotated, or someone changed the From address to one without a token.
+**Testing forms with curl:** don't combine `-X POST` with `-L` — curl re-POSTs to the redirect target and
+Bluehost ModSecurity answers **406 Not Acceptable**. Looks like a site bug; it isn't (the browser GET is 200).
+
+**If site mail stops:** check WP Mail SMTP → Tools → Email Test first. The free plugin logs only failures,
+in the `awF_wpmailsmtp_debug_events` table. Most likely causes: the Proton token was revoked/rotated, or
+From / username / token no longer name the same address.
 
 ### ✅ Newsletter signup (2026-11-22)
 
