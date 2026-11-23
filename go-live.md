@@ -535,6 +535,11 @@ The Custom Work page (`/custom-work/`, page 68) used to be a `mailto:` button. I
 - [ ] AI Engine Anthropic content-gen key present (Settings → AI → Environments → Claude) — gets wiped by
       restores/syncs; re-paste if blank. (Separate from the MCP bearer token.)
 
+- **Blog menu link hidden until the first post** (2026-11-23): WPCode snippet **6286**
+  (`snippets/wpcode-hide-empty-blog-link.php`) drops nav links to the posts page (`page_for_posts` 76,
+  `/blog/`) from the header and footer Quick Links while there are 0 published posts. It reappears on its
+  own after the first post; the menus themselves were not edited. Delete the snippet once posts exist.
+
 ## Content (buildout — not launch blockers)
 
 - [~] **Build Log** (Daytona Coupe): 16 drafts + a "Build Log" category. Paste the real opening into
