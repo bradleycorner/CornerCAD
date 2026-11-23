@@ -404,6 +404,55 @@ At ~$5.64/u it sells comfortably at $14–16 (mains kits reasonably carry more t
 
 - [ ] **[admin]** "From" address/name (`sales@cornercad.com`); order-notification recipients; business info
       in receipts; a real test email received.
+      ⚠️ Site mail currently sends as **`brad@cornercad.com`**, not `sales@` (see below). To switch: add
+      `sales@` in Proton, generate an SMTP token for it, then update From + SMTP username + password in
+      WP Mail SMTP together — Proton rejects a From that doesn't match the token's address.
+
+### ✅ Outbound mail goes through Proton SMTP (set up 2026-11-22)
+
+**Why:** before this, WordPress sent through Bluehost's local sendmail as `wordpress@cornercad.com`.
+cornercad.com's SPF only authorises Proton (`include:_spf.protonmail.ch ~all`), DKIM is Proton's, and
+DMARC is `p=quarantine` — so every site email failed authentication and **Gmail silently dropped it**.
+CF7 returned `mail_sent` the whole time; nothing on the WordPress side showed a failure. A contact-form
+test sent 2026-11-22 01:05 never arrived anywhere (inbox, spam, trash). Woo order/account emails
+(registration password, resets, order notices) were affected the same way.
+
+**Setup (live, prod):**
+- Plugin **WP Mail SMTP** 4.10.4 (free), mailer **Other SMTP**.
+- Host `smtp.protonmail.ch`, port **587**, TLS (STARTTLS), auth on, username `brad@cornercad.com`.
+- Password = a **Proton SMTP token** (Proton → Settings → IMAP/SMTP → SMTP tokens), entered by Bradley
+  in WP admin — not in any repo or chat. Tokens are per-address; revoking it stops all site mail.
+- **Force From Email ON** → `brad@cornercad.com`. Required: Woo's own From was `BC80921@GMAIL.COM` and
+  CF7's was `wordpress@cornercad.com`; Proton refuses to send as either. From *name* is not forced, so
+  each sender keeps its own name. CF7 keeps `Reply-To: [your-email]`, so replying reaches the visitor.
+- Return Path set to match From.
+- DNS needed no change — Proton's SPF, DKIM (`protonmail`, `protonmail2`, `protonmail3` CNAMEs) and
+  DMARC were already published.
+- Bluehost allows outbound 587 and 465 (checked from the host 2026-11-22).
+- Previous plugin options saved at `~/wp_mail_smtp-before-20261122.json` on the server.
+
+**Verified 2026-11-22:** WP Mail SMTP's own test email succeeded, and a CF7 submission from /contact
+("CornerCAD contact form test 20261122-030605") arrived in Gmail from `brad@cornercad.com`, not in spam.
+**Not yet verified:** a Woo order email and a password-reset email — do these during the launch test
+transaction (critical path step 7).
+
+**If site mail stops:** check WP Mail SMTP → Email Log / Tools → Email Test first. Most likely causes:
+the Proton token was revoked/rotated, or someone changed the From address to one without a token.
+
+### ✅ Newsletter signup (2026-11-22)
+
+- The header banner ("Get 10% off your first order ・ Just sign up for our Newsletter", template part
+  `header`, ID 98) now links to **`/newsletter/`** (page 6279, template `page-no-title` so no post date).
+  Banner backup: `~/part98-before-20261122.html`.
+- Form = **Jetpack Subscribe block**. Subscribers live on WordPress.com (Jetpack → Newsletter); the
+  confirmation email comes from WordPress.com, not our SMTP. End-to-end tested by Bradley: confirm link
+  worked, subscribed.
+- Coupon **`WELCOME10`** (ID 6281): 10 % off, 1 use per customer, individual use. Woo cannot restrict
+  to a customer's *first* order natively — per-customer limit is the closest. Unusable until catalog
+  mode is off.
+- [ ] **[admin]** Put the code in the Jetpack welcome message (Jetpack → Newsletter → Settings) so
+      subscribers actually receive it.
+- OptinMonster is still installed but unconnected, no campaigns — not used for the newsletter.
 
 ## Site hygiene
 
