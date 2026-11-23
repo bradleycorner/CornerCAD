@@ -450,8 +450,11 @@ the Proton token was revoked/rotated, or someone changed the From address to one
 - Coupon **`WELCOME10`** (ID 6281): 10 % off, 1 use per customer, individual use. Woo cannot restrict
   to a customer's *first* order natively — per-customer limit is the closest. Unusable until catalog
   mode is off.
-- [ ] **[admin]** Put the code in the Jetpack welcome message (Jetpack → Newsletter → Settings) so
-      subscribers actually receive it.
+- [x] **[admin]** Code is in the Jetpack welcome message (Jetpack → Newsletter → Settings): "Thanks for
+      subscribing! Use code WELCOME10 for 10% off your first order." (option `subscription_options.welcome`)
+- **Floating Subscribe button ON** site-wide (`jetpack_subscribe_floating_button_enabled` = 1; Jetpack →
+  Newsletter → "Add a subscribe form"). Verified on home, `/catalog/` (the shop — `/shop/` is a 404),
+  a product page, `/contact/`, `/newsletter/`. Pop-up deliberately NOT used (cookie banner + OptinMonster).
 - OptinMonster is still installed but unconnected, no campaigns — not used for the newsletter.
 - 💡 **Later, maybe: unique per-subscriber codes.** `WELCOME10` is one shared code (Jetpack's welcome
   message is static), so it can leak to coupon sites — the 1-use-per-customer limit is keyed on billing
