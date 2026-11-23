@@ -408,6 +408,28 @@ At ~$5.64/u it sells comfortably at $14–16 (mains kits reasonably carry more t
       `sales@` in Proton, generate an SMTP token for it, then update From + SMTP username + password in
       WP Mail SMTP together — Proton rejects a From that doesn't match the token's address.
 
+### ✅ Mail routing — who gets what (decided 2026-11-23)
+
+Rule (Bradley): **`brad@` = proposals, `sales@` = sales, `info@` = everything else.**
+
+| Mail | Goes to |
+|---|---|
+| Custom project requests (CF7 6283, /custom-work) | `brad@cornercad.com` |
+| Woo **New / Cancelled / Failed order** admin notices | `sales@cornercad.com` |
+| Woo low/out-of-stock notices (`woocommerce_stock_email_recipient`) | `sales@cornercad.com` |
+| Contact form (CF7 37, /contact) | `info@cornercad.com` |
+| WordPress admin email (`admin_email`: updates, security, new-user notices) | `info@cornercad.com` (was the personal Gmail) |
+
+Woo "From" address set to `sales@cornercad.com` (was the personal Gmail). Previous values saved on the
+server at `~/email-routing-before-20261123.txt`. Verified 2026-11-23: contact-form test landed in `info@`.
+`admin_email` was changed with WP-CLI, so WordPress's usual confirm-the-new-address email was skipped.
+
+- [ ] **[Bradley] Sending address.** WP Mail SMTP (free) has ONE connection, authenticated as `brad@`
+      with Force From on, so **every** site email — including customer order receipts — is still sent
+      **from `brad@`** regardless of the settings above. To send as `sales@`: generate a Proton SMTP token
+      for `sales@`, then set WP Mail SMTP From + username + password to `sales@` together. Recipients
+      don't change. (Per-message From addresses would need WP Mail SMTP Pro's multiple connections.)
+
 ### ✅ Outbound mail goes through Proton SMTP (set up 2026-11-22)
 
 **Why:** before this, WordPress sent through Bluehost's local sendmail as `wordpress@cornercad.com`.
